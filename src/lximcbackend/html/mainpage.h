@@ -18,6 +18,7 @@
 #ifndef HTML_MAINPAGE_H
 #define HTML_MAINPAGE_H
 
+#include "../pupnp/connection_manager.h"
 #include "../pupnp/upnp.h"
 #include <functional>
 #include <list>
@@ -33,9 +34,9 @@ public:
     struct page
     {
         std::string title;
-        std::string stylesheet;
         std::string icon;
-        std::function<int(const struct pupnp::upnp::request &, std::ostream &)> render;
+        std::function<void(const struct pupnp::upnp::request &, std::ostream &)> render_headers;
+        std::function<int(const struct pupnp::upnp::request &, std::ostream &)> render_content;
     };
 
     struct file
@@ -53,7 +54,7 @@ public:
     };
 
 public:
-    mainpage(class pupnp::upnp &);
+    mainpage(class pupnp::upnp &, class pupnp::connection_manager &);
     ~mainpage();
 
     void set_devicename(const std::string &);
@@ -67,10 +68,12 @@ private:
     int handle_http_request(const struct pupnp::upnp::request &, std::string &, std::shared_ptr<std::istream> &);
 
     int render_page(const struct pupnp::upnp::request &, const std::string &, std::ostream &, const struct page &);
+    void render_headers(const struct pupnp::upnp::request &, std::ostream &);
     int render_mainpage(const struct pupnp::upnp::request &, std::ostream &);
 
 private:
     class pupnp::upnp &upnp;
+    class pupnp::connection_manager &connection_manager;
     std::string devicename;
 
     std::map<std::string, page> pages;

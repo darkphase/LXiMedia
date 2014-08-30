@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.0"
+   width="60"
+   height="60"
+   id="svg1"
+   inkscape:version="0.48.4 r9939"
+   sodipodi:docname="state-running.svg">
+  <metadata
+     id="metadata10">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1255"
+     inkscape:window-height="1041"
+     id="namedview8"
+     showgrid="false"
+     inkscape:zoom="3.9333333"
+     inkscape:cx="-6.3559321"
+     inkscape:cy="30"
+     inkscape:window-x="57"
+     inkscape:window-y="18"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg1" />
+  <defs
+     id="defs3" />
+  <path
+     sodipodi:type="arc"
+     style="fill:none;stroke:#000000;stroke-width:3.125;stroke-linecap:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+     id="circle"
+     sodipodi:cx="30"
+     sodipodi:cy="30"
+     sodipodi:rx="25"
+     sodipodi:ry="25"
+     d="M 55,30 A 25,25 0 1 1 5,30 25,25 0 1 1 55,30 z" />
+  <path
+     d="M 30,30 C 30,12 30,12 30,12"
+     id="finger"
+     style="fill:none;stroke:#000000;stroke-width:3.125;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+     inkscape:connector-curvature="0">
+    <animateTransform
+       attributeName="transform"
+       begin="0s"
+       dur="2s"
+       type="rotate"
+       from="0 30 30"
+       to="360 30 30"
+       repeatCount="indefinite"
+       id="animateTransform6" />
+  </path>
+</svg>

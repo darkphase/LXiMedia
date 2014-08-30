@@ -1,10 +1,10 @@
 div.buttons {
- text-align: center;
  position: absolute;
  top: 35%;
  margin-top: -7em;
  left: 0;
  width: 100%;
+ text-align: center;
 }
 div.button {
  padding: 2em;
@@ -32,6 +32,50 @@ div.button {
 .button a:visited   { color: #808080; text-decoration: none; }
 .button a:active    { color: #808080; text-decoration: none; }
 .button a:hover     { color: #808080; text-decoration: none; }
+
+div.streams {
+ position: absolute;
+ top: 55%;
+ left: 0;
+ width: 100%;
+ text-align: center;
+}
+div.stream_list {
+ padding: 0.5em;
+ margin: 1em;
+ background-color: #E8E8E8;
+ border-radius: 0.5em;
+ display: inline-block;
+}
+.stream_list div {
+ display: table;
+}
+div.stream {
+ display: table-row;
+}
+.stream img {
+ display: table-cell;
+ width: 1.5em;
+ height: 1.5em;
+}
+p.stream_title {
+ padding: 0.25em;
+ display: table-cell;
+ text-align: left;
+ vertical-align: middle;
+}
+p.stream_dir {
+ padding: 0.25em;
+ display: table-cell;
+ text-align: center;
+ vertical-align: middle;
+}
+p.stream_dest {
+ padding: 0.25em;
+ display: table-cell;
+ text-align: right;
+ vertical-align: middle;
+}
 
 div.footer {
  padding: 0;

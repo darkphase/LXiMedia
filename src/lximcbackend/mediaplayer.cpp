@@ -101,6 +101,7 @@ static track_list list_tracks(const class vlc::media &media)
         }
 
     if (video.empty()) video.push_back(none);
+    if (audio.empty()) audio.push_back(none);
 
     track_list result;
     for (size_t v = 0; v < video.size(); v++)
@@ -183,7 +184,7 @@ std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(
             const auto system_path = to_system_path(path.substr(0, path.length() - 2));
             const auto media = vlc::media::from_file(vlc_instance, system_path.path);
             for (auto &track : list_tracks(media))
-                files.push_back(track.first);
+                files.emplace_back(track.first);
         }
         else for (auto &i : list_files(to_system_path(path).path, false, min_file_size))
         {
@@ -192,7 +193,7 @@ std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(
                 !ends_with(lname, ".nfo") && !ends_with(lname, ".srt") &&
                 !ends_with(lname, ".sub") && !ends_with(lname, ".txt"))
             {
-                files.push_back(std::move(i));
+                files.emplace_back(std::move(i));
             }
         }
     }
@@ -299,6 +300,7 @@ static void split_path(const std::string &path, std::string &file_path, std::str
 }
 
 int mediaplayer::play_item(
+        const std::string &source_address,
         const pupnp::content_directory::item &item,
         const std::string &profile,
         std::string &content_type,
@@ -448,6 +450,11 @@ int mediaplayer::play_item(
                 ? stream->open(item.mrl, item.chapter, track_ids, transcode.str(), protocol.mux, rate)
                 : stream->open(item.mrl, item.position, track_ids, transcode.str(), protocol.mux, rate))
         {
+            auto connection_info = connection_manager.output_connection(*stream);
+            connection_info.mrl = item.mrl;
+            connection_info.endpoint = source_address;
+            connection_manager.output_connection_update(*stream, connection_info);
+
             pending_transcode_streams[stream_id.str()] = stream;
             content_type = protocol.content_format;
             response = stream;
@@ -474,7 +481,16 @@ static void fill_item(
             if (!item.is_audio() && !item.is_video())
                 switch (type)
                 {
-                case path_type::auto_: item.type = pupnp::content_directory::item_type::audio;  break;
+                case path_type::auto_:
+                    if (item.duration >= std::chrono::minutes(50))
+                        item.type = pupnp::content_directory::item_type::audio_book;
+                    else if (item.duration < std::chrono::minutes(5))
+                        item.type = pupnp::content_directory::item_type::music;
+                    else
+                        item.type = pupnp::content_directory::item_type::audio;
+
+                    break;
+
                 case path_type::music: item.type = pupnp::content_directory::item_type::music;  break;
                 }
 
@@ -486,8 +502,15 @@ static void fill_item(
             if (!item.is_video())
                 switch (type)
                 {
-                case path_type::auto_: item.type = pupnp::content_directory::item_type::movie;          break;
-                case path_type::music: item.type = pupnp::content_directory::item_type::music_video;    break;
+                case path_type::auto_:
+                    if (item.duration >= std::chrono::minutes(50))
+                        item.type = pupnp::content_directory::item_type::movie;
+                    else
+                        item.type = pupnp::content_directory::item_type::video;
+
+                    break;
+
+                case path_type::music: item.type = pupnp::content_directory::item_type::music_video; break;
                 }
 
             item.width = track.video.width;
@@ -520,12 +543,12 @@ pupnp::content_directory::item mediaplayer::make_item(const std::string &/*clien
 
     struct pupnp::content_directory::item item;
     item.is_dir = file_path[file_path.length() - 1] == '/';
+    item.path = path;
 
     if (item.is_dir)
     {
         const size_t lsl = std::max(path.find_last_of('/'), path.length() - 1);
         const size_t psl = path.find_last_of('/', lsl - 1);
-        item.path = path;
         item.title = path.substr(psl + 1, lsl - psl - 1);
     }
     else
@@ -541,7 +564,6 @@ pupnp::content_directory::item mediaplayer::make_item(const std::string &/*clien
             for (auto &track : tracks)
                 if (track.first == track_name)
                 {
-                    item.path = path;
                     item.mrl = media.mrl();
 
                     fill_item(item, media, track.second, system_path.type);
@@ -555,7 +577,6 @@ pupnp::content_directory::item mediaplayer::make_item(const std::string &/*clien
         }
         else if (tracks.size() == 1)
         {
-            item.path = path;
             item.mrl = media.mrl();
 
             fill_item(item, media, tracks.front().second, system_path.type);

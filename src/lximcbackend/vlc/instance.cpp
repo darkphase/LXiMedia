@@ -18,6 +18,7 @@
 #include "instance.h"
 #include "media.h"
 #include <vlc/vlc.h>
+#include <iostream>
 
 namespace vlc {
 
@@ -70,6 +71,11 @@ int instance::compare_version(int major, int minor, int patch)
 instance::instance() noexcept
     : libvlc_instance(libvlc_new(argc, argv))
 {
+#if !defined(TEST_H)
+    std::clog << "[" << libvlc_instance << "] created new libvlc instance (" << libvlc_get_version() << ") with arguments:";
+    for (int i = 0; i < argc; i++) std::clog << ' ' << argv[i];
+    std::clog << std::endl;
+#endif
 }
 
 instance::~instance() noexcept

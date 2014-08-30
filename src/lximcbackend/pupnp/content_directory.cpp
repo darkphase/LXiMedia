@@ -317,12 +317,19 @@ void content_directory::handle_action(const upnp::request &request, action_brows
                         break;
 
                     case item_type::audio_broadcast:
-                    case item_type::video:
                     case item_type::video_broadcast:
                         add_file(action, request.url.host, *item_source->second, item, item.path, title);
                         break;
 
                     case item_type::audio:
+                    case item_type::video:
+                        if (item.duration < std::chrono::minutes(5))
+                            add_file(action, request.url.host, *item_source->second, item, item.path, title);
+                        else
+                            add_container(action, item.type, item.path, title);
+
+                        break;
+
                     case item_type::audio_book:
                     case item_type::movie:
                         add_container(action, item.type, item.path, title);
@@ -551,7 +558,7 @@ int content_directory::http_request(const upnp::request &request, std::string &c
             if (props[1] == "p")
                 item = make_play_item(item, props);
 
-            return item_source->second->play_item(item, profile, content_type, response);
+            return item_source->second->play_item(request.source_address, item, profile, content_type, response);
         }
     }
 
@@ -928,7 +935,7 @@ void content_directory::root_item_source::correct_protocol(const item &, connect
 {
 }
 
-int content_directory::root_item_source::play_item(const item &, const std::string &, std::string &, std::shared_ptr<std::istream> &)
+int content_directory::root_item_source::play_item(const std::string &, const item &, const std::string &, std::string &, std::shared_ptr<std::istream> &)
 {
     return upnp::http_not_found;
 }

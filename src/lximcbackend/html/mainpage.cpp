@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "mainpage.h"
+#include "../string.h"
 #include <algorithm>
 #include <sstream>
 
@@ -25,14 +26,17 @@ static const char base_css[] = {
 #include "main.css.h"
 }, main_svg[] = {
 #include "main.svg.h"
+}, running_svg[] = {
+#include "running.svg.h"
 }, vlc_icon_svg[] = {
 #include "vlc-icon.svg.h"
 };
 
 namespace html {
 
-mainpage::mainpage(class pupnp::upnp &upnp)
-    : upnp(upnp)
+mainpage::mainpage(class pupnp::upnp &upnp, class pupnp::connection_manager &connection_manager)
+    : upnp(upnp),
+      connection_manager(connection_manager)
 {
     using namespace std::placeholders;
 
@@ -43,6 +47,7 @@ mainpage::mainpage(class pupnp::upnp &upnp)
     add_file("/css/base.css", file { pupnp::upnp::mime_text_css, base_css, sizeof(base_css) });
     add_file("/css/main.css", file { pupnp::upnp::mime_text_css, main_css, sizeof(main_css) });
     add_file("/img/main.svg", file { pupnp::upnp::mime_image_svg, main_svg, sizeof(main_svg) });
+    add_file("/img/running.svg", file { pupnp::upnp::mime_image_svg, running_svg, sizeof(running_svg) });
     add_file("/img/vlc-icon.svg", file { pupnp::upnp::mime_image_svg, vlc_icon_svg, sizeof(vlc_icon_svg) });
 
     page_order.push_back("/");
@@ -62,8 +67,8 @@ void mainpage::set_devicename(const std::string &devicename)
     add_page("/", page
     {
         devicename,
-        "/css/main.css",
         "/img/main.svg",
+        std::bind(&mainpage::render_headers, this, _1, _2),
         std::bind(&mainpage::render_mainpage, this, _1, _2)
     });
 }
@@ -124,9 +129,12 @@ int mainpage::render_page(const struct pupnp::upnp::request &request, const std:
            "<head>"
            "<title>" << devicename << "</title>"
            "<meta http-equiv=\"Content-Type\" content=\"" << content_type << "\" />"
-           "<link rel=\"stylesheet\" href=\"/css/base.css\" type=\"text/css\" media=\"screen, handheld, projection\" />"
-           "<link rel=\"stylesheet\" href=\"" << page.stylesheet << "\" type=\"text/css\" media=\"screen, handheld, projection\" />"
-           "</head>"
+           "<link rel=\"stylesheet\" href=\"/css/base.css\" type=\"text/css\" media=\"screen, handheld, projection\" />";
+
+    if (page.render_headers)
+        page.render_headers(request, out);
+
+    out << "</head>"
            "<body>"
            "<div class=\"main_navigator\">"
            "<div class=\"root\">" << page.title << "</div>";
@@ -144,11 +152,17 @@ int mainpage::render_page(const struct pupnp::upnp::request &request, const std:
 
     out << "</div>\n";
 
-    const int result = page.render(request, out);
+    const int result = page.render_content(request, out);
 
     out << "</body></html>";
 
     return result;
+}
+
+void mainpage::render_headers(const struct pupnp::upnp::request &request, std::ostream &out)
+{
+    out << "<link rel=\"stylesheet\" href=\"/css/main.css\" type=\"text/css\" media=\"screen, handheld, projection\" />"
+           "<meta http-equiv=\"Refresh\" content=\"10; url=http://" << request.url.host << request.url.path << "\" />";
 }
 
 int mainpage::render_mainpage(const struct pupnp::upnp::request &, std::ostream &out)
@@ -166,6 +180,38 @@ int mainpage::render_mainpage(const struct pupnp::upnp::request &, std::ostream 
                        "<div class=\"title\">" << page->second.title << "</div></a></div>";
             }
         }
+
+    const auto output_connections = connection_manager.output_connections();
+    if (!output_connections.empty())
+    {
+        out << "</div><div class=\"streams\"><div class=\"stream_list\"><div>";
+
+        for (const auto &i : output_connections)
+        {
+            std::string title = from_percent(i.mrl);
+            if (starts_with(title, "file:"))
+            {
+                const size_t ls = title.find_last_of("/\\");
+                if (ls != title.npos)
+                    title = title.substr(ls + 1);
+            }
+
+            out << "<div class=\"stream\"><img src=\"/img/running.svg\">"
+                   "<p class=\"stream_title\">" << title << "</p>"
+                   "<p class=\"stream_dir\">";
+
+            switch (i.direction)
+            {
+            case pupnp::connection_manager::connection_info::input  : out << "&larr;"; break;
+            case pupnp::connection_manager::connection_info::output : out << "&rarr;"; break;
+            }
+
+            out << "</p><p class=\"stream_dest\">" << i.endpoint << "</p>"
+                   "</div>";
+        }
+
+        out << "</div></div>";
+    }
 
     out << "</div><div class=\"footer\"><div class=\"tiles\">"
            "<div><img src=\"/img/vlc-icon.svg\" /><p><a href=\"http://www.videolan.org/vlc/\">Powered by VLC</a></p></div>"

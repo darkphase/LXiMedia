@@ -103,6 +103,9 @@ public:
         int32_t     peerconnection_id;
         enum { input, output } direction;
         enum { ok, contentformat_mismatch, insufficient_bandwidth, unreliable_channel, unknown } status;
+
+        std::string mrl;
+        std::string endpoint;
     };
 
     struct action_get_current_connectionids
@@ -150,6 +153,9 @@ public:
 
     void output_connection_add(std::istream &, const struct protocol &);
     void output_connection_remove(std::istream &);
+    connection_info output_connection(std::istream &) const;
+    void output_connection_update(std::istream &, const struct connection_info &);
+    std::vector<connection_info> output_connections() const;
 
     void handle_action(const upnp::request &, action_get_current_connectionids &);
     void handle_action(const upnp::request &, action_get_current_connection_info &);
