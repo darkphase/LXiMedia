@@ -33,124 +33,124 @@ namespace pupnp {
 class upnp
 {
 public:
-  struct child
-  {
-    virtual bool initialize() = 0;
-    virtual void close() = 0;
-  };
+    struct child
+    {
+        virtual bool initialize() = 0;
+        virtual void close() = 0;
+    };
 
-  struct url
-  {
-    url();
-    url(const std::string &);
-    operator std::string() const;
+    struct url
+    {
+        url();
+        url(const std::string &);
+        operator std::string() const;
 
-    std::string host;
-    std::string path;
-    std::map<std::string, std::string> query;
-  };
+        std::string host;
+        std::string path;
+        std::map<std::string, std::string> query;
+    };
 
-  struct request
-  {
-    std::string user_agent;
-    std::string source_address;
-    struct url url;
-  };
+    struct request
+    {
+        std::string user_agent;
+        std::string source_address;
+        struct url url;
+    };
 
-  typedef std::function<int(const request &, std::string &, std::shared_ptr<std::istream> &)> http_callback;
+    typedef std::function<int(const request &, std::string &, std::shared_ptr<std::istream> &)> http_callback;
 
-  static const int http_ok = 200;
-  static const int http_no_content = 204;
-  static const int http_not_found = 404;
-  static const int http_internal_server_error = 500;
-
-public:
-  static std::string hostname();
-
-  explicit upnp(class messageloop &);
-  ~upnp();
-
-  const std::string &http_basedir() const;
-
-  void child_add(struct child &);
-  void child_remove(struct child &);
-
-  void http_callback_register(const std::string &path, const http_callback &);
-  void http_callback_unregister(const std::string &path);
-
-  bool initialize(uint16_t port, bool bind_public = false);
-  void close(void);
-
-  bool is_my_address(const std::string &) const;
-
-  int handle_http_request(const struct request &, std::string &content_type, std::shared_ptr<std::istream> &);
-
-private:
-  static bool is_local_address(const char *);
-  void update_interfaces();
-  void clear_responses();
-  void enable_webserver();
-  int get_response(const struct request &, std::string &, std::shared_ptr<std::istream> &, bool);
+    static const int http_ok = 200;
+    static const int http_no_content = 204;
+    static const int http_not_found = 404;
+    static const int http_internal_server_error = 500;
 
 public:
-  static const char           * mime_type(const std::string &);
-  static const char             mime_application_octetstream[];
-  static const char             mime_audio_aac[];
-  static const char             mime_audio_ac3[];
-  static const char             mime_audio_lpcm[];
-  static const char             mime_audio_mp3[];
-  static const char             mime_audio_mpeg[];
-  static const char             mime_audio_mpegurl[];
-  static const char             mime_audio_ogg[];
-  static const char             mime_audio_wave[];
-  static const char             mime_audio_wma[];
-  static const char             mime_image_jpeg[];
-  static const char             mime_image_png[];
-  static const char             mime_image_svg[];
-  static const char             mime_image_tiff[];
-  static const char             mime_video_3g2[];
-  static const char             mime_video_asf[];
-  static const char             mime_video_avi[];
-  static const char             mime_video_flv[];
-  static const char             mime_video_matroska[];
-  static const char             mime_video_mpeg[];
-  static const char             mime_video_mpegm2ts[];
-  static const char             mime_video_mpegts[];
-  static const char             mime_video_mp4[];
-  static const char             mime_video_ogg[];
-  static const char             mime_video_qt[];
-  static const char             mime_video_wmv[];
-  static const char             mime_text_css[];
-  static const char             mime_text_html[];
-  static const char             mime_text_js[];
-  static const char             mime_text_plain[];
-  static const char             mime_text_xml[];
+    static std::string hostname();
+
+    explicit upnp(class messageloop &);
+    ~upnp();
+
+    const std::string &http_basedir() const;
+
+    void child_add(struct child &);
+    void child_remove(struct child &);
+
+    void http_callback_register(const std::string &path, const http_callback &);
+    void http_callback_unregister(const std::string &path);
+
+    bool initialize(uint16_t port, bool bind_public = false);
+    void close(void);
+
+    bool is_my_address(const std::string &) const;
+
+    int handle_http_request(const struct request &, std::string &content_type, std::shared_ptr<std::istream> &);
 
 private:
-  static upnp * me;
+    static bool is_local_address(const char *);
+    void update_interfaces();
+    void clear_responses();
+    void enable_webserver();
+    int get_response(const struct request &, std::string &, std::shared_ptr<std::istream> &, bool);
 
-  class messageloop &messageloop;
-  const std::string basedir;
+public:
+    static const char           * mime_type(const std::string &);
+    static const char             mime_application_octetstream[];
+    static const char             mime_audio_aac[];
+    static const char             mime_audio_ac3[];
+    static const char             mime_audio_lpcm[];
+    static const char             mime_audio_mp3[];
+    static const char             mime_audio_mpeg[];
+    static const char             mime_audio_mpegurl[];
+    static const char             mime_audio_ogg[];
+    static const char             mime_audio_wave[];
+    static const char             mime_audio_wma[];
+    static const char             mime_image_jpeg[];
+    static const char             mime_image_png[];
+    static const char             mime_image_svg[];
+    static const char             mime_image_tiff[];
+    static const char             mime_video_3g2[];
+    static const char             mime_video_asf[];
+    static const char             mime_video_avi[];
+    static const char             mime_video_flv[];
+    static const char             mime_video_matroska[];
+    static const char             mime_video_mpeg[];
+    static const char             mime_video_mpegm2ts[];
+    static const char             mime_video_mpegts[];
+    static const char             mime_video_mp4[];
+    static const char             mime_video_ogg[];
+    static const char             mime_video_qt[];
+    static const char             mime_video_wmv[];
+    static const char             mime_text_css[];
+    static const char             mime_text_html[];
+    static const char             mime_text_js[];
+    static const char             mime_text_plain[];
+    static const char             mime_text_xml[];
 
-  std::set<child *> children;
+private:
+    static upnp * me;
 
-  uint16_t port;
-  bool bind_public;
+    class messageloop &messageloop;
+    const std::string basedir;
 
-  std::set<std::string> available_addresses;
-  timer update_interfaces_timer;
-  const std::chrono::seconds update_interfaces_interval;
+    std::set<child *> children;
 
-  bool initialized, webserver_enabled;
-  std::map<std::string, http_callback> http_callbacks;
+    uint16_t port;
+    bool bind_public;
 
-  std::mutex responses_mutex;
-  struct response { std::string type; std::shared_ptr<std::istream> stream; };
-  std::map<std::string, response> responses;
-  timer clear_responses_timer;
-  const std::chrono::seconds clear_responses_interval;
+    std::set<std::string> available_addresses;
+    timer update_interfaces_timer;
+    const std::chrono::seconds update_interfaces_interval;
 
-  std::map<void *, std::shared_ptr<std::istream>> handles;
+    bool initialized, webserver_enabled;
+    std::map<std::string, http_callback> http_callbacks;
+
+    std::mutex responses_mutex;
+    struct response { std::string type; std::shared_ptr<std::istream> stream; };
+    std::map<std::string, response> responses;
+    timer clear_responses_timer;
+    const std::chrono::seconds clear_responses_interval;
+
+    std::map<void *, std::shared_ptr<std::istream>> handles;
 };
 
 } // End of namespace

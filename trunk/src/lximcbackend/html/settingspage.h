@@ -28,15 +28,18 @@ namespace html {
 class settingspage
 {
 public:
-    settingspage(class mainpage &, class settings &);
+    settingspage(class mainpage &, class settings &, const std::function<bool()> &apply);
     ~settingspage();
 
 private:
+    void render_headers(const struct pupnp::upnp::request &, std::ostream &);
     int render_page(const struct pupnp::upnp::request &, std::ostream &);
 
 private:
     class mainpage &mainpage;
     class settings &settings;
+    const std::function<bool()> apply;
+    bool applying;
 };
 
 } // End of namespace

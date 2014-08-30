@@ -19,6 +19,8 @@
 #define BACKEND_H
 
 #include <cstdint>
+#include <functional>
+#include <memory>
 #include "html/mainpage.h"
 #include "html/helppage.h"
 #include "html/logpage.h"
@@ -37,20 +39,22 @@ class messageloop;
 class backend
 {
 public:
+    static std::function<void()> recreate_backend;
+
+public:
     backend(class messageloop &, const std::string &);
     ~backend();
 
     bool initialize();
 
 private:
+    bool apply_settings();
     void add_audio_protocols();
     void add_video_protocols();
 
 private:
     class messageloop &messageloop;
     class settings settings;
-
-    class vlc::instance vlc_instance;
 
     class pupnp::upnp upnp;
     class pupnp::rootdevice rootdevice;
@@ -63,7 +67,11 @@ private:
     class html::logpage logpage;
     class html::helppage helppage;
 
-    class mediaplayer mediaplayer;
+    std::unique_ptr<class vlc::instance> vlc_instance;
+    std::unique_ptr<class mediaplayer> mediaplayer;
+
+    timer recreate_backend_timer;
+    const std::chrono::milliseconds recreate_backend_timer_timeout;
 
     //  static const int              upnpRepublishTimout;
     //  bool                          upnpRepublishRequired;

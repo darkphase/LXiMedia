@@ -258,6 +258,39 @@ void connection_manager::output_connection_remove(std::istream &stream)
     }
 }
 
+connection_manager::connection_info connection_manager::output_connection(std::istream &stream) const
+{
+    auto i = streams.find(&stream);
+    if (i != streams.end())
+    {
+        auto j = connections.find(i->second);
+        if (j != connections.end())
+            return j->second;
+    }
+
+    return connection_info();
+}
+
+void connection_manager::output_connection_update(std::istream &stream, const struct connection_info &connection_info)
+{
+    auto i = streams.find(&stream);
+    if (i != streams.end())
+    {
+        auto j = connections.find(i->second);
+        if (j != connections.end())
+            j->second = connection_info;
+    }
+}
+
+std::vector<connection_manager::connection_info> connection_manager::output_connections() const
+{
+    std::vector<connection_info> result;
+    for (auto &i : connections)
+        result.emplace_back(i.second);
+
+    return result;
+}
+
 void connection_manager::handle_action(const upnp::request &, action_get_current_connectionids &action)
 {
     std::vector<int32_t> ids;

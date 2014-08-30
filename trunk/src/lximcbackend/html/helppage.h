@@ -32,6 +32,7 @@ public:
     ~helppage();
 
 private:
+    void render_headers(const struct pupnp::upnp::request &, std::ostream &);
     int render_page(const struct pupnp::upnp::request &, std::ostream &);
 
 private:

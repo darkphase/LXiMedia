@@ -42,8 +42,8 @@ logpage::logpage(class mainpage &mainpage, const std::string &logfilename)
         mainpage.add_page("/log", mainpage::page
         {
             tr("Log"),
-            "/css/log.css",
             "/img/log.svg",
+            std::bind(&logpage::render_headers, this, _1, _2),
             std::bind(&logpage::render_page, this, _1, _2)
         });
     }
@@ -52,6 +52,11 @@ logpage::logpage(class mainpage &mainpage, const std::string &logfilename)
 logpage::~logpage()
 {
     mainpage.remove_page("/log");
+}
+
+void logpage::render_headers(const struct pupnp::upnp::request &, std::ostream &out)
+{
+    out << "<link rel=\"stylesheet\" href=\"/css/log.css\" type=\"text/css\" media=\"screen, handheld, projection\" />";
 }
 
 int logpage::render_page(const struct pupnp::upnp::request &, std::ostream &out)

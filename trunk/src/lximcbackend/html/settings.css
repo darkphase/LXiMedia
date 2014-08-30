@@ -55,3 +55,62 @@ p.bug {
 .bug a:visited   { color: #808080; text-decoration: underline; }
 .bug a:active    { color: #808080; text-decoration: underline; }
 .bug a:hover     { color: #808080; text-decoration: underline; }
+
+div.wait {
+ position: absolute;
+ display: table;
+ left: 0;
+ top: 0;
+ width: 100%;
+ height: 100%;
+ z-index: 1;
+ background-color: rgba(192, 192, 192, 0.8);
+}
+.wait div {
+ display: table-cell;
+ vertical-align: middle;
+ text-align: center;
+}
+.wait p {
+ padding-left: 2em;
+ padding-right: 2em;
+ padding-top: 1em;
+ padding-bottom: 1em;
+ display: inline-block;
+ border: 1px solid #000000;
+ border-radius: 0.5em;
+ background-color: #E8E8E8;
+ font-size: 2em;
+}
+.wait img {
+ width: 1em;
+ height: 1em;
+ margin-right: 0.5em;
+}
+
+div.error {
+ position: absolute;
+ display: table;
+ left: 0;
+ top: 0;
+ width: 100%;
+ height: 100%;
+ z-index: 1;
+ background-color: rgba(255, 192, 192, 0.8);
+}
+.error div {
+ display: table-cell;
+ vertical-align: middle;
+ text-align: center;
+}
+.error p {
+ padding-left: 2em;
+ padding-right: 2em;
+ padding-top: 1em;
+ padding-bottom: 1em;
+ display: inline-block;
+ border: 1px solid #800000;
+ border-radius: 0.5em;
+ background-color: #FFE0E0;
+ font-size: 2em;
+}

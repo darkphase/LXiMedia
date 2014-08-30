@@ -8,41 +8,63 @@
 # include <clocale>
 #endif
 
+static FILE *logfile = nullptr;
+static std::string create_logfile();
+static void close_logfile()
+{
+    if (logfile)
+        fclose(logfile);
+
+    logfile = nullptr;
+}
+
 int main(int /*argc*/, const char */*argv*/[])
 {
-#if defined(__unix__)
-  // Ensure UTF-8 is enabled.
-  setlocale(LC_ALL, "");
+    // Allocate on heap to keep the stack free.
+    const std::unique_ptr<class messageloop> messageloop(new class messageloop());
+    const std::string logfile = create_logfile();
 
-  std::string logfilename = "/var/log/lximcbackend.log";
-  auto logfile = freopen(logfilename.c_str(), "w", stderr);
-  if (logfile == nullptr)
-  {
-      logfilename = "/tmp/lximcbackend.log";
-      logfile = freopen(logfilename.c_str(), "w", stderr);
-  }
-
-  if (logfile == nullptr)
-      logfilename.clear();
-#elif defined(WIN32)
-    std::string logfilename;
-    FILE *logfile = nullptr;
-#endif
-
-  // Allocate these on heap to keep the stack free.
-  const std::unique_ptr<class messageloop> messageloop(new class messageloop());
-  const std::unique_ptr<class backend> backend(new class backend(*messageloop, logfilename));
-
-  messageloop->post([&messageloop, &backend]
-  {
-    if (!backend->initialize())
+    int result = 1;
     {
-      std::clog << "[" << backend.get() << "] failed to initialize backend; stopping." << std::endl;
-      messageloop->stop(1);
-    }
-  });
+        std::unique_ptr<class backend> backend;
+        ::backend::recreate_backend = [&messageloop, &logfile, &backend]
+        {
+            backend = nullptr;
+            backend.reset(new class backend(*messageloop, logfile));
+            if (!backend->initialize())
+            {
+                std::clog << "[" << backend.get() << "] failed to initialize backend; stopping." << std::endl;
+                messageloop->stop(1);
+            }
+        };
 
-  const int result = messageloop->run();
-  if (logfile) fclose(logfile);
-  return result;
+        messageloop->post(::backend::recreate_backend);
+        result = messageloop->run();
+        ::backend::recreate_backend = nullptr;
+    }
+
+    close_logfile();
+
+    return result;
 }
+
+#if defined(__unix__)
+static std::string create_logfile()
+{
+    close_logfile();
+
+    std::string filename = "/var/log/lximcbackend.log";
+    logfile = freopen(filename.c_str(), "w", stderr);
+    if (logfile == nullptr)
+    {
+        filename = "/tmp/lximcbackend.log";
+        logfile = freopen(filename.c_str(), "w", stderr);
+    }
+
+    if (logfile == nullptr)
+        filename.clear();
+
+    return filename;
+}
+#elif defined(WIN32)
+#endif

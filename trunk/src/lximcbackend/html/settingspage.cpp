@@ -30,9 +30,14 @@ static const char settings_css[] = {
 
 namespace html {
 
-settingspage::settingspage(class mainpage &mainpage, class settings &settings)
+settingspage::settingspage(
+        class mainpage &mainpage,
+        class settings &settings,
+        const std::function<bool()> &apply)
     : mainpage(mainpage),
-      settings(settings)
+      settings(settings),
+      apply(apply),
+      applying(false)
 {
     using namespace std::placeholders;
 
@@ -42,8 +47,8 @@ settingspage::settingspage(class mainpage &mainpage, class settings &settings)
     mainpage.add_page("/settings", mainpage::page
     {
         tr("Settings"),
-        "/css/settings.css",
         "/img/settings.svg",
+        std::bind(&settingspage::render_headers, this, _1, _2),
         std::bind(&settingspage::render_page, this, _1, _2)
     });
 }
@@ -343,19 +348,65 @@ static void save_path_settings(class settings &settings, const std::map<std::str
         settings.set_root_paths(paths);
 }
 
-int settingspage::render_page(const struct pupnp::upnp::request &request, std::ostream &out)
+void settingspage::render_headers(const struct pupnp::upnp::request &request, std::ostream &out)
 {
+    out << "<link rel=\"stylesheet\" href=\"/css/settings.css\" type=\"text/css\" media=\"screen, handheld, projection\" />";
+
     const auto save = request.url.query.find("save_settings");
     if (save != request.url.query.end())
     {
+        const uint16_t old_port = settings.http_port();
+
         if      (save->second == "http") save_http_settings(settings, request.url.query);
         else if (save->second == "dlna") save_dlna_settings(settings, request.url.query);
         else if (save->second == "path") save_path_settings(settings, request.url.query);
-    }
 
+        applying = apply && apply();
+        if (!applying)
+            settings.set_http_port(old_port);
+
+        std::string host = request.url.host;
+
+        uint16_t used_port = old_port;
+        const size_t colon = host.find_last_of(':', host.find_first_of(']'));
+        if (colon != host.npos)
+        {
+            try { used_port = uint16_t(std::stoi(host.substr(colon + 1))); }
+            catch (const std::invalid_argument &) { }
+            catch (const std::out_of_range &) { }
+            host = host.substr(0, colon);
+        }
+        else
+            used_port = 80;
+
+        if (used_port == old_port)
+            host += ':' + std::to_string(settings.http_port());
+        else
+            host = request.url.host;
+
+        out << "<meta http-equiv=\"Refresh\" content=\"3; url=http://" << host << request.url.path << "\" />";
+    }
+}
+
+int settingspage::render_page(const struct pupnp::upnp::request &request, std::ostream &out)
+{
     render_http_settings(settings, out);
     render_dlna_settings(settings, out);
     render_path_settings(request.url.query, settings, out);
+
+    if (applying)
+    {
+        out << "<div class=\"wait\"><div><p>"
+               "<img src=\"/img/running.svg\" />"
+               << tr("Applying settings...") <<
+               "</p></div></div>";
+    }
+    else if (request.url.query.find("save_settings") != request.url.query.end())
+    {
+        out << "<div class=\"error\"><div><p>"
+               << tr("Cannot apply settings while streaming.") <<
+               "</p></div></div>";
+    }
 
     return pupnp::upnp::http_ok;
 }

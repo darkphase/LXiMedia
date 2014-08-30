@@ -99,7 +99,7 @@ std::vector<std::string> list_files(
             {
                 std::string name = dirent->d_name, lname = to_lower(name);
                 if (S_ISDIR(stat.st_mode) &&
-                    (hidden_names.find(name) == hidden_names.end()) &&
+                    (hidden_names.find(lname) == hidden_names.end()) &&
                     (hidden_dirs.find(cpath + name) == hidden_dirs.end()))
                 {
                     dirs.emplace(std::move(lname), name + '/');

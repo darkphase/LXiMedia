@@ -52,8 +52,8 @@ helppage::helppage(class mainpage &mainpage)
     mainpage.add_page("/help", mainpage::page
     {
         tr("Help"),
-        "/css/help.css",
         "/img/help.svg",
+        std::bind(&helppage::render_headers, this, _1, _2),
         std::bind(&helppage::render_page, this, _1, _2)
     });
 }
@@ -61,6 +61,11 @@ helppage::helppage(class mainpage &mainpage)
 helppage::~helppage()
 {
     mainpage.remove_page("/help");
+}
+
+void helppage::render_headers(const struct pupnp::upnp::request &, std::ostream &out)
+{
+    out << "<link rel=\"stylesheet\" href=\"/css/help.css\" type=\"text/css\" media=\"screen, handheld, projection\" />";
 }
 
 int helppage::render_page(const struct pupnp::upnp::request &, std::ostream &out)
