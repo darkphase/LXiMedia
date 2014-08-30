@@ -1,6 +1,7 @@
 #include "test.h"
 #include "platform/fstream.cpp"
 #include <algorithm>
+#include <cstring>
 
 static std::string filename();
 
