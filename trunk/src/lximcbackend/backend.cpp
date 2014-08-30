@@ -33,13 +33,18 @@ backend::backend(class messageloop &messageloop, const std::string &logfilename)
       helppage(mainpage),
       vlc_instance(nullptr),
       mediaplayer(nullptr),
+      republish_timer(messageloop, std::bind(&backend::republish_rootdevice, this)),
+      republish_timeout(15),
+      republish_required(false),
       recreate_backend_timer(messageloop, [this] { if (recreate_backend) this->messageloop.post(recreate_backend); }),
-      recreate_backend_timer_timeout(500)
+      recreate_backend_timeout(500)
 {
 }
 
 backend::~backend()
 {
+    rootdevice.handled_action.erase(this);
+    connection_manager.numconnections_changed.erase(this);
 }
 
 bool backend::initialize()
@@ -53,6 +58,7 @@ bool backend::initialize()
     if (upnp.initialize(settings.http_port(), false))
     {
         vlc_instance.reset(new class vlc::instance());
+
         mediaplayer.reset(new class mediaplayer(
                               messageloop,
                               *vlc_instance,
@@ -60,10 +66,44 @@ bool backend::initialize()
                               content_directory,
                               settings));
 
+        setup.reset(new class setup(
+                        messageloop,
+                        content_directory,
+                        settings));
+
+        republish_required = settings.republish_rootdevice();
+        if (republish_required)
+        {
+            rootdevice.handled_action[this] = [this]
+            {
+                if (republish_required)
+                    republish_timer.start(republish_timeout * 8);
+            };
+
+            connection_manager.numconnections_changed[this] = [this](size_t count)
+            {
+                if (count > 0)
+                {
+                    republish_required = false;
+                    republish_timer.stop();
+                }
+                else
+                    republish_timer.start(republish_timeout);
+            };
+
+            republish_timer.start(republish_timeout);
+        }
+
         return true;
     }
 
     return false;
+}
+
+void backend::republish_rootdevice()
+{
+    rootdevice.close();
+    rootdevice.initialize();
 }
 
 bool backend::apply_settings()
@@ -71,7 +111,7 @@ bool backend::apply_settings()
     if (connection_manager.output_connections().empty())
     {
         // Wait a bit before restarting to handle pending requests from the webbrowser.
-        recreate_backend_timer.start(recreate_backend_timer_timeout, true);
+        recreate_backend_timer.start(recreate_backend_timeout, true);
 
         return true;
     }

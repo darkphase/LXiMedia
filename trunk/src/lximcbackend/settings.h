@@ -42,8 +42,12 @@ public:
     void set_devicename(const std::string &);
     uint16_t http_port() const;
     void set_http_port(uint16_t);
-    bool bindallnetworks() const;
-    void set_bindallnetworks(bool);
+    bool bind_all_networks() const;
+    void set_bind_all_networks(bool);
+    bool republish_rootdevice() const;
+    void set_republish_rootdevice(bool);
+    bool allow_shutdown() const;
+    void set_allow_shutdown(bool);
 
     enum encode_mode encode_mode() const;
     void set_encode_mode(enum encode_mode);

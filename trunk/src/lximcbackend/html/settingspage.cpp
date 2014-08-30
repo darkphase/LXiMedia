@@ -88,12 +88,15 @@ static void render_http_settings(const class settings &settings, std::ostream &o
            "<input type=\"hidden\" name=\"save_settings\" value=\"http\" />"
            "<p>" << tr("Preferred HTTP port number") << ": "
            "<input type=\"text\" size=\"6\" name=\"http_port\" value=\"" << settings.http_port() << "\" />"
-           "<input type=\"checkbox\" name=\"bindallnetworks\" value=\"on\"" << is_checked(settings.bindallnetworks()) << " />"
+           "<input type=\"checkbox\" name=\"bind_all_networks\" value=\"on\"" << is_checked(settings.bind_all_networks()) << " />"
            << tr("Bind all networks") << "</p>"
            "<p>" << tr("Device name") << ": "
            "<input type=\"text\" size=\"40\" name=\"devicename\" value=\"" << escape_xml(settings.devicename()) << "\" /></p>"
-//           "<p><input type=\"checkbox\" name=\"allowshutdown\" value=\"on\" {ALLOWSHUTDOWN} />{TR_ALLOW_SHUTDOWN}</p>"
-//           "<p><input type=\"checkbox\" name=\"republishrootdevice\" value=\"on\" {REPUBLISHROOTDEVICE} />{TR_REPUBLISH_ROOTDEVICE}</p>"
+           "<p><input type=\"checkbox\" name=\"republish_rootdevice\" value=\"on\"" << is_checked(settings.republish_rootdevice()) << " />"
+           << tr("Regularly reinitialize the server while inactive to force all clients "
+                 "to update their device lists.") << "</p>"
+           "<p><input type=\"checkbox\" name=\"allow_shutdown\" value=\"on\"" << is_checked(settings.allow_shutdown()) << " />"
+           << tr("Allow shutting down the computer remotely.") << "</p>"
            "<p class=\"buttons\"><input type=\"submit\" name=\"save\" value=\"" << tr("Save") << "\" /></p>"
            "</form></fieldset>";
 }
@@ -108,12 +111,18 @@ static void save_http_settings(class settings &settings, const std::map<std::str
         catch (const std::out_of_range &) { }
     }
 
-    auto bindallnetworks = query.find("bindallnetworks");
-    settings.set_bindallnetworks(bindallnetworks != query.end());
+    auto bind_all_networks = query.find("bind_all_networks");
+    settings.set_bind_all_networks(bind_all_networks != query.end());
 
     auto devicename = query.find("devicename");
     if (devicename != query.end())
         settings.set_devicename(from_percent(devicename->second));
+
+    auto republish_rootdevice = query.find("republish_rootdevice");
+    settings.set_republish_rootdevice(republish_rootdevice != query.end());
+
+    auto allow_shutdown = query.find("allow_shutdown");
+    settings.set_allow_shutdown(allow_shutdown != query.end());
 }
 
 static void render_dlna_settings(const class settings &settings, std::ostream &out)

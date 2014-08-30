@@ -33,6 +33,7 @@
 #include "vlc/instance.h"
 #include "mediaplayer.h"
 #include "settings.h"
+#include "setup.h"
 
 class messageloop;
 
@@ -48,6 +49,7 @@ public:
     bool initialize();
 
 private:
+    void republish_rootdevice();
     bool apply_settings();
     void add_audio_protocols();
     void add_video_protocols();
@@ -69,9 +71,14 @@ private:
 
     std::unique_ptr<class vlc::instance> vlc_instance;
     std::unique_ptr<class mediaplayer> mediaplayer;
+    std::unique_ptr<class setup> setup;
+
+    timer republish_timer;
+    const std::chrono::seconds republish_timeout;
+    bool republish_required;
 
     timer recreate_backend_timer;
-    const std::chrono::milliseconds recreate_backend_timer_timeout;
+    const std::chrono::milliseconds recreate_backend_timeout;
 
     //  static const int              upnpRepublishTimout;
     //  bool                          upnpRepublishRequired;
