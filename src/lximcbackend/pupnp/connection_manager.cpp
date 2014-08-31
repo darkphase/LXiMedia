@@ -19,6 +19,7 @@
 #include "platform/string.h"
 #include <cmath>
 #include <cstring>
+#include <iostream>
 
 namespace pupnp {
 
@@ -44,6 +45,10 @@ void connection_manager::add_source_audio_protocol(
         unsigned sample_rate, unsigned channels,
         const char *acodec, const char *mux)
 {
+    std::clog << "[" << this << "] connection_manager: enabled audio protocol "
+              << name << " " << sample_rate << "/" << channels
+              << std::endl;
+
     source_audio_protocol_list.emplace_back(protocol(
                                                 "http-get", mime,
                                                 true, false, false,
@@ -62,6 +67,11 @@ void connection_manager::add_source_video_protocol(const char *name,
                                                    const char *acodec, const char *vcodec, const char *mux,
                                                    const char *fast_encode_options, const char *slow_encode_options)
 {
+    std::clog << "[" << this << "] connection_manager: enabled video protocol "
+              << name << " " << sample_rate << "/" << channels << " "
+              << width << "x" << height << "@" << frame_rate
+              << std::endl;
+
     source_video_protocol_list.emplace_back(protocol(
                                                 "http-get", mime,
                                                 true, false, false,
@@ -105,6 +115,8 @@ std::vector<connection_manager::protocol> connection_manager::get_protocols(unsi
 
 std::vector<connection_manager::protocol> connection_manager::get_protocols(unsigned channels, unsigned width, float frame_rate) const
 {
+    std::clog << "connection_manager::get_protocols " << source_video_protocol_list.size() << std::endl;
+
     std::map<int, std::vector<protocol>> protocols;
     for (auto &protocol : source_video_protocol_list)
     {
@@ -164,9 +176,6 @@ void connection_manager::close(void)
     connections.clear();
 
     for (auto &i : numconnections_changed) if (i.second) i.second(0);
-
-    source_audio_protocol_list.clear();
-    source_video_protocol_list.clear();
 }
 
 void connection_manager::write_service_description(rootdevice::service_description &desc) const

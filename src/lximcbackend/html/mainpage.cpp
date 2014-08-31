@@ -150,7 +150,7 @@ int mainpage::render_page(const struct pupnp::upnp::request &request, const std:
         }
     }
 
-    out << "</div>\n";
+    out << "</div>";
 
     const int result = page.render_content(request, out);
 
@@ -175,9 +175,9 @@ int mainpage::render_mainpage(const struct pupnp::upnp::request &, std::ostream 
             auto page = pages.find(i);
             if (page != pages.end())
             {
-                out << "<div class=\"button\"><a href=\"" << page->first << "\">"
-                       "<img src=\"" << page->second.icon << "\" alt=\"" << page->second.title << "\" />"
-                       "<div class=\"title\">" << page->second.title << "</div></a></div>";
+                out << "<div class=\"button\">"
+                       "<p><a href=\"" << page->first << "\"><img src=\"" << page->second.icon << "\" alt=\"" << page->second.title << "\" /></a></p>"
+                       "<p><a href=\"" << page->first << "\">" << page->second.title << "</a></p></div>";
             }
         }
 
@@ -196,7 +196,7 @@ int mainpage::render_mainpage(const struct pupnp::upnp::request &, std::ostream 
                     title = title.substr(ls + 1);
             }
 
-            out << "<div class=\"stream\"><img src=\"/img/running.svg\">"
+            out << "<div class=\"stream\"><img src=\"/img/running.svg\" alt=\"O\" />"
                    "<p class=\"stream_title\">" << title << "</p>"
                    "<p class=\"stream_dir\">";
 
@@ -214,7 +214,7 @@ int mainpage::render_mainpage(const struct pupnp::upnp::request &, std::ostream 
     }
 
     out << "</div><div class=\"footer\"><div class=\"tiles\">"
-           "<div><img src=\"/img/vlc-icon.svg\" /><p><a href=\"http://www.videolan.org/vlc/\">Powered by VLC</a></p></div>"
+           "<div><img src=\"/img/vlc-icon.svg\" alt=\"VLC\" /><p><a href=\"http://www.videolan.org/vlc/\">Powered by VLC</a></p></div>"
            "</div><div class=\"copyright\">"
            "<p>Copyright &copy; 2014 A.J. Admiraal</p><p>This program is free software: you can redistribute it and/or modify "
            "it under the terms of the GNU General Public License version 3 as published by the Free Software Foundation.</p>"

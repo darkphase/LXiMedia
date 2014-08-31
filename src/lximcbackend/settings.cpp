@@ -33,7 +33,7 @@ settings::settings(class messageloop &messageloop)
       save_delay(250),
       touched(false)
 {
-    ifstream file(filename());
+    ifstream file(filename(), std::ios_base::binary); // Binary needed to support UTF-8 on Windows
     for (std::string line, section; std::getline(file, line); )
     {
         auto o = line.find_first_of('[');
@@ -61,7 +61,7 @@ void settings::save()
 {
     if (touched)
     {
-        ofstream file(filename());
+        ofstream file(filename(), std::ios_base::binary); // Binary needed to support UTF-8 on Windows
         for (auto &section : values)
         {
             file << '[' << section.first << ']' << std::endl;
@@ -263,19 +263,16 @@ static video_mode to_video_mode(const std::string &e)
     return video_mode::auto_;
 }
 
-static enum video_mode default_video_mode()
-{
-    return (std::thread::hardware_concurrency() > 1) ? video_mode::hdtv_720 : video_mode::dvd;
-}
+static const enum video_mode default_video_mode = video_mode::dvd;
 
 enum video_mode settings::video_mode() const
 {
-    return to_video_mode(read("DLNA", "VideoMode", to_string(default_video_mode())));
+    return to_video_mode(read("DLNA", "VideoMode", to_string(default_video_mode)));
 }
 
 void settings::set_video_mode(enum video_mode video_mode)
 {
-    if (video_mode != default_video_mode())
+    if (video_mode != default_video_mode)
         return write("DLNA", "VideoMode", to_string(video_mode));
     else
         return erase("DLNA", "VideoMode");
@@ -514,14 +511,19 @@ static std::string default_devicename()
 #ifndef TEST_H
 #include "platform/path.h"
 #include <cstdlib>
+#include <direct.h>
 
 static std::string filename()
 {
-    static const wchar_t conffile[] = L"\\LeX-Interactive\\LXiMediaCenter.conf";
+    static const wchar_t confdir[] = L"\\LeX-Interactive\\";
+    static const wchar_t conffile[] = L"LXiMediaCenter.conf";
 
     const wchar_t * const appdata = _wgetenv(L"APPDATA");
     if (appdata)
-        return from_windows_path(std::wstring(appdata) + conffile);
+    {
+        _wmkdir((std::wstring(appdata) + confdir).c_str());
+        return from_windows_path(std::wstring(appdata) + confdir + conffile);
+    }
 
     return std::string();
 }

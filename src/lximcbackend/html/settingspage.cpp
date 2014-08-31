@@ -97,7 +97,7 @@ static void render_http_settings(const class settings &settings, std::ostream &o
                  "to update their device lists.") << "</p>"
            "<p><input type=\"checkbox\" name=\"allow_shutdown\" value=\"on\"" << is_checked(settings.allow_shutdown()) << " />"
            << tr("Allow shutting down the computer remotely.") << "</p>"
-           "<p class=\"buttons\"><input type=\"submit\" name=\"save\" value=\"" << tr("Save") << "\" /></p>"
+           "<p class=\"buttons\"><input type=\"submit\" name=\"save_button\" value=\"" << tr("Save") << "\" /></p>"
            "</form></fieldset>";
 }
 
@@ -168,7 +168,7 @@ static void render_dlna_settings(const class settings &settings, std::ostream &o
                "<a href=\"https://trac.videolan.org/vlc/ticket/1897\">bug</a> in the current VLC version.</p>";
     }
 
-    out << "<p class=\"buttons\"><input type=\"submit\" name=\"save\" value=\"" << tr("Save") << "\" /></p>"
+    out << "<p class=\"buttons\"><input type=\"submit\" name=\"save_button\" value=\"" << tr("Save") << "\" /></p>"
            "</form></fieldset>";
 }
 
@@ -207,6 +207,17 @@ static void save_dlna_settings(class settings &settings, const std::map<std::str
     }
 }
 
+static std::string format_path(const std::string &src)
+{
+#if defined(__unix__)
+    return src;
+#elif defined(WIN32)
+    std::string dst = src;
+    std::replace(dst.begin(), dst.end(), '/', '\\');
+    return dst;
+#endif
+}
+
 static void render_path_box(const std::string &full_path, const std::string &current, size_t index, std::ostream &out)
 {
     const std::vector<std::string> items = full_path.empty() ? list_root_directories() : list_files(full_path, true);
@@ -215,13 +226,30 @@ static void render_path_box(const std::string &full_path, const std::string &cur
         out << "<select name=\"append_path_" << index << "\" onchange='if(this.value != 0) { this.form.submit(); }'>";
 
         if (current.empty() || (std::find(items.begin(), items.end(), current) == items.end()))
-            out << "<option value=\"\" disabled=\"disabled\" selected=\"selected\" style=\"display:none;\"></option>";
+        {
+            out << "<option value=\"\" disabled=\"disabled\" selected=\"selected\" style=\"display:none;\">"
+                << tr("Choose") << "</option>";
+        }
 
         for (auto &i : items)
         {
             std::string pct = to_percent(i);
             std::replace(pct.begin(), pct.end(), '%', '_');
-            out << "<option value=\"" << pct << "\"" << is_selected(current == i) << ">" << escape_xml(i) << "</option>";
+            out << "<option value=\"" << pct << "\"" << is_selected(current == i) << ">";
+#ifdef WIN32
+            if (full_path.empty())
+            {
+                const std::string name = volume_name(i);
+                if (!name.empty())
+                    out << escape_xml(name) << " (" << escape_xml(format_path(i)) << ")";
+                else
+                    out << escape_xml(format_path(i));
+            }
+            else
+#endif
+                out << escape_xml(format_path(i));
+
+            out << "</option>";
         }
         out << "</select>";
     }
@@ -255,22 +283,17 @@ static void render_path_settings(const std::map<std::string, std::string> &query
     const auto paths = settings.root_paths();
     for (size_t i = 0, n = paths.size(); i < n; i++)
     {
-        out << "<tr><td><input type=\"text\" size=\"40\" name=\"path_" << i << "\" disabled=\"disabled\" "
-               "value=\"" << escape_xml(paths[i].path) << "\" /></td>";
+        out << "<tr><td><input type=\"text\" size=\"50\" name=\"path_" << i << "\" disabled=\"disabled\" "
+               "value=\"" << escape_xml(format_path(paths[i].path)) << "\" /></td>";
         out << "<td class=\"right\"><select name=\"path_type_" << i << "\">"
                "<option value=\"auto\""     << is_selected(paths[i].type == path_type::auto_) << ">" << tr("Automatic") << "</option>"
                "<option value=\"music\""    << is_selected(paths[i].type == path_type::music) << ">" << tr("Music") << "</option>"
                "</select><input type=\"submit\" name=\"remove_" << i << "\" value=\"" << tr("Remove") << "\" /></td></tr>";
     }
 
-    out << "</table><table><tr><td>";
+    out << "</table><p>" << tr("Add more paths with the boxes below") << ":</p><table><tr><td>";
 
-    bool empty_path = true;
-#if defined(__unix__)
-    std::string full_path = "/";
-#elif defined(WIN32)
-    std::string full_path;
-#endif
+    std::vector<std::string> path;
     for (size_t i = 0;; i++)
     {
         auto path_type = query.find("append_path_" + std::to_string(i));
@@ -278,22 +301,28 @@ static void render_path_settings(const std::map<std::string, std::string> &query
         {
             std::string pct = path_type->second;
             std::replace(pct.begin(), pct.end(), '_', '%');
-            const std::string current = from_percent(pct);
-
-            render_path_box(full_path, current, i, out);
-            full_path += current;
-            empty_path = false;
+            path.emplace_back(from_percent(pct));
         }
         else
-        {
-            render_path_box(full_path, std::string(), i, out);
             break;
-        }
     }
 
-    out << "</td><td class=\"right\"><input type=\"submit\"" << is_enabled(!empty_path) << " name=\"append\" "
+#if defined(__unix__)
+    std::string full_path = "/";
+#elif defined(WIN32)
+    std::string full_path;
+#endif
+    for (size_t i = 0; i < path.size(); i++)
+    {
+        render_path_box(full_path, path[i], i, out);
+        full_path += path[i];
+    }
+
+    render_path_box(full_path, std::string(), path.size(), out);
+
+    out << "</td><td class=\"right\"><input type=\"submit\"" << is_enabled(!path.empty()) << " name=\"append\" "
            "value=\"" << tr("Append") << "\" /></td></tr></table>"
-           "<p class=\"buttons\"><input type=\"submit\" name=\"save\" value=\"" << tr("Save") << "\" /></p>"
+           "<p class=\"buttons\"><input type=\"submit\" name=\"save_button\" value=\"" << tr("Save") << "\" /></p>"
            "</form></fieldset>";
 }
 
@@ -359,18 +388,21 @@ static void save_path_settings(class settings &settings, const std::map<std::str
 
 void settingspage::render_headers(const struct pupnp::upnp::request &request, std::ostream &out)
 {
+    const uint16_t old_port = settings.http_port();
+
     out << "<link rel=\"stylesheet\" href=\"/css/settings.css\" type=\"text/css\" media=\"screen, handheld, projection\" />";
 
-    const auto save = request.url.query.find("save_settings");
-    if (save != request.url.query.end())
+    const auto save_settings = request.url.query.find("save_settings");
+    if (save_settings != request.url.query.end())
     {
-        const uint16_t old_port = settings.http_port();
+        if      (save_settings->second == "http") save_http_settings(settings, request.url.query);
+        else if (save_settings->second == "dlna") save_dlna_settings(settings, request.url.query);
+        else if (save_settings->second == "path") save_path_settings(settings, request.url.query);
+    }
 
-        if      (save->second == "http") save_http_settings(settings, request.url.query);
-        else if (save->second == "dlna") save_dlna_settings(settings, request.url.query);
-        else if (save->second == "path") save_path_settings(settings, request.url.query);
-
-        applying = apply && apply();
+    if ((request.url.query.find("save_button") != request.url.query.end()) && apply)
+    {
+        applying = apply();
         if (!applying)
             settings.set_http_port(old_port);
 
@@ -410,7 +442,7 @@ int settingspage::render_page(const struct pupnp::upnp::request &request, std::o
                << tr("Applying settings...") <<
                "</p></div></div>";
     }
-    else if (request.url.query.find("save_settings") != request.url.query.end())
+    else if ((request.url.query.find("save_button") != request.url.query.end()) && apply)
     {
         out << "<div class=\"error\"><div><p>"
                << tr("Cannot apply settings while streaming.") <<
