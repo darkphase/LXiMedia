@@ -31,7 +31,7 @@ file(GLOB_RECURSE PUPNP_THREADUTIL_SRC_LIST ${CMAKE_BINARY_DIR}/ext/pupnp/libupn
 file(GLOB_RECURSE PUPNP_UPNP_SRC_LIST ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/upnp/src/*.c)
 add_library(pupnp STATIC ${PUPNP_IXML_SRC_LIST} ${PUPNP_THREADUTIL_SRC_LIST} ${PUPNP_UPNP_SRC_LIST})
 
-# lximcbackend
+# lximediacenter
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -pthread")
 if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWIN32 -DUPNP_STATIC_LIB -static")
@@ -39,20 +39,22 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
 endif()
 
 include_directories(src/lximcbackend/)
-aux_source_directory(src/lximcbackend/ LXIMCBACKEND_SRC_LIST)
 aux_source_directory(src/lximcbackend/platform/ LXIMCBACKEND_PLATFORM_SRC_LIST)
-aux_source_directory(src/lximcbackend/html/ LXIMCBACKEND_HTML_SRC_LIST)
 aux_source_directory(src/lximcbackend/pupnp/ LXIMCBACKEND_PUPNP_SRC_LIST)
 aux_source_directory(src/lximcbackend/vlc/ LXIMCBACKEND_VLC_SRC_LIST)
-add_executable(
-    lximcbackend
+add_library(
+    lximediacenter STATIC
     ${LXIMCBACKEND_SRC_LIST}
     ${LXIMCBACKEND_PLATFORM_SRC_LIST}
-    ${LXIMCBACKEND_HTML_SRC_LIST}
     ${LXIMCBACKEND_PUPNP_SRC_LIST}
     ${LXIMCBACKEND_VLC_SRC_LIST})
 
-target_link_libraries(lximcbackend pupnp)
+# lximcbackend
+include_directories(src/lximcbackend/backend/)
+aux_source_directory(src/lximcbackend/backend/ LXIMCBACKEND_SRC_LIST)
+aux_source_directory(src/lximcbackend/backend/html/ LXIMCBACKEND_HTML_SRC_LIST)
+add_executable(lximcbackend ${LXIMCBACKEND_SRC_LIST} ${LXIMCBACKEND_HTML_SRC_LIST})
+target_link_libraries(lximcbackend lximediacenter pupnp)
 if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
     target_link_libraries(lximcbackend ws2_32 iphlpapi rpcrt4)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlc.dll")
@@ -62,6 +64,17 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
     add_custom_target(vlc ALL DEPENDS ${CMAKE_BINARY_DIR}/libvlc.dll ${CMAKE_BINARY_DIR}/libvlccore.dll ${CMAKE_BINARY_DIR}/plugins VERBATIM)
 else()
     target_link_libraries(lximcbackend uuid vlc)
+endif()
+
+# lximclauncher
+include_directories(src/lximcbackend/launcher/)
+aux_source_directory(src/lximcbackend/launcher/ LXIMCLAUNCHER_SRC_LIST)
+add_executable(lximclauncher ${LXIMCLAUNCHER_SRC_LIST})
+target_link_libraries(lximclauncher lximediacenter pupnp)
+if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+    target_link_libraries(lximclauncher ws2_32 iphlpapi)
+else()
+    target_link_libraries(lximclauncher)
 endif()
 
 # lximcbackend_test

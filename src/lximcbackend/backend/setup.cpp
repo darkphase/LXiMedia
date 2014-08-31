@@ -106,33 +106,16 @@ int setup::play_item(
 }
 
 #if defined(__unix__)
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/wait.h>
+#include <cstdlib>
 
 static bool shutdown()
 {
-    pid_t pid = fork();
-    if (pid == 0)
-    {
-        // This only works if "your_username ALL = NOPASSWD: /sbin/shutdown" is added to sudoers.
-        execl("/usr/bin/sudo", "sudo", "shutdown", "-h", "now", nullptr);
-        _exit(EXIT_FAILURE);
-    }
-    else if (pid > 0)
-    {
-        int exitcode;
-        if (waitpid(pid, &exitcode, 0) != pid)
-          exitcode = -1;
+    // This only works if "your_username ALL = NOPASSWD: /sbin/shutdown" is added to sudoers.
+    const int exitcode = system("sudo shutdown -h now");
+    if (exitcode == 0)
+        return true;
 
-        if (exitcode == 0)
-            return true;
-
-        std::clog << "\"sudo shutdown -h now\" failed with exit code " << exitcode << '.' << std::endl;
-    }
-    else
-        std::clog << "Failed to fork process." << std::endl;
-
+    std::clog << "\"sudo shutdown -h now\" failed with exit code " << exitcode << '.' << std::endl;
     return false;
 }
 #elif defined(WIN32)
