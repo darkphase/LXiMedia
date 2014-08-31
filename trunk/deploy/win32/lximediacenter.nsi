@@ -9,8 +9,6 @@ RequestExecutionLevel admin
 
 !define MUI_ABORTWARNING
 
-!insertmacro MUI_PAGE_LICENSE "COPYING"
-!insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
   
@@ -22,106 +20,44 @@ RequestExecutionLevel admin
 ;--------------------------------
 ;Installer Sections
 
-Section "-Stop Apps" SecStop
+Section "-Files" SecFiles
   ExecWait 'net stop "LXiMediaCenter Backend"'
   ExecWait 'cmd /C "taskkill /F /IM lximcbackend.exe || tskill lximcbackend.exe /A"'
-  ExecWait 'cmd /C "taskkill /F /IM lximcfrontend.exe || tskill lximcfrontend.exe /A"'
-SectionEnd
+  ExecWait 'cmd /C "taskkill /F /IM lximclauncher.exe || tskill lximclauncher.exe /A"'
 
-Section "-Shared Files" SecShared
   SetOutPath $INSTDIR
   SetOverwrite ifnewer
-  File COPYING
-  File VERSION
-  File README
-  File icudt*.dll
-  File icuin*.dll
-  File icuuc*.dll
-  File Qt5Core.dll
-  File Qt5Gui.dll
-  File Qt5Network.dll
-  File Qt5Widgets.dll
-  File LXiCore.dll
+  File lximcbackend.exe
+  File lximclauncher.exe
+  File libvlc.dll
+  File libvlccore.dll
 
-  ; Only needed when compiled with MinGW
-  File /nonfatal libgcc_s_*.dll
-  File /nonfatal libstdc*.dll
-  File /nonfatal libwinpthread*.dll
+  SetOutPath $INSTDIR\plugins
+  File /r plugins\*
 
-  SetOutPath $INSTDIR\platforms
-  SetOverwrite ifnewer
-  File platforms\qwindows.dll
+  nsisFirewall::AddAuthorizedApplication "$INSTDIR\lximcbackend.exe" "LeX-Interactive MediaCenter - Backend service"
+  nsisFirewall::AddAuthorizedApplication "$INSTDIR\lximclauncher.exe" "LeX-Interactive MediaCenter - Launcher"
 
-  SetOutPath $INSTDIR\imageformats
-  SetOverwrite ifnewer
-  File imageformats\qjpeg.dll
-  File imageformats\qtiff.dll
+  ExecWait '"$INSTDIR\lximcbackend.exe" --install'
+  CreateShortCut "$SMPROGRAMS\LXiMediaCenter.lnk" "$INSTDIR\lximclauncher.exe" "" "$INSTDIR\lximclauncher.exe" 0
+  Exec '"$INSTDIR\lximclauncher.exe"'
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\LXiMediaCenter" "DisplayName" "LeX-Interactive MediaCenter"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\LXiMediaCenter" "UninstallString" '"$INSTDIR\Uninstall.exe"'
 SectionEnd
 
-Section "Backend service" SecBackend
-  SetOutPath $INSTDIR
-  SetOverwrite ifnewer
-  File LXiMediaCenter.dll
-  File LXiStream.dll
-  File LXiStreamGui.dll
-  File lximcbackend.exe
-
-  File /nonfatal dcraw.exe
-
-  SetOutPath $INSTDIR\lximedia
-  SetOverwrite ifnewer
-  File lximedia\lxistream_*.dll
-
-  nsisFirewall::AddAuthorizedApplication "$INSTDIR\lximcbackend.exe" "LeX-Interactive MediaCenter - Backend service"
-
-  SetOutPath $INSTDIR\lximedia
-  SetOverwrite ifnewer
-  File lximedia\lximediacenter_*.dll
-
-  ExecWait '"$INSTDIR\lximcbackend.exe" --install'
-  ExecWait 'net start "LXiMediaCenter Backend"'
-SectionEnd
-
-Section "Frontend application" SecFrontend
-  SetOutPath $INSTDIR
-  SetOverwrite ifnewer
-  File Qt5Multimedia.dll
-  File Qt5MultimediaWidgets.dll
-  File Qt5OpenGL.dll
-  File Qt5Positioning.dll
-  File Qt5PrintSupport.dll
-  File Qt5Qml.dll
-  File Qt5Quick.dll
-  File Qt5Sensors.dll
-  File Qt5Sql.dll
-  File Qt5WebKit.dll
-  File Qt5WebKitWidgets.dll
-  File lximcfrontend.exe
-
-  CreateShortCut "$SMPROGRAMS\LXiMediaCenter Frontend.lnk" "$INSTDIR\lximcfrontend.exe" "" "$INSTDIR\lximcfrontend.exe" 0
-
-  nsisFirewall::AddAuthorizedApplication "$INSTDIR\lximcfrontend.exe" "LeX-Interactive MediaCenter - Frontend application"
-
-  Exec '"$INSTDIR\lximcfrontend.exe" --welcome'
-SectionEnd
-
 Section "Uninstall"
   Delete "$INSTDIR\Uninstall.exe"
 
-  ExecWait 'net stop "LXiMediaCenter Backend"'
-  ExecWait 'cmd /C "taskkill /F /IM lximcbackend.exe || tskill lximcbackend.exe /A"'
-  ExecWait 'cmd /C "taskkill /F /IM lximcfrontend.exe || tskill lximcfrontend.exe /A"'
-
   ExecWait '"$INSTDIR\lximcbackend.exe" --uninstall'
+  ExecWait 'cmd /C "taskkill /F /IM lximcbackend.exe || tskill lximcbackend.exe /A"'
+  ExecWait 'cmd /C "taskkill /F /IM lximclauncher.exe || tskill lximclauncher.exe /A"'
 
   nsisFirewall::RemoveAuthorizedApplication "$INSTDIR\lximcbackend.exe"
-  nsisFirewall::RemoveAuthorizedApplication "$INSTDIR\lximcfrontend.exe"
+  nsisFirewall::RemoveAuthorizedApplication "$INSTDIR\lximclauncher.exe"
 
-  Delete "$SMPROGRAMS\LXiMediaCenter Frontend.lnk"
+  Delete "$SMPROGRAMS\LXiMediaCenter.lnk"
 
   RMDir /r /REBOOTOK "$INSTDIR"
 
