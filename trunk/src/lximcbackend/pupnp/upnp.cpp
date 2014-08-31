@@ -163,10 +163,7 @@ bool upnp::initialize(uint16_t port, bool bind_public)
     if (initialized)
     {
         for (char **i = ::UpnpGetServerIpAddresses(); i && *i; i++)
-        {
             std::clog << "[" << this << "] pupnp::upnp: Bound " << *i << ":" << ::UpnpGetServerPort() << std::endl;
-            std::cout << "Bound " << *i << ":" << ::UpnpGetServerPort() << std::endl;
-        }
 
         if (!http_callbacks.empty())
             enable_webserver();
@@ -243,6 +240,16 @@ bool upnp::is_my_address(const std::string &address) const
     const size_t colon = address.find_first_of(':');
 
     return available_addresses.find((colon != address.npos) ? address.substr(0, colon) : address) != available_addresses.end();
+}
+
+const std::set<std::string> & upnp::bound_addresses() const
+{
+    return available_addresses;
+}
+
+uint16_t upnp::bound_port() const
+{
+    return ::UpnpGetServerPort();
 }
 
 int upnp::handle_http_request(const struct request &request, std::string &content_type, std::shared_ptr<std::istream> &response)

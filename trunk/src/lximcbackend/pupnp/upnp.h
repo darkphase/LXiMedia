@@ -82,6 +82,8 @@ public:
     void close(void);
 
     bool is_my_address(const std::string &) const;
+    const std::set<std::string> & bound_addresses() const;
+    uint16_t bound_port() const;
 
     int handle_http_request(const struct request &, std::string &content_type, std::shared_ptr<std::istream> &);
 

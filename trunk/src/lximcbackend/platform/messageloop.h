@@ -30,62 +30,62 @@ class timer;
 
 class messageloop
 {
-friend class timer;
+    friend class timer;
 public:
-  messageloop();
-  ~messageloop();
+    messageloop();
+    ~messageloop();
 
-  int run();
-  void stop(int);
-  void post(const std::function<void()> &);
-  void send(const std::function<void()> &);
+    int run();
+    void stop(int);
+    void post(const std::function<void()> &);
+    void send(const std::function<void()> &);
 
-  void process_events(const std::chrono::milliseconds &duration);
-
-private:
-  void timer_add(class timer &);
-  void timer_remove(class timer &);
+    void process_events(const std::chrono::milliseconds &duration);
 
 private:
-  std::mutex mutex;
-  std::condition_variable message_added;
-  std::condition_variable send_processed;
+    void timer_add(class timer &);
+    void timer_remove(class timer &);
 
-  bool running;
-  int exitcode;
-  std::queue<std::function<void()>> messages;
+private:
+    std::mutex mutex;
+    std::condition_variable message_added;
+    std::condition_variable send_processed;
 
-  std::set<timer *> timers;
-  std::chrono::steady_clock clock;
+    bool stopped;
+    int exitcode;
+    std::queue<std::function<void()>> messages;
+
+    std::set<timer *> timers;
+    std::chrono::steady_clock clock;
 };
 
 class timer
 {
-friend class messageloop;
+    friend class messageloop;
 public:
-  timer(class messageloop &, const std::function<void()> &timeout);
-  ~timer();
+    timer(class messageloop &, const std::function<void()> &timeout);
+    ~timer();
 
-  template<typename rep, typename period>
-  void start(std::chrono::duration<rep, period> interval, bool once = false);
-  void start(std::chrono::nanoseconds, bool once);
-  void stop();
-
-private:
+    template<typename rep, typename period>
+    void start(std::chrono::duration<rep, period> interval, bool once = false);
+    void start(std::chrono::nanoseconds, bool once);
+    void stop();
 
 private:
-  class messageloop &messageloop;
-  const std::function<void()> timeout;
 
-  std::chrono::nanoseconds interval;
-  std::chrono::steady_clock::time_point next;
-  bool once;
+private:
+    class messageloop &messageloop;
+    const std::function<void()> timeout;
+
+    std::chrono::nanoseconds interval;
+    std::chrono::steady_clock::time_point next;
+    bool once;
 };
 
 template<typename rep, typename period>
 void timer::start(std::chrono::duration<rep, period> interval, bool once)
 {
-  return start(std::chrono::duration_cast<std::chrono::nanoseconds>(interval), once);
+    return start(std::chrono::duration_cast<std::chrono::nanoseconds>(interval), once);
 }
 
 #endif
