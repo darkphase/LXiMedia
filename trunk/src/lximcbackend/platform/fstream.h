@@ -41,10 +41,10 @@ public:
     int sync() override;
 
 private:
-    bool read();
-
+    const bool binary;
     void *handle;
-    char buffer[8192];
+    char buffer[4096];
+    std::string text_buffer;
 };
 
 template <class _type, class _traits = std::char_traits<_type>>

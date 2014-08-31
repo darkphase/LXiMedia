@@ -30,12 +30,12 @@ static const struct fstream_test
 
         const std::string filename = ::filename();
         {
-            ofstream out(filename, std::ios::binary);
+            ofstream out(filename);
             test_assert(out.is_open());
             test_assert(out.write(data, sizeof(data) - 1));
         }
         {
-            ifstream in(filename, std::ios::binary);
+            ifstream in(filename);
             test_assert(in.is_open());
 
             std::string buffer;

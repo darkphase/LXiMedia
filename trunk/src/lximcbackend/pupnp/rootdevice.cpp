@@ -15,10 +15,10 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
+#include <upnp/upnp.h> // Include first to make sure off_t is the correct size.
 #include "rootdevice.h"
 #include "ixml_structures.h"
 #include "platform/string.h"
-#include <upnp/upnp.h>
 #include <atomic>
 #include <cstring>
 #include <iostream>
@@ -424,13 +424,17 @@ bool rootdevice::enable_rootdevice(void)
         for (char **i = addresses; i && *i; i++)
         {
             const std::string host = std::string(*i) + ":" + port;
-            if (::UpnpRegisterRootDevice(
+            const int rc = ::UpnpRegisterRootDevice(
                         ("http://" + host + basedir + devicedescriptionfile + ".xml").c_str(),
                         &T::callback, this,
-                        &(rootdevice_handles[host])) == UPNP_E_SUCCESS)
-            {
-                result = UPNP_E_SUCCESS;
-            }
+                        &(rootdevice_handles[host]));
+
+            std::clog << "[" << this << "] pupnp::rootdevice: UpnpRegisterRootDevice(\"http://"
+                      << host << basedir << devicedescriptionfile << ".xml\") -> " << rc
+                      << std::endl;
+
+            if (result != UPNP_E_SUCCESS)
+                result = rc;
         }
 
         finished = true;

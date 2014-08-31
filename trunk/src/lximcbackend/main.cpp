@@ -1,12 +1,9 @@
 #include "backend.h"
 #include "platform/messageloop.h"
+#include <clocale>
 #include <cstdio>
 #include <iostream>
 #include <memory>
-
-#if defined(__unix__)
-# include <clocale>
-#endif
 
 static FILE *logfile = nullptr;
 static std::string create_logfile();
@@ -18,11 +15,24 @@ static void close_logfile()
     logfile = nullptr;
 }
 
-int main(int /*argc*/, const char */*argv*/[])
+int main(int argc, const char *argv[])
 {
+    const char * const locale = setlocale(LC_ALL, "");
+
     // Allocate on heap to keep the stack free.
     const std::unique_ptr<class messageloop> messageloop(new class messageloop());
     const std::string logfile = create_logfile();
+    if (!logfile.empty())
+    {
+        std::clog << "[" << (void *)&main << "] Starting ";
+        if (argc > 0)
+            std::clog << "\"" << argv[0] << "\"";
+        else
+            std::clog << "LXiMediaCenter";
+
+        std::clog << std::endl;
+        if (locale) std::clog << "[" << (void *)&main << "] Current locale is: " << locale << std::endl;
+    }
 
     int result = 1;
     {
@@ -81,10 +91,8 @@ static std::string create_logfile()
     {
         std::wstring filename = std::wstring(temp) + L"\\lximcbackend.log";
         logfile = _wfreopen(filename.c_str(), L"w", stderr);
-        if (logfile == nullptr)
-            filename.clear();
-
-        return from_windows_path(filename);
+        if (logfile)
+            return from_windows_path(filename);
     }
 
     return std::string();
