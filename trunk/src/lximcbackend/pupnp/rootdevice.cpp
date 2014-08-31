@@ -429,9 +429,12 @@ bool rootdevice::enable_rootdevice(void)
                         &T::callback, this,
                         &(rootdevice_handles[host]));
 
-            std::clog << "[" << this << "] pupnp::rootdevice: UpnpRegisterRootDevice(\"http://"
-                      << host << basedir << devicedescriptionfile << ".xml\") -> " << rc
-                      << std::endl;
+            if (rc != UPNP_E_SUCCESS)
+            {
+                std::clog << "[" << this << "] pupnp::rootdevice: UpnpRegisterRootDevice(\"http://"
+                          << host << basedir << devicedescriptionfile << ".xml\") failed:" << rc
+                          << std::endl;
+            }
 
             if (result != UPNP_E_SUCCESS)
                 result = rc;
@@ -456,7 +459,7 @@ bool rootdevice::enable_rootdevice(void)
         return true;
     }
     else
-        std::clog << "[" << this << "] pupnp::rootdevice: UpnpRegisterRootDevice failed:" << result << std::endl;
+        std::clog << "[" << this << "] pupnp::rootdevice: failed to register the rootdevice:" << result << std::endl;
 
     return false;
 }

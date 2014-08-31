@@ -77,19 +77,19 @@ std::vector<std::string> list_files(
 {
     std::multimap<std::string, std::string> dirs, files;
 
-    auto dir = ::opendir(path.c_str());
+    std::string cpath = path;
+    while (!cpath.empty() && (cpath[cpath.length() - 1] == '/')) cpath.pop_back();
+    cpath.push_back('/');
+
+    auto &hidden_dirs = ::hidden_dirs();
+    for (auto &i : hidden_dirs)
+        if (starts_with(cpath, i + '/'))
+            return std::vector<std::string>();
+
+    auto dir = ::opendir(cpath.c_str());
     if (dir)
     {
-        auto &hidden_dirs = ::hidden_dirs();
         auto &hidden_names = ::hidden_names();
-
-        std::string cpath = path;
-        while (!cpath.empty() && (cpath[cpath.length() - 1] == '/')) cpath.pop_back();
-        cpath.push_back('/');
-
-        for (auto &i : hidden_dirs)
-            if (starts_with(cpath, i + '/'))
-                return std::vector<std::string>();
 
         for (auto dirent = ::readdir(dir); dirent; dirent = ::readdir(dir))
         {
@@ -120,6 +120,7 @@ std::vector<std::string> list_files(
 }
 #elif defined(WIN32)
 #include <windows.h>
+#include <iostream>
 
 std::vector<std::string> list_root_directories()
 {
@@ -139,6 +140,87 @@ std::vector<std::string> list_root_directories()
     return result;
 }
 
+std::string volume_name(const std::string &path)
+{
+    wchar_t volume_name[MAX_PATH + 1];
+    if (GetVolumeInformationW(
+                to_windows_path(path).c_str(),
+                volume_name,
+                sizeof(volume_name) / sizeof(*volume_name),
+                NULL, NULL, NULL, NULL, 0))
+    {
+        return from_utf16(volume_name);
+    }
+
+    return std::string();
+}
+
+bool starts_with(const std::wstring &text, const std::wstring &find)
+{
+    if (text.length() >= find.length())
+        return wcsncmp(&text[0], &find[0], find.length()) == 0;
+
+    return false;
+}
+
+static const std::wstring clean_path(const std::wstring &input)
+{
+    std::wstring result = input;
+    while (!result.empty() && (result[result.length() - 1] == L'\\')) result.pop_back();
+    return result;
+}
+
+static const std::wstring to_lower(const std::wstring &input)
+{
+    std::wstring result = input;
+    std::transform(result.begin(), result.end(), result.begin(), ::towlower);
+    return result;
+}
+
+static const std::unordered_set<std::wstring> & hidden_dirs()
+{
+    static std::unordered_set<std::wstring> hidden_dirs;
+    static std::once_flag flag;
+    std::call_once(flag, []
+    {
+        const wchar_t *dir = _wgetenv(L"SystemDrive");
+        if (dir == nullptr) dir = L"C:";
+        hidden_dirs.insert(clean_path(dir) + L"\\program files");
+        hidden_dirs.insert(clean_path(dir) + L"\\program files (x86)");
+        hidden_dirs.insert(clean_path(dir) + L"\\windows");
+        hidden_dirs.insert(clean_path(dir) + L"\\temp");
+        hidden_dirs.insert(clean_path(dir) + L"\\recycler");
+
+        dir = _wgetenv(L"ProgramFiles");
+        if (dir) hidden_dirs.insert(to_lower(clean_path(dir)));
+        dir = _wgetenv(L"ProgramFiles(x86)");
+        if (dir) hidden_dirs.insert(to_lower(clean_path(dir)));
+        dir = _wgetenv(L"SystemRoot");
+        if (dir) hidden_dirs.insert(to_lower(clean_path(dir)));
+        dir = _wgetenv(L"TEMP");
+        if (dir) hidden_dirs.insert(to_lower(clean_path(dir)));
+        dir = _wgetenv(L"TMP");
+        if (dir) hidden_dirs.insert(to_lower(clean_path(dir)));
+        dir = _wgetenv(L"windir");
+        if (dir) hidden_dirs.insert(to_lower(clean_path(dir)));
+    });
+
+    return hidden_dirs;
+}
+
+static const std::unordered_set<std::wstring> & hidden_names()
+{
+    static std::unordered_set<std::wstring> hidden_names;
+    static std::once_flag flag;
+    std::call_once(flag, []
+    {
+        hidden_names.insert(L"@eadir");
+        hidden_names.insert(L"lost+found");
+    });
+
+    return hidden_names;
+}
+
 std::vector<std::string> list_files(
         const std::string &path,
         bool directories_only,
@@ -146,28 +228,34 @@ std::vector<std::string> list_files(
 {
     std::multimap<std::string, std::string> dirs, files;
 
-    std::wstring wpath = to_windows_path(path);
-    while (!wpath.empty() && (wpath[wpath.length() - 1] == L'\\')) wpath.pop_back();
-    wpath.push_back(L'\\');
+    const std::wstring wpath = clean_path(to_windows_path(to_lower(path))) + L'\\';
+
+    auto &hidden_dirs = ::hidden_dirs();
+    for (auto &i : hidden_dirs)
+        if (starts_with(wpath, i + L'\\'))
+            return std::vector<std::string>();
 
     WIN32_FIND_DATAW find_data;
     HANDLE handle = FindFirstFileW((wpath + L'*').c_str(), &find_data);
     if (handle != INVALID_HANDLE_VALUE)
     {
+        auto &hidden_names = ::hidden_names();
+
         do
         {
             struct __stat64 stat;
             if ((find_data.cFileName[0] != L'.') &&
                 (::_wstat64((wpath + find_data.cFileName).c_str(), &stat) == 0))
             {
-                std::string name = from_windows_path(find_data.cFileName), lname = to_lower(name);
+                std::wstring name = find_data.cFileName, lname = to_lower(name);
                 if ((find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
-                    (lname != "@eadir"))
+                    (hidden_names.find(lname) == hidden_names.end()) &&
+                    (hidden_dirs.find(wpath + lname) == hidden_dirs.end()))
                 {
-                    dirs.emplace(std::move(lname), name + '/');
+                    dirs.emplace(from_utf16(lname), from_utf16(name) + '/');
                 }
                 else if (!directories_only && (size_t(stat.st_size) >= min_file_size))
-                    files.emplace(std::move(lname), std::move(name));
+                    files.emplace(from_utf16(lname), from_utf16(name));
             }
         } while(FindNextFileW(handle, &find_data) != 0);
 

@@ -29,6 +29,7 @@ std::vector<std::string> list_files(
         const size_t min_file_size = 0);
 
 #ifdef WIN32
+std::string volume_name(const std::string &);
 std::wstring to_windows_path(const std::string &);
 std::string from_windows_path(const std::wstring &);
 #endif

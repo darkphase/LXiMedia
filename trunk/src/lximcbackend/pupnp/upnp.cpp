@@ -31,7 +31,7 @@ namespace pupnp {
 const char  upnp::mime_application_octetstream[]  = "application/octet-stream";
 const char  upnp::mime_audio_aac[]                = "audio/aac";
 const char  upnp::mime_audio_ac3[]                = "audio/x-ac3";
-const char  upnp::mime_audio_lpcm[]               = "audio/L16;rate=48000;channels=2";
+const char  upnp::mime_audio_lpcm[]               = "audio/L16; rate=48000; channels=2";
 const char  upnp::mime_audio_mp3[]                = "audio/mp3";
 const char  upnp::mime_audio_mpeg[]               = "audio/mpeg";
 const char  upnp::mime_audio_mpegurl[]            = "audio/x-mpegurl";
@@ -54,11 +54,11 @@ const char  upnp::mime_video_mp4[]                = "video/mp4";
 const char  upnp::mime_video_ogg[]                = "video/ogg";
 const char  upnp::mime_video_qt[]                 = "video/quicktime";
 const char  upnp::mime_video_wmv[]                = "video/x-ms-wmv";
-const char  upnp::mime_text_css[]                 = "text/css;charset=\"utf-8\"";
-const char  upnp::mime_text_html[]                = "text/html;charset=\"utf-8\"";
-const char  upnp::mime_text_js[]                  = "text/javascript;charset=\"utf-8\"";
-const char  upnp::mime_text_plain[]               = "text/plain;charset=\"utf-8\"";
-const char  upnp::mime_text_xml[]                 = "text/xml;charset=\"utf-8\"";
+const char  upnp::mime_text_css[]                 = "text/css; charset=utf-8";
+const char  upnp::mime_text_html[]                = "text/html; charset=utf-8";
+const char  upnp::mime_text_js[]                  = "text/javascript; charset=utf-8";
+const char  upnp::mime_text_plain[]               = "text/plain; charset=utf-8";
+const char  upnp::mime_text_xml[]                 = "text/xml; charset=utf-8";
 
 upnp * upnp::me = nullptr;
 
@@ -289,8 +289,6 @@ void upnp::enable_webserver()
     {
         static int get_info(::Request_Info *request_info, const char *url, ::File_Info *info)
         {
-            std::clog << "[" << me << "] pupnp::upnp: webserver get_info \"" << url << "\"" << std::endl;
-
             struct request request;
             request.user_agent = request_info->userAgent;
             request.source_address = request_info->sourceAddress;
@@ -320,8 +318,9 @@ void upnp::enable_webserver()
 
                 return 0;
             }
-            else
-                return -1;
+
+            std::clog << "[" << me << "] pupnp::upnp: webserver get_info(\"" << url << "\") not found" << std::endl;
+            return -1;
         }
 
         static ::UpnpWebFileHandle open(::Request_Info *request_info, const char *url, ::UpnpOpenFileMode mode)
@@ -343,6 +342,7 @@ void upnp::enable_webserver()
                 return response.get();
             }
 
+            std::clog << "[" << me << "] pupnp::upnp: webserver open(\"" << url << "\") failed" << std::endl;
             return nullptr;
         }
 
@@ -404,10 +404,7 @@ void upnp::enable_webserver()
         static const ::UpnpVirtualDirCallbacks callbacks = { &T::get_info, &T::open, &T::read, &T::write, &T::seek, &T::close };
         const int rc = ::UpnpSetVirtualDirCallbacks(const_cast< ::UpnpVirtualDirCallbacks * >(&callbacks));
         if (rc == UPNP_E_SUCCESS)
-        {
-            std::clog << "[" << this << "] pupnp::upnp: web server enabled" << std::endl;
             webserver_enabled = true;
-        }
         else
             std::clog << "[" << this << "] pupnp::upnp: UpnpSetVirtualDirCallbacks failed:" << rc << std::endl;
     }

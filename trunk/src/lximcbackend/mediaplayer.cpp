@@ -158,6 +158,28 @@ static track_list list_tracks(const class vlc::media &media)
     return result;
 }
 
+static std::string root_path_name(const std::string &path)
+{
+    const size_t lsl = std::max(path.find_last_of('/'), path.length() - 1);
+    const size_t psl = path.find_last_of('/', lsl - 1);
+    if (psl < lsl)
+    {
+        return path.substr(psl + 1, lsl - psl - 1);
+    }
+#ifdef WIN32
+    else if (lsl != path.npos)
+    {
+        const std::string name = volume_name(path);
+        if (!name.empty())
+            return name + " (" + path.substr(0, lsl) + "\\)";
+        else
+            return path.substr(0, lsl) + "\\";
+    }
+#endif
+
+    return std::string();
+}
+
 std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(
         const std::string &client,
         const std::string &path,
@@ -170,12 +192,7 @@ std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(
     if (path == basedir)
     {
         for (auto &i : settings.root_paths())
-        {
-            const size_t lsl = std::max(i.path.find_last_of('/'), i.path.length() - 1);
-            const size_t psl = i.path.find_last_of('/', lsl - 1);
-            if (psl < lsl)
-                files.emplace_back(i.path.substr(psl + 1, lsl - psl - 1) + '/');
-        }
+            files.emplace_back(root_path_name(i.path) + '/');
     }
     else if (starts_with(path, basedir))
     {
@@ -593,13 +610,8 @@ root_path mediaplayer::to_system_path(const std::string &virtual_path) const
         const std::string path = virtual_path.substr(basedir.length());
         const std::string root = path.substr(0, path.find_first_of('/'));
         for (auto &i : settings.root_paths())
-        {
-            const size_t lsl = std::max(i.path.find_last_of('/'), i.path.length() - 1);
-            const size_t psl = i.path.find_last_of('/', lsl - 1);
-            const std::string name = i.path.substr(psl + 1, lsl - psl - 1);
-            if (root == name)
+            if (root == root_path_name(i.path))
                 return root_path { i.type, i.path + path.substr(root.length() + 1) };
-        }
     }
 
     return root_path { path_type::auto_, std::string() };
@@ -609,13 +621,7 @@ std::string mediaplayer::to_virtual_path(const std::string &system_path) const
 {
     for (auto &i : settings.root_paths())
         if (starts_with(system_path, i.path))
-        {
-            const size_t lsl = std::max(i.path.find_last_of('/'), i.path.length() - 1);
-            const size_t psl = i.path.find_last_of('/', lsl - 1);
-            const std::string name = i.path.substr(psl + 1, lsl - psl - 1);
-
-            return basedir + '/' + name + '/' + system_path.substr(i.path.length());
-        }
+            return basedir + '/' + root_path_name(i.path) + '/' + system_path.substr(i.path.length());
 
     return std::string();
 }

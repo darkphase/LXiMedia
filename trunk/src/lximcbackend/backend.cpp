@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "backend.h"
+#include <cassert>
 
 std::function<void()> backend::recreate_backend;
 
@@ -88,7 +89,10 @@ bool backend::initialize()
                     republish_timer.stop();
                 }
                 else
-                    republish_timer.start(republish_timeout);
+                {
+                    republish_required = true;
+                    republish_timer.start(republish_timeout * 4);
+                }
             };
 
             republish_timer.start(republish_timeout);
@@ -102,8 +106,12 @@ bool backend::initialize()
 
 void backend::republish_rootdevice()
 {
-    rootdevice.close();
-    rootdevice.initialize();
+    assert(republish_required);
+    if (republish_required)
+    {
+        rootdevice.close();
+        rootdevice.initialize();
+    }
 }
 
 bool backend::apply_settings()

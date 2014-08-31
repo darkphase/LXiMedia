@@ -17,3 +17,6 @@ h3 {
  color: #808080;
  border: none;
 }
+td {
+ width: 50%;
+}
