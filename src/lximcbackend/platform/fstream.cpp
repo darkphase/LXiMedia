@@ -19,19 +19,20 @@
 
 #ifdef WIN32
 #include "path.h"
+#include "string.h"
 #include <windows.h>
 
 template <class _type, class _traits>
 basic_utf8filebuf<_type, _traits>::basic_utf8filebuf(const std::string &filename, std::ios_base::openmode mode)
-    : handle(INVALID_HANDLE_VALUE)
+    : binary(mode & std::ios_base::binary),
+      handle(INVALID_HANDLE_VALUE)
 {
     const bool out = mode & std::ios_base::out;
 
-    auto windows_path = to_windows_path(filename);
     if (mode & std::ios_base::in)
     {
         handle = CreateFileW(
-                    windows_path.c_str(),
+                    to_windows_path(filename).c_str(),
                     GENERIC_READ,
                     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                     NULL,
@@ -42,7 +43,7 @@ basic_utf8filebuf<_type, _traits>::basic_utf8filebuf(const std::string &filename
     else if (mode & std::ios_base::out)
     {
         handle = CreateFileW(
-                    windows_path.c_str(),
+                    to_windows_path(filename).c_str(),
                     GENERIC_WRITE,
                     FILE_SHARE_READ | FILE_SHARE_DELETE,
                     NULL,
@@ -88,7 +89,20 @@ int basic_utf8filebuf<_type, _traits>::underflow()
     if (ReadFile(handle, &buffer[0], sizeof(buffer), &bytesRead, NULL) &&
         (bytesRead > 0) && (bytesRead <= sizeof(buffer)))
     {
-        this->setg(&buffer[0], &buffer[0], &buffer[bytesRead]);
+        if (!binary)
+        {
+            std::wstring dst;
+            dst.resize(bytesRead);
+            dst.resize(MultiByteToWideChar(
+                    CP_ACP, 0,
+                    &buffer[0], bytesRead,
+                    &dst[0], dst.length()));
+
+            text_buffer = from_utf16(dst);
+            this->setg(&text_buffer[0], &text_buffer[0], &text_buffer[text_buffer.length()]);
+        }
+        else
+            this->setg(&buffer[0], &buffer[0], &buffer[bytesRead]);
 
         return _traits::to_int_type(*this->gptr());
     }
@@ -100,7 +114,28 @@ template <class _type, class _traits>
 int basic_utf8filebuf<_type, _traits>::overflow(int value)
 {
     const int write = this->pptr() - this->pbase();
-    for (int pos = 0; pos < write; )
+    if (!binary)
+    {
+        std::wstring u16 = to_utf16(std::string(&buffer[0], write));
+
+        std::string dst;
+        dst.resize(u16.length() * 4);
+        dst.resize(WideCharToMultiByte(
+                CP_ACP, 0,
+                &u16[0], u16.length(),
+                &dst[0], dst.length(),
+                NULL, NULL));
+
+        for (size_t pos = 0; pos < dst.length(); )
+        {
+            DWORD bytesWritten = 0;
+            if (WriteFile(handle, &dst[pos], dst.length() - pos, &bytesWritten, NULL) && (bytesWritten <= (dst.length() - pos)))
+                pos += bytesWritten;
+            else
+                return _traits::eof();
+        }
+    }
+    else for (int pos = 0; pos < write; )
     {
         DWORD bytesWritten = 0;
         if (WriteFile(handle, &buffer[pos], write - pos, &bytesWritten, NULL) && (bytesWritten <= (write - pos)))

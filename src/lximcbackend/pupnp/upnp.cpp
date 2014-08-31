@@ -15,9 +15,9 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
+#include <upnp/upnp.h> // Include first to make sure off_t is the correct size.
 #include "upnp.h"
 #include "platform/string.h"
-#include <upnp/upnp.h>
 #include <algorithm>
 #include <atomic>
 #include <cassert>
@@ -289,6 +289,8 @@ void upnp::enable_webserver()
     {
         static int get_info(::Request_Info *request_info, const char *url, ::File_Info *info)
         {
+            std::clog << "[" << me << "] pupnp::upnp: webserver get_info \"" << url << "\"" << std::endl;
+
             struct request request;
             request.user_agent = request_info->userAgent;
             request.source_address = request_info->sourceAddress;
@@ -396,11 +398,21 @@ void upnp::enable_webserver()
         }
     };
 
-    ::UpnpEnableWebserver(TRUE);
-    static const ::UpnpVirtualDirCallbacks callbacks = { &T::get_info, &T::open, &T::read, &T::write, &T::seek, &T::close };
-    ::UpnpSetVirtualDirCallbacks(const_cast< ::UpnpVirtualDirCallbacks * >(&callbacks));
-
-    webserver_enabled = true;
+    const int rc = ::UpnpEnableWebserver(TRUE);
+    if (rc == UPNP_E_SUCCESS)
+    {
+        static const ::UpnpVirtualDirCallbacks callbacks = { &T::get_info, &T::open, &T::read, &T::write, &T::seek, &T::close };
+        const int rc = ::UpnpSetVirtualDirCallbacks(const_cast< ::UpnpVirtualDirCallbacks * >(&callbacks));
+        if (rc == UPNP_E_SUCCESS)
+        {
+            std::clog << "[" << this << "] pupnp::upnp: web server enabled" << std::endl;
+            webserver_enabled = true;
+        }
+        else
+            std::clog << "[" << this << "] pupnp::upnp: UpnpSetVirtualDirCallbacks failed:" << rc << std::endl;
+    }
+    else
+        std::clog << "[" << this << "] pupnp::upnp: UpnpEnableWebserver() failed:" << rc << std::endl;
 }
 
 int upnp::get_response(const struct request &request, std::string &content_type, std::shared_ptr<std::istream> &stream, bool erase)
