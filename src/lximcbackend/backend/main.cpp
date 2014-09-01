@@ -6,148 +6,83 @@
 #include <iostream>
 #include <memory>
 
-#if defined(__unix__)
-#elif defined(WIN32)
-static bool install_service();
-static bool uninstall_service();
-static bool start_service_dispatcher();
-#endif
-
-static FILE *logfile = nullptr;
-static std::string create_logfile();
-static void close_logfile()
+static int run(class messageloop &messageloop, const std::string &logfile)
 {
-    if (logfile)
-        fclose(logfile);
-
-    logfile = nullptr;
-}
-
-static int run(class messageloop &messageloop)
-{
-    const char * const locale = setlocale(LC_ALL, "");
-
-    const std::string logfile = create_logfile();
-    if (!logfile.empty())
+    std::unique_ptr<class backend> backend;
+    ::backend::recreate_backend = [&messageloop, &logfile, &backend]
     {
-        std::clog << "[" << (void *)&run << "] Starting LXiMediaCenter" << std::endl;
-        if (locale) std::clog << "[" << (void *)&run << "] Current locale is: " << locale << std::endl;
-    }
-
-    int result = 1;
-    {
-        std::unique_ptr<class backend> backend;
-        ::backend::recreate_backend = [&messageloop, &logfile, &backend]
+        backend = nullptr;
+        backend.reset(new class backend(messageloop, logfile));
+        if (!backend->initialize())
         {
-            backend = nullptr;
-            backend.reset(new class backend(messageloop, logfile));
-            if (!backend->initialize())
-            {
-                std::clog << "[" << backend.get() << "] failed to initialize backend; stopping." << std::endl;
-                messageloop.stop(1);
-            }
-        };
+            std::clog << "[" << backend.get() << "] failed to initialize backend; stopping." << std::endl;
+            messageloop.stop(1);
+        }
+    };
 
-        ::backend::recreate_backend();
-        result = messageloop.run();
-        ::backend::recreate_backend = nullptr;
-    }
-
-    close_logfile();
+    ::backend::recreate_backend();
+    const int result = messageloop.run();
+    ::backend::recreate_backend = nullptr;
 
     return result;
 }
 
-
 #if defined(__unix__)
-int main(int /*argc*/, const char */*argv*/[])
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+int main(int argc, const char *argv[])
 {
-    // Allocate on heap to keep the stack free.
-    const std::unique_ptr<class messageloop> messageloop(new class messageloop());
-    return run(*messageloop);
-}
+    setlocale(LC_ALL, "");
 
-static std::string create_logfile()
-{
-    close_logfile();
+    for (int i = 1; i < argc; i++)
+        if (strcmp(argv[i], "--daemon") == 0)
+        {
+            static const char pidfilename[] = "/var/run/lximcbackend.pid";
+            auto pidfile = open(pidfilename, O_RDWR | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR);
+            if (pidfile == -1)
+            {
+                std::cerr << "Failed to open PID file." << std::endl;
+                return 1;
+            }
 
-    std::string filename = "/var/log/lximcbackend.log";
-    logfile = freopen(filename.c_str(), "w", stderr);
-    if (logfile == nullptr)
-    {
-        filename = "/tmp/lximcbackend.log";
-        logfile = freopen(filename.c_str(), "w", stderr);
-    }
+            int result = 1;
+            if (daemon(0, 0) == 0)
+            {
+                {
+                    char buffer[64];
+                    snprintf(buffer, sizeof(buffer), "%ld\n", long(getpid()));
+                    write(pidfile, buffer, strlen(buffer));
+                }
 
-    if (logfile == nullptr)
-        filename.clear();
+                static const char logfilename[] = "/var/log/lximcbackend.log";
+                auto logfile = freopen(logfilename, "w", stderr);
+                {
+                    class messageloop messageloop;
 
-    return filename;
+                    result = run(messageloop, logfile ? logfilename : std::string());
+                }
+                if (logfile) fclose(logfile);
+            }
+            else
+                std::cerr << "Failed to start daemon" << std::endl;
+
+            close(pidfile);
+            remove(pidfilename);
+
+            return result;
+        }
+
+    class messageloop messageloop;
+    return run(messageloop, std::string());
 }
 
 #elif defined(WIN32)
-int main(int argc, const char *argv[])
-{
-    for (int i = 1; i < argc; i++)
-    {
-        if (strcmp(argv[i], "--install") == 0)
-        {
-            if (install_service())
-                return 0;
-
-            std::cerr << "Failed to install service." << std::endl;
-            return 1;
-        }
-        else if (strcmp(argv[i], "--uninstall") == 0)
-        {
-            if (uninstall_service())
-                return 0;
-
-            std::cerr << "Failed to uninstall service." << std::endl;
-            return 1;
-        }
-        else if (strcmp(argv[i], "--run") == 0)
-        {
-            // Allocate on heap to keep the stack free.
-            const std::unique_ptr<class messageloop> messageloop(new class messageloop());
-            return run(*messageloop);
-        }
-        else
-        {
-            std::cerr << "Usage:" << std::endl
-                      << "--install     Install service" << std::endl
-                      << "--uninstall   Uninstall service" << std::endl
-                      << "--run         Run directly" << std::endl;
-
-            return 1;
-        }
-    }
-
-    std::cout << "Starting service control dispatcher." << std::endl;
-    return start_service_dispatcher() ? 1 : 0;
-}
-
 #include "platform/path.h"
-static std::string create_logfile()
-{
-    close_logfile();
-
-    const wchar_t *temp = _wgetenv(L"TEMP");
-    if (temp == nullptr)
-        temp = _wgetenv(L"TMP");
-
-    if (temp)
-    {
-        std::wstring filename = std::wstring(temp) + L"\\lximcbackend.log";
-        logfile = _wfreopen(filename.c_str(), L"w", stderr);
-        if (logfile)
-            return from_windows_path(filename);
-    }
-
-    return std::string();
-}
-
 #include <windows.h>
+
 static const wchar_t service_name[] = L"LXiMediaCenter Backend";
 
 static bool install_service()
@@ -221,25 +156,24 @@ static std::unique_ptr<class messageloop> messageloop;
 
 static void WINAPI service_control_handler(DWORD controlCode)
 {
-    if (messageloop != NULL)
-        switch (controlCode)
+    switch (controlCode)
+    {
+    case SERVICE_CONTROL_SHUTDOWN:  // Windows is shutting down.
+    case SERVICE_CONTROL_STOP:      // The service is stopping.
+        if (messageloop)
         {
-        case SERVICE_CONTROL_SHUTDOWN:  // Windows is shutting down.
-        case SERVICE_CONTROL_STOP:      // The service is stopping.
-            if (messageloop)
-            {
-                messageloop->stop(0);
-                service_status.dwCurrentState = SERVICE_STOP_PENDING;
-            }
-
-            break;
-
-        case SERVICE_CONTROL_INTERROGATE:
-        case SERVICE_CONTROL_PAUSE:
-        case SERVICE_CONTROL_CONTINUE:
-        default:
-            break;
+            messageloop->stop(0);
+            service_status.dwCurrentState = SERVICE_STOP_PENDING;
         }
+
+        break;
+
+    case SERVICE_CONTROL_INTERROGATE:
+    case SERVICE_CONTROL_PAUSE:
+    case SERVICE_CONTROL_CONTINUE:
+    default:
+        break;
+    }
 
     ::SetServiceStatus(service_status_handle, &service_status);
 }
@@ -260,7 +194,6 @@ static void WINAPI service_main(DWORD argc, WCHAR *argv[])
         service_status.dwCurrentState = SERVICE_START_PENDING;
         ::SetServiceStatus(service_status_handle, &service_status);
 
-        // Allocate on heap to keep the stack free.
         messageloop.reset(new class messageloop());
         messageloop->post([]
         {
@@ -269,9 +202,25 @@ static void WINAPI service_main(DWORD argc, WCHAR *argv[])
             ::SetServiceStatus(service_status_handle, &service_status);
         });
 
-        const int result = run(*messageloop);
+        const wchar_t *temp = _wgetenv(L"TEMP");
+        if (temp == nullptr)
+            temp = _wgetenv(L"TMP");
+
+        FILE *logfile = nullptr;
+        std::string logfilename;
+        if (temp)
+        {
+            std::wstring filename = std::wstring(temp) + L"\\lximcbackend.log";
+            logfile = _wfreopen(filename.c_str(), L"w", stderr);
+            if (logfile)
+                logfilename = from_windows_path(filename);
+        }
+
+        const int result = run(*messageloop, logfilename);
 
         messageloop = nullptr;
+
+        if (logfile) fclose(logfile);
 
         service_status.dwControlsAccepted &= ~(SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN);
         service_status.dwCurrentState = SERVICE_STOPPED;
@@ -291,6 +240,44 @@ static bool start_service_dispatcher()
     return ::StartServiceCtrlDispatcherW(service_table);
 }
 
+int main(int argc, const char *argv[])
+{
+    for (int i = 1; i < argc; i++)
+    {
+        if (strcmp(argv[i], "--install") == 0)
+        {
+            if (install_service())
+                return 0;
 
+            std::cerr << "Failed to install service." << std::endl;
+            return 1;
+        }
+        else if (strcmp(argv[i], "--uninstall") == 0)
+        {
+            if (uninstall_service())
+                return 0;
+
+            std::cerr << "Failed to uninstall service." << std::endl;
+            return 1;
+        }
+        else if (strcmp(argv[i], "--run") == 0)
+        {
+            class messageloop messageloop;
+            return run(messageloop, std::string());
+        }
+        else
+        {
+            std::cerr << "Usage:" << std::endl
+                      << "--install     Install service" << std::endl
+                      << "--uninstall   Uninstall service" << std::endl
+                      << "--run         Run directly" << std::endl;
+
+            return 1;
+        }
+    }
+
+    std::cout << "Starting service control dispatcher." << std::endl;
+    return start_service_dispatcher() ? 1 : 0;
+}
 
 #endif
