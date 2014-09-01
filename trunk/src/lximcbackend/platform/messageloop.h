@@ -30,7 +30,7 @@ class timer;
 
 class messageloop
 {
-    friend class timer;
+friend class timer;
 public:
     messageloop();
     ~messageloop();
@@ -43,6 +43,7 @@ public:
     void process_events(const std::chrono::milliseconds &duration);
 
 private:
+    void abort();
     void timer_add(class timer &);
     void timer_remove(class timer &);
 
@@ -61,7 +62,7 @@ private:
 
 class timer
 {
-    friend class messageloop;
+friend class messageloop;
 public:
     timer(class messageloop &, const std::function<void()> &timeout);
     ~timer();
@@ -70,8 +71,6 @@ public:
     void start(std::chrono::duration<rep, period> interval, bool once = false);
     void start(std::chrono::nanoseconds, bool once);
     void stop();
-
-private:
 
 private:
     class messageloop &messageloop;

@@ -17,16 +17,24 @@
 
 #include "messageloop.h"
 #include <cassert>
+#include <cstring>
+#include <map>
+
+static void set_abort_handler(void(messageloop::*)(), messageloop *);
+static void clear_abort_handler(messageloop *);
 
 messageloop::messageloop()
     : stopped(false),
       exitcode(-1)
 {
+    set_abort_handler(&messageloop::abort, this);
 }
 
 messageloop::~messageloop()
 {
     assert(timers.empty());
+
+    clear_abort_handler(this);
 }
 
 int messageloop::run()
@@ -163,6 +171,15 @@ void messageloop::process_events(const std::chrono::milliseconds &duration)
     }
 }
 
+void messageloop::abort()
+{
+    // Can't lock from a signal
+
+    this->exitcode = exitcode;
+    stopped = true;
+    message_added.notify_one();
+}
+
 void messageloop::timer_add(class timer &timer)
 {
     timers.insert(&timer);
@@ -200,3 +217,96 @@ void timer::stop()
 {
     messageloop.timer_remove(*this);
 }
+
+static std::map<messageloop *, void(messageloop::*)()> abort_handlers;
+
+#if defined(__unix__)
+#include <iostream>
+#include <signal.h>
+
+static void signal_handler(int signal)
+{
+    std::clog << "Received \"" << strsignal(signal) << "\" signal" << std::endl;
+
+    if ((signal == SIGINT) || (signal == SIGTERM))
+        for (auto &i : abort_handlers) ((i.first)->*(i.second))();
+}
+
+static void set_abort_handler(void(messageloop::*handler)(), messageloop *object)
+{
+    if (abort_handlers.empty())
+    {
+        struct sigaction act;
+        act.sa_handler = &signal_handler;
+        sigemptyset(&act.sa_mask);
+        act.sa_flags = 0;
+
+        sigaction(SIGHUP, &act, nullptr);
+        sigaction(SIGTERM, &act, nullptr);
+        sigaction(SIGINT, &act, nullptr);
+    }
+
+    abort_handlers[object] = handler;
+}
+
+static void clear_abort_handler(messageloop *object)
+{
+    abort_handlers.erase(object);
+
+    if (abort_handlers.empty())
+    {
+        sigaction(SIGHUP, nullptr, nullptr);
+        sigaction(SIGTERM, nullptr, nullptr);
+        sigaction(SIGINT, nullptr, nullptr);
+    }
+}
+#elif defined(WIN32)
+#include <iostream>
+#include <windows.h>
+
+static BOOL WINAPI console_ctrl_handler(DWORD type)
+{
+    switch (type)
+    {
+    case CTRL_C_EVENT:
+        std::clog << "Received CTRL_C" << std::endl;
+        for (auto &i : abort_handlers) ((i.first)->*(i.second))();
+        return TRUE;
+
+    case CTRL_BREAK_EVENT:
+        std::clog << "Received CTRL_BREAK" << std::endl;
+        for (auto &i : abort_handlers) ((i.first)->*(i.second))();
+        return TRUE;
+
+    case CTRL_LOGOFF_EVENT:
+        std::clog << "Received CTRL_LOGOFF" << std::endl;
+        for (auto &i : abort_handlers) ((i.first)->*(i.second))();
+        return TRUE;
+
+    case CTRL_SHUTDOWN_EVENT:
+        std::clog << "Received CTRL_SHUTDOWN" << std::endl;
+        for (auto &i : abort_handlers) ((i.first)->*(i.second))();
+        return TRUE;
+
+    default:
+        return FALSE;
+    }
+}
+
+static void set_abort_handler(void(messageloop::*handler)(), messageloop *object)
+{
+    if (abort_handlers.empty())
+        SetConsoleCtrlHandler(&console_ctrl_handler, TRUE);
+
+    abort_handlers[object] = handler;
+}
+
+static void clear_abort_handler(messageloop *object)
+{
+    abort_handlers.erase(object);
+
+    if (abort_handlers.empty())
+        SetConsoleCtrlHandler(&console_ctrl_handler, FALSE);
+}
+#endif
+
