@@ -13,7 +13,6 @@ PATH=/sbin:/usr/sbin:/usr/local/sbin:/bin:/usr/bin:/usr/local/bin
 NAME=lximcbackend
 USER=lximediacenter
 DESC="LXiMediaCenter Backend"
-PIDFILE=/var/run/$NAME.pid
 EXEC=/usr/bin/$NAME
 
 set -e
@@ -21,22 +20,18 @@ set -e
 case "$1" in
 	start)
 		echo -n "Starting $DESC: "
-		start-stop-daemon --start --oknodo --chuid $USER --exec $EXEC -- --start > $PIDFILE
+		$EXEC --daemon $USER
 		echo "$NAME."
 		;;
 
 	stop)
 		echo -n "Stopping $DESC: "
-		if [ -f "$PIDFILE" ]; then
-			start-stop-daemon --stop --oknodo --user $USER --pidfile $PIDFILE --exec $EXEC --retry=TERM/30/KILL/5
-			rm $PIDFILE
-		fi
+		$EXEC --stop
 		echo "$NAME."
 		;;
 
 	restart|force-reload)
 		$0 stop
-		sleep 10
 		$0 start
 		;;
 

@@ -9,7 +9,7 @@
 #include <memory>
 #include <sstream>
 
-static void open_url(const std::string &location);
+static bool open_url(const std::string &location);
 
 static bool find_server(
         class messageloop &messageloop,
@@ -99,13 +99,13 @@ int main(int /*argc*/, const char */*argv*/[])
 }
 
 #if defined(__unix__)
-static void open_url(const std::string &location)
+static bool open_url(const std::string &location)
 {
-    system(("xdg-open " + location).c_str());
+    return system(("xdg-open " + location).c_str()) == 0;
 }
 #elif defined(WIN32)
-static void open_url(const std::string &location)
+static bool open_url(const std::string &location)
 {
-    system(("start " + location).c_str());
+    return system(("start " + location).c_str()) == 0;
 }
 #endif

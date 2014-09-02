@@ -8,6 +8,8 @@
 
 static int run(class messageloop &messageloop, const std::string &logfile)
 {
+    std::clog << "Starting LXiMediaCenter Backend version " VERSION << std::endl;
+
     std::unique_ptr<class backend> backend;
     ::backend::recreate_backend = [&messageloop, &logfile, &backend]
     {
@@ -30,50 +32,135 @@ static int run(class messageloop &messageloop, const std::string &logfile)
 #if defined(__unix__)
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <fcntl.h>
+#include <pwd.h>
+#include <signal.h>
 #include <unistd.h>
+#include <fstream>
+
+static const char pidfilename[] = "/var/run/lximcbackend.pid";
+
+static int start_daemon(uid_t daemon_uid, gid_t daemon_gid)
+{
+    auto pidfile = open(pidfilename, O_RDWR | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR);
+    if (pidfile == -1)
+    {
+        std::cerr << "Failed to open PID file " << pidfilename << std::endl;
+        return 1;
+    }
+
+    int result = 1;
+    if (daemon(0, 0) == 0)
+    {
+        if ((setgid(daemon_gid) != 0) || (setuid(daemon_uid) != 0))
+            return 1;
+
+        {
+            char buffer[64];
+            snprintf(buffer, sizeof(buffer), "%ld\n", long(getpid()));
+            for (size_t i = 0, n = strlen(buffer); i < n; )
+                i += write(pidfile, &buffer[i], n - i);
+        }
+
+        static const char logfilename[] = "/var/log/lximcbackend.log";
+        auto logfile = freopen(logfilename, "w", stderr);
+        {
+            class messageloop messageloop;
+
+            result = run(messageloop, logfile ? logfilename : std::string());
+        }
+        if (logfile) fclose(logfile);
+    }
+    else
+        std::cerr << "Failed to start daemon" << std::endl;
+
+    close(pidfile);
+    remove(pidfilename);
+
+    return result;
+}
+
+static int stop_daemon()
+{
+    std::ifstream pidfile(pidfilename);
+    if (!pidfile.is_open())
+    {
+        std::cerr << "Failed to open PID file " << pidfilename << std::endl;
+        return 1;
+    }
+
+    pid_t pid = 0;
+    pidfile >> pid;
+
+    if (pid)
+    {
+        if (kill(pid, SIGTERM) == 0)
+        {
+            alarm(10);
+            if (waitpid(pid, nullptr, 0) == pid)
+                return 0;
+        }
+
+        kill(pid, SIGKILL);
+        return 0;
+    }
+    else
+    {
+        std::cerr << "Failed to read PID from file " << pidfilename << std::endl;
+        return 1;
+    }
+}
 
 int main(int argc, const char *argv[])
 {
     setlocale(LC_ALL, "");
 
+    uid_t daemon_uid = 0;
+    gid_t daemon_gid = 0;
+
     for (int i = 1; i < argc; i++)
         if (strcmp(argv[i], "--daemon") == 0)
         {
-            static const char pidfilename[] = "/var/run/lximcbackend.pid";
-            auto pidfile = open(pidfilename, O_RDWR | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR);
-            if (pidfile == -1)
+            if (i + 1 < argc)
             {
-                std::cerr << "Failed to open PID file." << std::endl;
-                return 1;
-            }
-
-            int result = 1;
-            if (daemon(0, 0) == 0)
-            {
+                struct passwd *pw = getpwnam(argv[++i]);
+                if (pw)
                 {
-                    char buffer[64];
-                    snprintf(buffer, sizeof(buffer), "%ld\n", long(getpid()));
-                    write(pidfile, buffer, strlen(buffer));
+                    daemon_uid = pw->pw_uid;
+                    daemon_gid = pw->pw_gid;
+                    if ((daemon_uid != 0) && (daemon_gid != 0))
+                    {
+                        start_daemon(daemon_uid, daemon_gid);
+                    }
+                    else
+                    {
+                        std::cerr << "Cannot start as root" << std::endl;
+                        return 1;
+                    }
                 }
-
-                static const char logfilename[] = "/var/log/lximcbackend.log";
-                auto logfile = freopen(logfilename, "w", stderr);
+                else
                 {
-                    class messageloop messageloop;
-
-                    result = run(messageloop, logfile ? logfilename : std::string());
+                    std::cerr << "Failed to find user " << argv[i] << std::endl;
+                    return 1;
                 }
-                if (logfile) fclose(logfile);
             }
             else
-                std::cerr << "Failed to start daemon" << std::endl;
-
-            close(pidfile);
-            remove(pidfilename);
-
-            return result;
+            {
+                std::cerr << "Please specify the user to start the daemon under." << std::endl;
+                return 1;
+            }
         }
+        else if (strcmp(argv[i], "--stop") == 0)
+        {
+            return stop_daemon();
+        }
+
+    if ((getuid() == 0) || (getgid() == 0))
+    {
+        std::cerr << "Cannot run as root." << std::endl;
+        return 1;
+    }
 
     class messageloop messageloop;
     return run(messageloop, std::string());

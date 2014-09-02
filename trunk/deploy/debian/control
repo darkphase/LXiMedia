@@ -4,170 +4,24 @@ Maintainer: A.J. Admiraal <code@admiraal.dds.nl>
 Build-Depends: debhelper (>= 7),
                dpkg-dev (>= 1.13.9),
                bash, 
-               doxygen,
                g++,
                gcc,
                make,
-               binutils-dev,  
-               libasound2-dev, 
-               libdvdnav-dev,
-               libexif-dev,
-               libfreetype6-dev,
-               libgstreamer0.10-dev,
-               libgstreamer-plugins-base0.10-dev,
-               libpulse-dev,
-               libqt5webkit5-dev,
-               qtbase5-dev,
-               qtdeclarative5-dev,
-               qtsensors5-dev,
-               qtlocation5-dev,
-               libqt5test5,
-               libmp3lame-dev,
-               libsmbclient-dev,
-               libsqlite3-dev,
-               libx264-dev,
-               libx11-dev,
-               libx11-xcb-dev,
-               libxcb-image0-dev,
-               libxcb-shm0-dev,
-               libxcb-xinerama0-dev,
-               libxext-dev,
-               libxrandr-dev,
-               libxml2-dev,
-               libxslt1-dev,
-               libxtst-dev,
-               libxv-dev,
-               qt5-qmake,
-               qt5-default,
-               yasm,
-               zlib1g-dev
+               cmake,
+               binutils-dev,
+               uuid-dev,
+               libvlc-dev (>= 2.1.0),
+               libvlccore-dev (>= 2.1.0)
 Standards-Version: 3.8.4
 Section: libs
 Homepage: http://lximedia.sourceforge.net/
-
-Package: liblxicore-dev
-Section: libdevel
-Architecture: any
-Depends: liblxicore1 (= ${binary:Version})
-Description: Development files for liblxicore
- liblxicore is the core library containing the shared functions of LXiMedia.
-
-Package: liblxistream-dev
-Section: libdevel
-Architecture: any
-Depends: liblxicore-dev (= ${binary:Version}),
-         liblxistream1 (= ${binary:Version}), 
-         liblxistreamdevice1 (= ${binary:Version})
-Description: Development files for liblxistream
- liblxistream is a streaming media library.
-
-Package: liblximediacenter-dev
-Section: libdevel
-Architecture: any
-Depends: liblxicore-dev (= ${binary:Version}),
-         liblxistream-dev (= ${binary:Version}), 
-         liblximediacenter1 (= ${binary:Version}), 
-         liblxistream1 (= ${binary:Version}), 
-         liblxistreamdevice1 (= ${binary:Version})
-Description: Development files for liblxistream
- liblxistream is a streaming media library.
-
-Package: liblxicore1
-Section: libs
-Architecture: any
-Depends: ${misc:Depends},
-         libqt5core5a | libqt5core5
-Description: A streaming media server library
- Provides the shared functions of LXiMedia.
-
-Package: liblxistream1
-Section: libs
-Architecture: any
-Depends: ${misc:Depends},
-         liblxicore1 (= ${binary:Version}), 
-         binutils,
-         dcraw,
-         libasound2,
-         libdvdnav4,
-         libexif12,
-         libfreetype6,
-         libpulse0,
-         libqt5core5a | libqt5core5,
-         libqt5gui5,
-         libqt5network5,
-         libsmbclient
-Recommends: liblxistreamdevice1 (= ${binary:Version})
-Description: A streaming media library
- Provides a platform independent abstraction for different multimedia libraries.
-
-Package: liblxistreamdevice1
-Section: libs
-Architecture: any
-Depends: ${misc:Depends},
-         liblxicore1 (= ${binary:Version}), 
-         liblxistream1 (= ${binary:Version}), 
-         libqt5core5a | libqt5core5
-Description: Device library for liblxistream.
- Adds device support to liblxistream.
-
-Package: liblximediacenter1
-Section: libs
-Architecture: any
-Depends: ${misc:Depends},
-         liblxicore1 (= ${binary:Version}), 
-         liblxistream1 (= ${binary:Version}), 
-         libqt5core5a | libqt5core5,
-         libqt5gui5,
-         libqt5script5
-Description: A DLNA based transcoding media server
- This package provides the base library for LXiMediaCenter.
 
 Package: lximediacenter1
 Section: multimedia
 Architecture: any
 Depends: ${misc:Depends},
-         liblxicore1 (= ${binary:Version}), 
-         liblxistream1 (= ${binary:Version}), 
-         liblxistreamdevice1 (= ${binary:Version}),
-         liblximediacenter1 (= ${binary:Version}), 
-         libqt5core5a | libqt5core5,
-         libqt5declarative5,
-         libqt5gui5,
-         libqt5webkit5
+         uuid,
+         vlc (>= 2.1.0),
 Description: A DLNA based transcoding media server
  LXiMediaCenter is a DLNA based transcoding media server.
 
-Package: lximediacenter1-allinone
-Section: multimedia
-Architecture: any
-Depends: ${misc:Depends},
-         binutils,
-         dcraw,
-         libasound2,
-         libdvdnav4,
-         libexif12,
-         libfreetype6,
-         libpulse0,
-         libqt5core5a | libqt5core5,
-         libqt5declarative5,
-         libqt5gui5,
-         libqt5webkit5,
-         libqt5script5,
-         libsmbclient,
-         libx11-6,
-         libx11-xcb1,
-         libxcb-image0,
-         libxcb-shm0,
-         libxcb-xinerama0,
-         libxrandr2,
-         libxext6,
-         libxtst6,
-         libxv1
-Provides: liblxicore1,
-          liblxistream1,
-          liblxistreamdevice1,
-          liblximediacenter1
-Description: A DLNA based transcoding media server
- LXiMediaCenter is a DLNA based transcoding media server.
- This package contains all libraries so it can be distributed easily over the
- internet.
