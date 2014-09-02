@@ -238,6 +238,19 @@ int helppage::render_page(const struct pupnp::upnp::request &, std::ostream &out
            "recognized by LXiMediaCenter, only the codecs supported by this build "
            "of VLC are supported.</p>";
 
+    out << "<h1>About</h1>"
+           "<p>LXiMediaCenter version " VERSION "</p>"
+           "<p>Copyright &copy; 2014 A.J. Admiraal</p>"
+           "<p>This program is free software: you can redistribute it and/or modify "
+           "it under the terms of the GNU General Public License version 3 as published "
+           "by the Free Software Foundation.</p>"
+           "<p>This program is distributed in the hope that it will be useful, but WITHOUT "
+           "ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS "
+           "FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.<p>"
+           "<p>You should have received a copy of the GNU General Public License along with "
+           "this program. If not, see <a href=\"http://www.gnu.org/licenses/\">"
+           "&lt;http://www.gnu.org/licenses/&gt;</a>.</p>";
+
     return pupnp::upnp::http_ok;
 }
 

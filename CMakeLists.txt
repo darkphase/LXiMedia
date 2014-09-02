@@ -32,7 +32,8 @@ file(GLOB_RECURSE PUPNP_UPNP_SRC_LIST ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PU
 add_library(pupnp STATIC ${PUPNP_IXML_SRC_LIST} ${PUPNP_THREADUTIL_SRC_LIST} ${PUPNP_UPNP_SRC_LIST})
 
 # lximediacenter
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -pthread")
+file(STRINGS "VERSION" VERSION)
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -pthread -DVERSION=\\\"${VERSION}\\\"")
 if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWIN32 -DUPNP_STATIC_LIB -static")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlc.dll")
@@ -101,7 +102,12 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
         add_custom_target(installer ALL DEPENDS ${CMAKE_BINARY_DIR}/LXiMediaCenterSetup.exe VERBATIM)
     endif()
 else()
-    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/testreport.txt COMMAND lximcbackend_test > testreport.txt DEPENDS lximcbackend_test VERBATIM)
-    add_custom_target(testreport ALL DEPENDS testreport.txt VERBATIM)
+    if(${CMAKE_BUILD_TYPE} STREQUAL Debug)
+        add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/testreport.txt COMMAND lximcbackend_test > testreport.txt DEPENDS lximcbackend_test VERBATIM)
+        add_custom_target(testreport ALL DEPENDS testreport.txt VERBATIM)
+    endif()
 endif()
 
+# install
+install(TARGETS lximcbackend lximclauncher
+        RUNTIME DESTINATION bin)

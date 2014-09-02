@@ -6,39 +6,12 @@ build: Makefile
 	dh_testdir
 	$(MAKE)
 
-build-doxy:
-	dh_testdir
-	doxygen
-
-install: build build-doxy
+install: build
 	dh_testdir
 	dh_testroot
 	dh_prep
-	dh_installdirs -ptmp usr/share/doc/lximedia-doc/html
-	install -m 644 -D doc/html/* debian/tmp/usr/share/doc/lximedia-doc/html/
-	dh_installdirs -ptmp usr/include/liblxicore
-	dh_installdirs -ptmp usr/include/liblximediacenter
-	dh_installdirs -ptmp usr/include/liblxistream
-	dh_installdirs -ptmp usr/include/liblxistream/nodes
-	dh_installdirs -ptmp usr/include/liblxistreamdevice
-	dh_installdirs -ptmp usr/include/liblxistreamdevice/nodes
-	dh_installdirs -ptmp usr/include/liblxistreamgui
-	install -m 644 -D include/liblxicore/*.h debian/tmp/usr/include/liblxicore/
-	install -m 644 -D include/LXiCore debian/tmp/usr/include/
-	install -m 644 -D include/liblxistream/*.h debian/tmp/usr/include/liblxistream/
-	install -m 644 -D include/liblxistream/nodes/*.h debian/tmp/usr/include/liblxistream/nodes/
-	install -m 644 -D include/LXiStream debian/tmp/usr/include/
-	install -m 644 -D include/liblxistreamdevice/*.h debian/tmp/usr/include/liblxistreamdevice/
-	install -m 644 -D include/liblxistreamdevice/nodes/*.h debian/tmp/usr/include/liblxistreamdevice/nodes/
-	install -m 644 -D include/LXiStreamDevice debian/tmp/usr/include/
-	install -m 644 -D include/liblxistreamgui/*.h debian/tmp/usr/include/liblxistreamgui/
-	install -m 644 -D include/LXiStreamGui debian/tmp/usr/include/
-	install -m 644 -D include/liblximediacenter/*.h debian/tmp/usr/include/liblximediacenter/
-	install -m 644 -D include/LXiMediaCenter debian/tmp/usr/include/
-	dh_installdirs -ptmp usr/lib
-	dh_installdirs -ptmp usr/lib/lximedia
 	dh_installdirs -ptmp usr/bin
-	$(MAKE) install INSTALL_ROOT=`pwd`/debian/tmp
+	$(MAKE) install
 	dh_install --fail-missing --sourcedir=debian/tmp
 
 binary: install
@@ -58,11 +31,11 @@ binary: install
 clean:
 	dh_testdir
 	dh_testroot
-	rm -rf bin doc lib obj
+	rm -rf CMakeFiles
 	rm -f Makefile
 	dh_clean
 
 Makefile:
 	dh_testdir
-	qmake -r CONFIG+=release
+	cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=`pwd`/debian/tmp/usr
 
