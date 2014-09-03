@@ -10,8 +10,8 @@ Build-Depends: debhelper (>= 7),
                cmake,
                binutils-dev,
                uuid-dev,
-               libvlc-dev (>= 2.1.0),
-               libvlccore-dev (>= 2.1.0)
+               libvlc-dev,
+               libvlccore-dev
 Standards-Version: 3.8.4
 Section: libs
 Homepage: http://lximedia.sourceforge.net/

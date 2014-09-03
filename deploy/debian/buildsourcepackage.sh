@@ -1,65 +1,43 @@
 #!/bin/sh
 
-OUTDIR=`pwd`/../../..
-PKGNAME=lximedia-`cat ../../VERSION`
-PKGFILE=lximedia_`cat ../../VERSION`-`cat PACKAGE`
+CURDIR="$( cd "$( dirname "$0" )" && pwd )"
+OUTDIR=${CURDIR}/../../..
+PKGNAME=lximedia-`cat ${CURDIR}/../../VERSION`
 
-rm -f ${OUTDIR}/${PKGFILE}.*
-rm -rf ${OUTDIR}/${PKGNAME}
+rm -rf /tmp/lximedia/${PKGNAME}
+mkdir -p /tmp/lximedia/${PKGNAME}
+cp ${CURDIR}/../../COPYING /tmp/lximedia/${PKGNAME}/
+cp ${CURDIR}/../../CMakeLists.txt /tmp/lximedia/${PKGNAME}/
+cp ${CURDIR}/../../README /tmp/lximedia/${PKGNAME}/
+cp ${CURDIR}/../../VERSION /tmp/lximedia/${PKGNAME}/
+mkdir -p /tmp/lximedia/${PKGNAME}/deploy
+cp -r ${CURDIR}/../../deploy/* /tmp/lximedia/${PKGNAME}/deploy/
+mkdir -p /tmp/lximedia/${PKGNAME}/ext
+cp -r ${CURDIR}/../../ext/* /tmp/lximedia/${PKGNAME}/ext/
+mkdir -p /tmp/lximedia/${PKGNAME}/src
+cp -r ${CURDIR}/../../src/* /tmp/lximedia/${PKGNAME}/src/
+mkdir -p /tmp/lximedia/${PKGNAME}/test
+cp -r ${CURDIR}/../../test/* /tmp/lximedia/${PKGNAME}/test/
 
-# Build source tree
-mkdir -p /${OUTDIR}/${PKGNAME}
-cp ../../COPYING /${OUTDIR}/${PKGNAME}/
-cp ../../CMakeLists.txt /${OUTDIR}/${PKGNAME}/
-cp ../../README /${OUTDIR}/${PKGNAME}/
-cp ../../VERSION /${OUTDIR}/${PKGNAME}/
-mkdir -p /${OUTDIR}/${PKGNAME}/deploy
-cp -r ../../deploy/* /${OUTDIR}/${PKGNAME}/deploy/
-mkdir -p /${OUTDIR}/${PKGNAME}/ext
-cp -r ../../ext/* /${OUTDIR}/${PKGNAME}/ext/
-mkdir -p /${OUTDIR}/${PKGNAME}/src
-cp -r ../../src/* /${OUTDIR}/${PKGNAME}/src/
-mkdir -p /${OUTDIR}/${PKGNAME}/test
-cp -r ../../test/* /${OUTDIR}/${PKGNAME}/test/
+mkdir -p /tmp/lximedia/${PKGNAME}/debian
+cp ${CURDIR}/* /tmp/lximedia/${PKGNAME}/debian/
+rm /tmp/lximedia/${PKGNAME}/debian/buildsourcepackage.sh
 
-mkdir -p /${OUTDIR}/${PKGNAME}/debian
-cp * /${OUTDIR}/${PKGNAME}/debian/
-rm /${OUTDIR}/${PKGNAME}/debian/buildsourcepackage.sh
+echo "lximedia (`cat ${CURDIR}/../../VERSION`) unstable; urgency=low" > /tmp/lximedia/${PKGNAME}/debian/changelog
+echo >> /tmp/lximedia/${PKGNAME}/debian/changelog
+echo "  * No changelog" >> /tmp/lximedia/${PKGNAME}/debian/changelog
+echo >> /tmp/lximedia/${PKGNAME}/debian/changelog
+echo " -- A.J. Admiraal <code@admiraal.dds.nl>  `date -R`" >> /tmp/lximedia/${PKGNAME}/debian/changelog
 
-echo "lximedia (`cat ../../VERSION`-`cat PACKAGE`) unstable; urgency=low" > /${OUTDIR}/${PKGNAME}/debian/changelog
-echo >> /${OUTDIR}/${PKGNAME}/debian/changelog
-echo "  * No changelog" >> /${OUTDIR}/${PKGNAME}/debian/changelog
-echo >> /${OUTDIR}/${PKGNAME}/debian/changelog
-echo " -- A.J. Admiraal <code@admiraal.dds.nl>  `date -R`" >> /${OUTDIR}/${PKGNAME}/debian/changelog
+cd /tmp/lximedia/${PKGNAME} || exit 1
 
-cd /${OUTDIR}/${PKGNAME} || exit
-
-# Remove .svn entries
 rm -rf `find -name .svn`
 
 dpkg-buildpackage -rfakeroot -S
 
 cd ..
-rm -rf ${PKGNAME}
+rm -rf /tmp/lximedia/${PKGNAME}
+mv /tmp/lximedia/* ${OUTDIR}/
+cd ..
+rmdir /tmp/lximedia
 
-# Generate package build script
-#echo if [ \$# -ne 1 ] >  ${OUTDIR}/${PKGFILE}.sh
-#echo then >> ${OUTDIR}/${PKGFILE}.sh
-#echo   echo Usage: sudo \$0 distribution >> ${OUTDIR}/${PKGFILE}.sh
-#echo   exit 65 >> ${OUTDIR}/${PKGFILE}.sh
-#echo fi >> ${OUTDIR}/${PKGFILE}.sh
-#echo >> ${OUTDIR}/${PKGFILE}.sh
-#echo grep \"debian\" /etc/issue -i -q>> ${OUTDIR}/${PKGFILE}.sh
-#echo if [ \$? = \'0\' ] >> ${OUTDIR}/${PKGFILE}.sh
-#echo then >> ${OUTDIR}/${PKGFILE}.sh
-#echo   pbuilder --update --distribution \$1 --components \"main\" --override-config \|\| exit 1 >> ${OUTDIR}/${PKGFILE}.sh
-#echo fi >> ${OUTDIR}/${PKGFILE}.sh
-#echo >> ${OUTDIR}/${PKGFILE}.sh
-#echo grep \"ubuntu\" /etc/issue -i -q >> ${OUTDIR}/${PKGFILE}.sh
-#echo if [ \$? = \'0\' ] >> ${OUTDIR}/${PKGFILE}.sh
-#echo then >> ${OUTDIR}/${PKGFILE}.sh
-#echo   pbuilder --update --distribution \$1 --components \"main universe\" --override-config \|\| exit 1 >> ${OUTDIR}/${PKGFILE}.sh
-#echo fi >> ${OUTDIR}/${PKGFILE}.sh
-#echo >> ${OUTDIR}/${PKGFILE}.sh
-echo pbuilder --build --distribution \$1 ${PKGFILE}.dsc \|\| exit 1 >> ${OUTDIR}/${PKGFILE}.sh
-chmod a+x ${OUTDIR}/${PKGFILE}.sh
