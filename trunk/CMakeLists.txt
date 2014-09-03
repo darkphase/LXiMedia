@@ -91,16 +91,6 @@ else()
 endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
-    if(${CMAKE_BUILD_TYPE} STREQUAL Release)
-        add_custom_command(
-            OUTPUT ${CMAKE_BINARY_DIR}/LXiMediaCenterSetup.exe
-            COMMAND makensis -NOCD ${CMAKE_SOURCE_DIR}/deploy/win32/lximediacenter.nsi
-            DEPENDS lximcbackend lximclauncher ${CMAKE_SOURCE_DIR}/deploy/win32/lximediacenter.nsi
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            VERBATIM)
-
-        add_custom_target(installer ALL DEPENDS ${CMAKE_BINARY_DIR}/LXiMediaCenterSetup.exe VERBATIM)
-    endif()
 else()
     if(${CMAKE_BUILD_TYPE} STREQUAL Debug)
         add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/testreport.txt COMMAND lximcbackend_test > testreport.txt DEPENDS lximcbackend_test VERBATIM)

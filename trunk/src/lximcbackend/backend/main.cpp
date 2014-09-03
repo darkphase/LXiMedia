@@ -40,6 +40,7 @@ static int run(class messageloop &messageloop, const std::string &logfile)
 #include <fstream>
 
 static const char pidfilename[] = "/var/run/lximcbackend.pid";
+static const char logfilename[] = "/var/log/lximcbackend.log";
 
 static int start_daemon(uid_t daemon_uid, gid_t daemon_gid)
 {
@@ -53,9 +54,6 @@ static int start_daemon(uid_t daemon_uid, gid_t daemon_gid)
     int result = 1;
     if (daemon(0, 0) == 0)
     {
-        if ((setgid(daemon_gid) != 0) || (setuid(daemon_uid) != 0))
-            return 1;
-
         {
             char buffer[64];
             snprintf(buffer, sizeof(buffer), "%ld\n", long(getpid()));
@@ -63,13 +61,15 @@ static int start_daemon(uid_t daemon_uid, gid_t daemon_gid)
                 i += write(pidfile, &buffer[i], n - i);
         }
 
-        static const char logfilename[] = "/var/log/lximcbackend.log";
         auto logfile = freopen(logfilename, "w", stderr);
+
+        if ((setgid(daemon_gid) == 0) && (setuid(daemon_uid) == 0))
         {
             class messageloop messageloop;
 
             result = run(messageloop, logfile ? logfilename : std::string());
         }
+
         if (logfile) fclose(logfile);
     }
     else
