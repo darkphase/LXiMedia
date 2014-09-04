@@ -42,74 +42,65 @@ static int run(class messageloop &messageloop, const std::string &logfile)
 static const char pidfilename[] = "/var/run/lximcbackend.pid";
 static const char logfilename[] = "/var/log/lximcbackend.log";
 
-static int start_daemon(uid_t daemon_uid, gid_t daemon_gid)
-{
-    auto pidfile = open(pidfilename, O_RDWR | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR);
-    if (pidfile == -1)
-    {
-        std::cerr << "Failed to open PID file " << pidfilename << std::endl;
-        return 1;
-    }
-
-    int result = 1;
-    if (daemon(0, 0) == 0)
-    {
-        {
-            char buffer[64];
-            snprintf(buffer, sizeof(buffer), "%ld\n", long(getpid()));
-            for (size_t i = 0, n = strlen(buffer); i < n; )
-                i += write(pidfile, &buffer[i], n - i);
-        }
-
-        auto logfile = freopen(logfilename, "w", stderr);
-
-        if ((setgid(daemon_gid) == 0) && (setuid(daemon_uid) == 0))
-        {
-            class messageloop messageloop;
-
-            result = run(messageloop, logfile ? logfilename : std::string());
-        }
-
-        if (logfile) fclose(logfile);
-    }
-    else
-        std::cerr << "Failed to start daemon" << std::endl;
-
-    close(pidfile);
-    remove(pidfilename);
-
-    return result;
-}
-
 static int stop_daemon()
 {
     std::ifstream pidfile(pidfilename);
-    if (!pidfile.is_open())
+    if (pidfile.is_open())
     {
-        std::cerr << "Failed to open PID file " << pidfilename << std::endl;
-        return 1;
+        pid_t pid = 0;
+        pidfile >> pid;
+
+        if (pid)
+        {
+            static const int s[] = { SIGTERM, SIGKILL };
+            for (auto i : s)
+                if (kill(pid, i) == 0)
+                    for (int j = 0; j < 40; j++)
+                    {
+                        usleep(250000);
+                        if ((kill(pid, 0) != 0) && (errno == ESRCH))
+                            return 0;
+                    }
+        }
     }
 
-    pid_t pid = 0;
-    pidfile >> pid;
+    return 1;
+}
 
-    if (pid)
+static int start_daemon(uid_t daemon_uid, gid_t daemon_gid)
+{
+    stop_daemon();
+
+    int result = 1;
+    auto pidfile = open(pidfilename, O_RDWR | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR);
+    if (pidfile != -1)
     {
-        if (kill(pid, SIGTERM) == 0)
+        if (daemon(0, 0) == 0)
         {
-            alarm(10);
-            if (waitpid(pid, nullptr, 0) == pid)
-                return 0;
+            {
+                char buffer[64];
+                snprintf(buffer, sizeof(buffer), "%ld\n", long(getpid()));
+                for (size_t i = 0, n = strlen(buffer); i < n; )
+                    i += write(pidfile, &buffer[i], n - i);
+            }
+
+            auto logfile = freopen(logfilename, "w", stderr);
+
+            if ((setgid(daemon_gid) == 0) && (setuid(daemon_uid) == 0))
+            {
+                class messageloop messageloop;
+
+                result = run(messageloop, logfile ? logfilename : std::string());
+            }
+
+            if (logfile) fclose(logfile);
         }
 
-        kill(pid, SIGKILL);
-        return 0;
+        close(pidfile);
+        remove(pidfilename);
     }
-    else
-    {
-        std::cerr << "Failed to read PID from file " << pidfilename << std::endl;
-        return 1;
-    }
+
+    return result;
 }
 
 int main(int argc, const char *argv[])
@@ -131,7 +122,11 @@ int main(int argc, const char *argv[])
                     daemon_gid = pw->pw_gid;
                     if ((daemon_uid != 0) && (daemon_gid != 0))
                     {
-                        start_daemon(daemon_uid, daemon_gid);
+                        const int result = start_daemon(daemon_uid, daemon_gid);
+                        if (result != 0)
+                            std::cerr << "Failed to start daemon" << std::endl;
+
+                        return result;
                     }
                     else
                     {
@@ -153,7 +148,11 @@ int main(int argc, const char *argv[])
         }
         else if (strcmp(argv[i], "--stop") == 0)
         {
-            return stop_daemon();
+            const int result = stop_daemon();
+            if (result != 0)
+                std::cerr << "Failed to stop daemon" << std::endl;
+
+            return result;
         }
 
     if ((getuid() == 0) || (getgid() == 0))

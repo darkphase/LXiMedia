@@ -34,7 +34,7 @@ public:
      */
     static int compare_version(int major, int minor = -1, int patch = -1);
 
-    instance() noexcept;
+    explicit instance(bool = false) noexcept;
     ~instance() noexcept;
 
     instance(const instance &) = delete;
