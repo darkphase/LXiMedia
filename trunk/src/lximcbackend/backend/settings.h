@@ -61,6 +61,9 @@ public:
     enum surround_mode surround_mode() const;
     void set_surround_mode(enum surround_mode);
 
+    bool verbose_logging() const;
+    void set_verbose_logging(bool);
+
     std::vector<root_path> root_paths() const;
     void set_root_paths(const std::vector<root_path> &);
 

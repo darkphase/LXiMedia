@@ -370,6 +370,19 @@ void settings::set_surround_mode(enum surround_mode surround_mode)
         return erase("DLNA", "SurroundMode");
 }
 
+bool settings::verbose_logging() const
+{
+    return read("DLNA", "VerboseLogging", "false") != "false";
+}
+
+void settings::set_verbose_logging(bool on)
+{
+    if (on)
+        return write("DLNA", "VerboseLogging", "true");
+    else
+        return erase("DLNA", "VerboseLogging");
+}
+
 static const char * to_string(path_type e)
 {
     switch (e)

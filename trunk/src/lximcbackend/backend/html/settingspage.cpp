@@ -128,8 +128,8 @@ static void save_http_settings(class settings &settings, const std::map<std::str
 static void render_dlna_settings(const class settings &settings, std::ostream &out)
 {
     out << "<fieldset>"
-           "<legend>" << tr("DLNA") << "</legend>"
-           "<p>" << tr("This form will allow adjustment of the transcode settings for the DLNA "
+           "<legend>" << tr("Encoding") << "</legend>"
+           "<p>" << tr("This form will allow adjustment of the encoding settings for the DLNA "
                        "clients. Note that higher settings require more CPU power and more "
                        "network bandwidth.") << "</p>"
            "<form name=\"dlnasettings\" action=\"/settings\" method=\"get\">"
@@ -168,7 +168,9 @@ static void render_dlna_settings(const class settings &settings, std::ostream &o
                "<a href=\"https://trac.videolan.org/vlc/ticket/1897\">bug</a> in the current VLC version.</p>";
     }
 
-    out << "<p class=\"buttons\"><input type=\"submit\" name=\"save_button\" value=\"" << tr("Save") << "\" /></p>"
+    out << "<p><input type=\"checkbox\" name=\"verbose_logging\" value=\"on\"" << is_checked(settings.verbose_logging()) << " />"
+            << tr("Enable verbose logging for analyzing problems.") << "</p>"
+           "<p class=\"buttons\"><input type=\"submit\" name=\"save_button\" value=\"" << tr("Save") << "\" /></p>"
            "</form></fieldset>";
 }
 
@@ -205,6 +207,9 @@ static void save_dlna_settings(class settings &settings, const std::map<std::str
         if      (surround_mode->second == "stereo"      ) settings.set_surround_mode(::surround_mode::stereo      );
         else if (surround_mode->second == "surround51"  ) settings.set_surround_mode(::surround_mode::surround51  );
     }
+
+    auto verbose_logging = query.find("verbose_logging");
+    settings.set_verbose_logging(verbose_logging != query.end());
 }
 
 static std::string format_path(const std::string &src)
