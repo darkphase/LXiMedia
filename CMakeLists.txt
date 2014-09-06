@@ -1,93 +1,122 @@
 project(lximedia)
 cmake_minimum_required(VERSION 2.8)
+file(STRINGS "VERSION" VERSION)
 
-# Extract PUPnP
-set(PUPNP_VERSION "1.6.19")
-execute_process(COMMAND sh ${CMAKE_SOURCE_DIR}/ext/pupnp/pupnp.sh ${CMAKE_SOURCE_DIR}/ext/pupnp/ ./ext/pupnp/ ${PUPNP_VERSION})
-
+#######################################
 # Extract VLC
 if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
     set(VLC_VERSION "2.1.5-win32")
     execute_process(COMMAND sh ${CMAKE_SOURCE_DIR}/ext/vlc/vlc.sh ${CMAKE_SOURCE_DIR}/ext/vlc/ ./ext/vlc/ ${VLC_VERSION})
-endif()
 
-# pupnp libraries
-set(CMAKE_C_FLAGS "-pthread")
-if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DWIN32 -DUPNP_STATIC_LIB -static")
-endif()
-
-include_directories(
-    ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}
-    ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/ixml/inc
-    ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/ixml/src/inc
-    ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/threadutil/inc
-    ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/threadutil/src/inc
-    ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/upnp/inc
-    ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/upnp/src/inc)
-
-file(GLOB_RECURSE PUPNP_IXML_SRC_LIST ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/ixml/src/*.c)
-file(GLOB_RECURSE PUPNP_THREADUTIL_SRC_LIST ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/threadutil/src/*.c)
-file(GLOB_RECURSE PUPNP_UPNP_SRC_LIST ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/upnp/src/*.c)
-add_library(pupnp STATIC ${PUPNP_IXML_SRC_LIST} ${PUPNP_THREADUTIL_SRC_LIST} ${PUPNP_UPNP_SRC_LIST})
-
-# lximediacenter
-file(STRINGS "VERSION" VERSION)
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -pthread -DVERSION=\\\"${VERSION}\\\"")
-if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWIN32 -DUPNP_STATIC_LIB -static")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlc.dll")
-    include_directories(${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/include/)
-endif()
-
-include_directories(src/lximcbackend/)
-aux_source_directory(src/lximcbackend/platform/ LXIMCBACKEND_PLATFORM_SRC_LIST)
-aux_source_directory(src/lximcbackend/pupnp/ LXIMCBACKEND_PUPNP_SRC_LIST)
-aux_source_directory(src/lximcbackend/vlc/ LXIMCBACKEND_VLC_SRC_LIST)
-add_library(
-    lximediacenter STATIC
-    ${LXIMCBACKEND_SRC_LIST}
-    ${LXIMCBACKEND_PLATFORM_SRC_LIST}
-    ${LXIMCBACKEND_PUPNP_SRC_LIST}
-    ${LXIMCBACKEND_VLC_SRC_LIST})
-
-# lximcbackend
-include_directories(src/lximcbackend/backend/)
-aux_source_directory(src/lximcbackend/backend/ LXIMCBACKEND_SRC_LIST)
-aux_source_directory(src/lximcbackend/backend/html/ LXIMCBACKEND_HTML_SRC_LIST)
-add_executable(lximcbackend ${LXIMCBACKEND_SRC_LIST} ${LXIMCBACKEND_HTML_SRC_LIST})
-target_link_libraries(lximcbackend lximediacenter pupnp)
-if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
-    target_link_libraries(lximcbackend ws2_32 iphlpapi rpcrt4)
     add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/libvlc.dll COMMAND cp ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlc.dll ${CMAKE_BINARY_DIR} VERBATIM)
     add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/libvlccore.dll COMMAND cp ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlccore.dll ${CMAKE_BINARY_DIR} VERBATIM)
     add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/plugins COMMAND cp -R ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/plugins ${CMAKE_BINARY_DIR} VERBATIM)
     add_custom_target(vlc ALL DEPENDS ${CMAKE_BINARY_DIR}/libvlc.dll ${CMAKE_BINARY_DIR}/libvlccore.dll ${CMAKE_BINARY_DIR}/plugins VERBATIM)
+endif()
+
+#######################################
+# Extract PUPnP
+set(PUPNP_VERSION "1.6.19")
+execute_process(COMMAND sh ${CMAKE_SOURCE_DIR}/ext/pupnp/pupnp.sh ${CMAKE_SOURCE_DIR}/ext/pupnp/ ./ext/pupnp/ ${PUPNP_VERSION})
+
+# pupnp libraries
+file(GLOB_RECURSE PUPNP_IXML_SRC_LIST ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/ixml/src/*.c)
+file(GLOB_RECURSE PUPNP_THREADUTIL_SRC_LIST ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/threadutil/src/*.c)
+file(GLOB_RECURSE PUPNP_UPNP_SRC_LIST ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/upnp/src/*.c)
+
+if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+    set_source_files_properties(
+        ${PUPNP_IXML_SRC_LIST} ${PUPNP_THREADUTIL_SRC_LIST} ${PUPNP_UPNP_SRC_LIST}
+        PROPERTIES COMPILE_FLAGS "-pthread -DWIN32 -DUPNP_STATIC_LIB -static -I${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION} -I${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/ixml/inc -I${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/ixml/src/inc -I${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/threadutil/inc -I${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/threadutil/src/inc -I${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/upnp/inc -I${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/upnp/src/inc")
+else()
+    set_source_files_properties(
+        ${PUPNP_IXML_SRC_LIST} ${PUPNP_THREADUTIL_SRC_LIST} ${PUPNP_UPNP_SRC_LIST}
+        PROPERTIES COMPILE_FLAGS "-pthread -DUPNP_STATIC_LIB -I${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION} -I${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/ixml/inc -I${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/ixml/src/inc -I${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/threadutil/inc -I${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/threadutil/src/inc -I${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/upnp/inc -I${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/upnp/src/inc")
+endif()
+
+add_library(pupnp STATIC ${PUPNP_IXML_SRC_LIST} ${PUPNP_THREADUTIL_SRC_LIST} ${PUPNP_UPNP_SRC_LIST})
+
+#######################################
+# lximediacenter
+aux_source_directory(src/lximcbackend/platform/ LXIMCBACKEND_PLATFORM_SRC_LIST)
+aux_source_directory(src/lximcbackend/pupnp/ LXIMCBACKEND_PUPNP_SRC_LIST)
+aux_source_directory(src/lximcbackend/vlc/ LXIMCBACKEND_VLC_SRC_LIST)
+
+if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+    set_source_files_properties(
+        ${LXIMCBACKEND_PLATFORM_SRC_LIST}
+        PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pthread -DWIN32 -static -I${CMAKE_SOURCE_DIR}/src/lximcbackend/")
+
+    set_source_files_properties(
+        ${LXIMCBACKEND_PUPNP_SRC_LIST}
+        PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pthread -DWIN32 -DUPNP_STATIC_LIB -static -I${CMAKE_SOURCE_DIR}/src/lximcbackend/ -I${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/ixml/inc -I${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/upnp/inc")
+
+    set_source_files_properties(
+        ${LXIMCBACKEND_VLC_SRC_LIST}
+        PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pthread -DWIN32 -static -I${CMAKE_SOURCE_DIR}/src/lximcbackend/ -I${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/include/")
+else()
+    set_source_files_properties(
+        ${LXIMCBACKEND_PLATFORM_SRC_LIST}
+        PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pthread -I${CMAKE_SOURCE_DIR}/src/lximcbackend/")
+
+    set_source_files_properties(
+        ${LXIMCBACKEND_PUPNP_SRC_LIST}
+        PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pthread -DUPNP_STATIC_LIB -I${CMAKE_SOURCE_DIR}/src/lximcbackend/ -I${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/ixml/inc -I${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/upnp/inc")
+
+    set_source_files_properties(
+        ${LXIMCBACKEND_VLC_SRC_LIST}
+        PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pthread -I${CMAKE_SOURCE_DIR}/src/lximcbackend/")
+endif()
+
+add_library(lximediacenter STATIC ${LXIMCBACKEND_PLATFORM_SRC_LIST} ${LXIMCBACKEND_PUPNP_SRC_LIST} ${LXIMCBACKEND_VLC_SRC_LIST})
+
+#######################################
+# lximcbackend
+aux_source_directory(src/lximcbackend/backend/ LXIMCBACKEND_SRC_LIST)
+aux_source_directory(src/lximcbackend/backend/html/ LXIMCBACKEND_HTML_SRC_LIST)
+
+if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+    set_source_files_properties(
+        ${LXIMCBACKEND_SRC_LIST} ${LXIMCBACKEND_HTML_SRC_LIST}
+        PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pthread -DVERSION=\\\"${VERSION}\\\" -DWIN32 -static -I${CMAKE_SOURCE_DIR}/src/lximcbackend/ -I${CMAKE_SOURCE_DIR}/src/lximcbackend/backend/")
+else()
+    set_source_files_properties(
+        ${LXIMCBACKEND_SRC_LIST} ${LXIMCBACKEND_HTML_SRC_LIST}
+        PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pthread -DVERSION=\\\"${VERSION}\\\" -I${CMAKE_SOURCE_DIR}/src/lximcbackend/ -I${CMAKE_SOURCE_DIR}/src/lximcbackend/backend/")
+endif()
+
+add_executable(lximcbackend ${LXIMCBACKEND_SRC_LIST} ${LXIMCBACKEND_HTML_SRC_LIST})
+
+target_link_libraries(lximcbackend lximediacenter pupnp pthread)
+if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+    target_link_libraries(lximcbackend ws2_32 iphlpapi rpcrt4)
+    set_target_properties(lximcbackend PROPERTIES LINK_FLAGS "${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlc.dll")
 else()
     target_link_libraries(lximcbackend uuid vlc)
 endif()
 
 # lximcbackend_test
-include_directories(test/lximcbackend/)
 aux_source_directory(test/lximcbackend/ LXIMCBACKEND_TEST_SRC_LIST)
 aux_source_directory(test/lximcbackend/vlc/ LXIMCBACKEND_VLC_TEST_SRC_LIST)
-add_executable(lximcbackend_test ${LXIMCBACKEND_TEST_SRC_LIST} ${LXIMCBACKEND_VLC_TEST_SRC_LIST})
-target_link_libraries(lximcbackend_test pupnp)
+
 if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
-    target_link_libraries(lximcbackend_test ws2_32 iphlpapi rpcrt4)
+    set_source_files_properties(
+        ${LXIMCBACKEND_TEST_SRC_LIST} ${LXIMCBACKEND_VLC_TEST_SRC_LIST}
+        PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pthread -DWIN32 -static -I${CMAKE_SOURCE_DIR}/src/lximcbackend/ -I${CMAKE_SOURCE_DIR}/src/lximcbackend/backend/ -I${CMAKE_SOURCE_DIR}/test/lximcbackend/ -I${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/include/")
 else()
-    target_link_libraries(lximcbackend_test uuid vlc)
+    set_source_files_properties(
+        ${LXIMCBACKEND_TEST_SRC_LIST} ${LXIMCBACKEND_VLC_TEST_SRC_LIST}
+        PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pthread -I${CMAKE_SOURCE_DIR}/src/lximcbackend/ -I${CMAKE_SOURCE_DIR}/src/lximcbackend/backend/ -I${CMAKE_SOURCE_DIR}/test/lximcbackend/")
 endif()
 
-# lximclauncher
-include_directories(src/lximcbackend/launcher/)
-aux_source_directory(src/lximcbackend/launcher/ LXIMCLAUNCHER_SRC_LIST)
-add_executable(lximclauncher ${LXIMCLAUNCHER_SRC_LIST})
-target_link_libraries(lximclauncher lximediacenter pupnp)
+add_executable(lximcbackend_test ${LXIMCBACKEND_TEST_SRC_LIST} ${LXIMCBACKEND_VLC_TEST_SRC_LIST})
+
+target_link_libraries(lximcbackend_test pupnp pthread)
 if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
-    target_link_libraries(lximclauncher ws2_32 iphlpapi)
+    target_link_libraries(lximcbackend_test ws2_32 iphlpapi rpcrt4)
+    set_target_properties(lximcbackend_test PROPERTIES LINK_FLAGS "${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlc.dll")
 else()
-    target_link_libraries(lximclauncher)
+    target_link_libraries(lximcbackend_test uuid vlc)
 endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
@@ -98,6 +127,31 @@ else()
     endif()
 endif()
 
+#######################################
+# lximclauncher
+#include_directories(src/lximcbackend/launcher/)
+aux_source_directory(src/lximcbackend/launcher/ LXIMCLAUNCHER_SRC_LIST)
+
+if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+    set_source_files_properties(
+        ${LXIMCLAUNCHER_SRC_LIST}
+        PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pthread -DVERSION=\\\"${VERSION}\\\" -DWIN32 -static -I${CMAKE_SOURCE_DIR}/src/lximcbackend/")
+else()
+    set_source_files_properties(
+        ${LXIMCLAUNCHER_SRC_LIST}
+        PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pthread -DVERSION=\\\"${VERSION}\\\" -I${CMAKE_SOURCE_DIR}/src/lximcbackend/")
+endif()
+
+add_executable(lximclauncher ${LXIMCLAUNCHER_SRC_LIST})
+
+target_link_libraries(lximclauncher lximediacenter pupnp pthread)
+if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+    target_link_libraries(lximclauncher ws2_32 iphlpapi)
+else()
+    target_link_libraries(lximclauncher)
+endif()
+
+#######################################
 # install
 install(TARGETS lximcbackend lximclauncher
         RUNTIME DESTINATION bin)
