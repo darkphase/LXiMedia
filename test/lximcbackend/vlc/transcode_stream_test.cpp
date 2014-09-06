@@ -48,7 +48,7 @@ static const struct transcode_stream_test
                 case media::track_type::text:   track_ids.text  = track.id; break;
                 }
 
-            class transcode_stream transcode_stream(messageloop, instance);
+            class transcode_stream transcode_stream(messageloop, instance, nullptr);
             if (vlc::instance::compare_version(2, 1) == 0)
             {
                 // Fallback for VLC 2.1

@@ -22,11 +22,12 @@
 #include "pupnp/connection_manager.h"
 #include "pupnp/content_directory.h"
 #include "settings.h"
-#include "vlc/instance.h"
 #include <cstdint>
 #include <cstdlib>
 #include <string>
 #include <vector>
+
+namespace vlc { class instance; class transcode_stream; }
 
 class mediaplayer : private pupnp::content_directory::item_source
 {
@@ -50,6 +51,7 @@ private:
   pupnp::content_directory::item make_item(const std::string &, const std::string &) const;
   root_path to_system_path(const std::string &) const;
   std::string to_virtual_path(const std::string &) const;
+  void sever_pending_streams();
 
 private:
   class messageloop &messageloop;
@@ -59,8 +61,8 @@ private:
   const class settings &settings;
   const std::string basedir;
 
-  struct transcode_stream;
-  std::map<std::string, std::shared_ptr<transcode_stream>> pending_transcode_streams;
+  std::map<std::string, std::pair<int, std::shared_ptr<vlc::transcode_stream>>> pending_streams;
+  timer pending_streams_sever_timer;
 };
 
 #endif

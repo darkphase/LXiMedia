@@ -31,37 +31,6 @@
 
 static const size_t min_file_size = 65536;
 
-struct mediaplayer::transcode_stream : vlc::transcode_stream
-{
-    transcode_stream(
-            mediaplayer &parent,
-            const std::string &stream_id,
-            const pupnp::connection_manager::protocol &protocol)
-        :   vlc::transcode_stream(parent.messageloop, parent.vlc_instance),
-          parent(parent),
-          stream_id(stream_id),
-          sever_timer(parent.messageloop, std::bind(&transcode_stream::sever, this))
-    {
-        parent.connection_manager.output_connection_add(*this, protocol);
-
-        sever_timer.start(std::chrono::seconds(10), true);
-    }
-
-    ~transcode_stream()
-    {
-        parent.connection_manager.output_connection_remove(*this);
-    }
-
-    void sever()
-    {
-        parent.pending_transcode_streams.erase(stream_id);
-    }
-
-    mediaplayer &parent;
-    const std::string stream_id;
-    timer sever_timer;
-};
-
 mediaplayer::mediaplayer(
         class messageloop &messageloop,
         class vlc::instance &vlc_instance,
@@ -73,7 +42,8 @@ mediaplayer::mediaplayer(
       connection_manager(connection_manager),
       content_directory(content_directory),
       settings(settings),
-      basedir('/' + tr("Media Player") + '/')
+      basedir('/' + tr("Media Player") + '/'),
+      pending_streams_sever_timer(messageloop, std::bind(&mediaplayer::sever_pending_streams, this))
 {
     content_directory.item_source_register(basedir, *this);
 }
@@ -431,11 +401,11 @@ int mediaplayer::play_item(
         stream_id << "][" << transcode.str() << "][" << protocol.mux << ']';
 
         // First try to attach to an already running stream.
-        auto pending_stream = pending_transcode_streams.find(stream_id.str());
-        if (pending_stream != pending_transcode_streams.end())
+        auto pending_stream = pending_streams.find(stream_id.str());
+        if (pending_stream != pending_streams.end())
         {
-            auto stream = std::make_shared<vlc::transcode_stream>(messageloop, vlc_instance);
-            if (stream->attach(*pending_stream->second))
+            auto stream = std::make_shared<vlc::transcode_stream>(messageloop, vlc_instance, nullptr);
+            if (stream->attach(*pending_stream->second.second))
             {
                 content_type = protocol.content_format;
                 response = stream;
@@ -444,7 +414,7 @@ int mediaplayer::play_item(
         }
 
         // Get the track IDs.
-        struct transcode_stream::track_ids track_ids;
+        struct vlc::transcode_stream::track_ids track_ids;
         std::string file_path, track_name;
         split_path(item.path, file_path, track_name);
         const auto system_path = to_system_path(file_path);
@@ -462,17 +432,40 @@ int mediaplayer::play_item(
 
         // Otherwise create a new stream.
         std::clog << '[' << this << "] Creating new stream " << item.mrl << " transcode=" << transcode.str() << " mux=" << protocol.mux << std::endl;
-        auto stream = std::make_shared<transcode_stream>(*this, stream_id.str(), protocol);
+
+        auto &connection_manager = this->connection_manager;
+        const auto mrl = item.mrl;
+        auto stream = std::make_shared<vlc::transcode_stream>(messageloop, vlc_instance,
+            [&connection_manager, protocol, mrl, source_address](int32_t id)
+            {
+                if (id == 0)
+                {
+                    id = connection_manager.output_connection_add(protocol);
+                    if (id != 0)
+                    {
+                        auto connection_info = connection_manager.output_connection(id);
+                        connection_info.mrl = mrl;
+                        connection_info.endpoint = source_address;
+                        connection_manager.output_connection_update(id, connection_info);
+                    }
+                }
+                else
+                {
+                    connection_manager.output_connection_remove(id);
+                    id = 0;
+                }
+
+                return id;
+            });
+
         if ((item.chapter > 0)
                 ? stream->open(item.mrl, item.chapter, track_ids, transcode.str(), protocol.mux, rate)
                 : stream->open(item.mrl, item.position, track_ids, transcode.str(), protocol.mux, rate))
         {
-            auto connection_info = connection_manager.output_connection(*stream);
-            connection_info.mrl = item.mrl;
-            connection_info.endpoint = source_address;
-            connection_manager.output_connection_update(*stream, connection_info);
+            if (pending_streams.empty())
+                pending_streams_sever_timer.start(std::chrono::seconds(1));
 
-            pending_transcode_streams[stream_id.str()] = stream;
+            pending_streams[stream_id.str()] = std::make_pair(0, stream);
             content_type = protocol.content_format;
             response = stream;
             return pupnp::upnp::http_ok;
@@ -624,4 +617,16 @@ std::string mediaplayer::to_virtual_path(const std::string &system_path) const
             return basedir + '/' + root_path_name(i.path) + '/' + system_path.substr(i.path.length());
 
     return std::string();
+}
+
+void mediaplayer::sever_pending_streams()
+{
+    for (auto i = pending_streams.begin(); i != pending_streams.end(); )
+        if (++(i->second.first) >= 10)
+            i = pending_streams.erase(i);
+        else
+            i++;
+
+    if (pending_streams.empty())
+        pending_streams_sever_timer.stop();
 }
