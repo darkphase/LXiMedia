@@ -230,7 +230,7 @@ void connection_manager::write_eventable_statevariables(rootdevice::eventable_pr
     propset.add_property("CurrentConnectionIDs", "");
 }
 
-void connection_manager::output_connection_add(std::istream &stream, const struct protocol &protocol)
+int32_t connection_manager::output_connection_add(const struct protocol &protocol)
 {
     const auto id = ++connection_id_counter;
 
@@ -243,52 +243,39 @@ void connection_manager::output_connection_add(std::istream &stream, const struc
     connection.direction = connection_info::output;
     connection.status = connection_info::ok;
     connections[id] = connection;
-    streams[&stream] = id;
 
     messageloop.post([this] { rootdevice.emit_event(service_id); });
     for (auto &i : numconnections_changed) if (i.second) i.second(connections.size());
+
+    return id;
 }
 
-void connection_manager::output_connection_remove(std::istream &stream)
+void connection_manager::output_connection_remove(int32_t id)
 {
-    auto i = streams.find(&stream);
-    if (i != streams.end())
+    auto i = connections.find(id);
+    if (i != connections.end())
     {
-        auto j = connections.find(i->second);
-        if (j != connections.end())
-        {
-            connections.erase(j);
+        connections.erase(i);
 
-            messageloop.post([this] { rootdevice.emit_event(service_id); });
-            for (auto &i : numconnections_changed) if (i.second) i.second(connections.size());
-        }
-
-        streams.erase(i);
+        messageloop.post([this] { rootdevice.emit_event(service_id); });
+        for (auto &j : numconnections_changed) if (j.second) j.second(connections.size());
     }
 }
 
-connection_manager::connection_info connection_manager::output_connection(std::istream &stream) const
+connection_manager::connection_info connection_manager::output_connection(int32_t id) const
 {
-    auto i = streams.find(&stream);
-    if (i != streams.end())
-    {
-        auto j = connections.find(i->second);
-        if (j != connections.end())
-            return j->second;
-    }
+    auto i = connections.find(id);
+    if (i != connections.end())
+        return i->second;
 
     return connection_info();
 }
 
-void connection_manager::output_connection_update(std::istream &stream, const struct connection_info &connection_info)
+void connection_manager::output_connection_update(int32_t id, const struct connection_info &connection_info)
 {
-    auto i = streams.find(&stream);
-    if (i != streams.end())
-    {
-        auto j = connections.find(i->second);
-        if (j != connections.end())
-            j->second = connection_info;
-    }
+    auto i = connections.find(id);
+    if (i != connections.end())
+        i->second = connection_info;
 }
 
 std::vector<connection_manager::connection_info> connection_manager::output_connections() const

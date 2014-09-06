@@ -19,6 +19,7 @@
 #define VLC_TRANSCODE_STREAM_H
 
 #include <chrono>
+#include <functional>
 #include <istream>
 #include <memory>
 #include <string>
@@ -35,7 +36,11 @@ public:
     struct track_ids { int audio, video, text; track_ids() : audio(-1), video(-1), text(-1) {} };
 
 public:
-    transcode_stream(class messageloop &, class instance &);
+    transcode_stream(
+            class messageloop &,
+            class instance &,
+            const std::function<int32_t(int32_t)> &changed);
+
     ~transcode_stream();
 
     bool open(
@@ -65,6 +70,7 @@ private:
     static const size_t block_count;
     class messageloop &messageloop;
     class instance &instance;
+    const std::function<int32_t(int32_t)> changed;
     std::unique_ptr<class streambuf> streambuf;
     std::shared_ptr<class source> source;
 };

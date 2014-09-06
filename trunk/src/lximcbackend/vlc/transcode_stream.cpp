@@ -63,6 +63,7 @@ public:
     source(
             class messageloop &,
             class instance &,
+            const std::function<int32_t(int32_t)> &,
             const std::string &,
             int,
             const struct track_ids &,
@@ -73,6 +74,7 @@ public:
     source(
             class messageloop &,
             class instance &,
+            const std::function<int32_t(int32_t)> &,
             const std::string &,
             std::chrono::milliseconds,
             const struct track_ids &,
@@ -94,6 +96,7 @@ private:
     source(
             class messageloop &,
             class instance &,
+            const std::function<int32_t(int32_t)> &,
             const std::string &,
             const struct track_ids &,
             const std::string &,
@@ -106,6 +109,7 @@ private:
 private:
     class messageloop &messageloop;
     class instance &instance;
+    const std::function<int32_t(int32_t)> changed;
     const struct track_ids track_ids;
     class media media;
     libvlc_media_player_t *player;
@@ -113,6 +117,8 @@ private:
     int chapter;
     std::chrono::milliseconds position;
     const float rate;
+
+    int32_t id;
 
     std::mutex mutex;
     bool stream_start_pending;
@@ -130,9 +136,13 @@ private:
     size_t write_block_pos;
 };
 
-transcode_stream::transcode_stream(class messageloop &messageloop, class instance &instance)
+transcode_stream::transcode_stream(
+        class messageloop &messageloop,
+        class instance &instance,
+        const std::function<int32_t(int32_t)> &changed)
     : messageloop(messageloop),
       instance(instance),
+      changed(changed),
       streambuf(new class streambuf(*this))
 {
 }
@@ -149,7 +159,7 @@ bool transcode_stream::open(const std::string &mrl,
         const std::string &mux,
         float rate)
 {
-    source = std::make_shared<class source>(messageloop, instance, mrl, chapter, track_ids, transcode, mux, rate);
+    source = std::make_shared<class source>(messageloop, instance, changed, mrl, chapter, track_ids, transcode, mux, rate);
     if (source->is_open())
     {
         source->attach(*streambuf);
@@ -170,7 +180,7 @@ bool transcode_stream::open(
         const std::string &mux,
         float rate)
 {
-    source = std::make_shared<class source>(messageloop, instance, mrl, position, track_ids, transcode, mux, rate);
+    source = std::make_shared<class source>(messageloop, instance, changed, mrl, position, track_ids, transcode, mux, rate);
     if (source->is_open())
     {
         source->attach(*streambuf);
@@ -210,6 +220,7 @@ void transcode_stream::close()
 transcode_stream::source::source(
         class messageloop &messageloop,
         class instance &instance,
+        const std::function<int32_t(int32_t)> &changed,
         const std::string &mrl,
         const struct track_ids &track_ids,
         const std::string &transcode,
@@ -217,6 +228,7 @@ transcode_stream::source::source(
         float rate)
     : messageloop(messageloop),
       instance(instance),
+      changed(changed),
       track_ids(track_ids),
       media(media::from_mrl(instance, mrl)),
       player(nullptr),
@@ -224,6 +236,7 @@ transcode_stream::source::source(
       chapter(-1),
       position(0),
       rate(rate),
+      id(0),
       stream_start_pending(true),
       stream_end(false),
       stream_end_pending(false),
@@ -256,19 +269,21 @@ transcode_stream::source::source(
         libvlc_event_attach(event_manager, libvlc_MediaPlayerEncounteredError, &source::callback, this);
 
         std::clog << '[' << this << "] " << sout << std::endl;
+        if (changed) id = changed(id);
     }
 }
 
 transcode_stream::source::source(
         class messageloop &messageloop,
         class instance &instance,
+        const std::function<int32_t(int32_t)> &changed,
         const std::string &mrl,
         int chapter,
         const struct track_ids &track_ids,
         const std::string &transcode,
         const std::string &mux,
         float rate)
-      : source(messageloop, instance, mrl, track_ids, transcode, mux, rate)
+      : source(messageloop, instance, changed, mrl, track_ids, transcode, mux, rate)
 {
     this->chapter = chapter;
 
@@ -283,13 +298,14 @@ transcode_stream::source::source(
 transcode_stream::source::source(
         class messageloop &messageloop,
         class instance &instance,
+        const std::function<int32_t(int32_t)> &changed,
         const std::string &mrl,
         std::chrono::milliseconds position,
         const struct track_ids &track_ids,
         const std::string &transcode,
         const std::string &mux,
         float rate)
-      : source(messageloop, instance, mrl, track_ids, transcode, mux, rate)
+      : source(messageloop, instance, changed, mrl, track_ids, transcode, mux, rate)
 {
     this->position = position;
 
@@ -328,6 +344,7 @@ transcode_stream::source::~source()
     }
 
     std::clog << '[' << this << "] destroyed transcode_stream " << media.mrl() << std::endl;
+    if (changed) id = changed(id);
 }
 
 bool transcode_stream::source::attach(class streambuf &streambuf)

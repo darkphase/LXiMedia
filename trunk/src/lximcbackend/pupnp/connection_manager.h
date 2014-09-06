@@ -151,10 +151,10 @@ public:
     protocol get_protocol(const std::string &profile, unsigned num_channels) const;
     protocol get_protocol(const std::string &profile, unsigned num_channels, unsigned width, float frame_rate) const;
 
-    void output_connection_add(std::istream &, const struct protocol &);
-    void output_connection_remove(std::istream &);
-    connection_info output_connection(std::istream &) const;
-    void output_connection_update(std::istream &, const struct connection_info &);
+    int32_t output_connection_add(const struct protocol &);
+    void output_connection_remove(int32_t id);
+    connection_info output_connection(int32_t id) const;
+    void output_connection_update(int32_t id, const struct connection_info &);
     std::vector<connection_info> output_connections() const;
 
     void handle_action(const upnp::request &, action_get_current_connectionids &);
@@ -183,7 +183,6 @@ private:
 
     int32_t connection_id_counter;
     std::map<int32_t, connection_info> connections;
-    std::map<std::istream *, int32_t> streams;
 };
 
 } // End of namespace
