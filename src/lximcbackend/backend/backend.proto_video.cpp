@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "backend.h"
+#include "pupnp/upnp.h"
 
 void backend::add_video_protocols()
 {
@@ -34,8 +35,8 @@ void backend::add_video_protocols()
     if (has_vcd)
         connection_manager.add_source_video_protocol(
                     "MPEG1",
-                    "video/mpeg", "mpg",
-                    44100, 2, 352, 288, 25.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    44100, 2, 352, 288, 25000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp1v", "mpeg1",
                     "vb=4096,venc=ffmpeg{keyint=0,vt=2048}",
                     "vb=2048,venc=ffmpeg{bframes=0,vt=1024}");
@@ -43,8 +44,8 @@ void backend::add_video_protocols()
     if (has_vcd)
         connection_manager.add_source_video_protocol(
                     "MPEG1",
-                    "video/mpeg", "mpg",
-                    44100, 2, 320, 240, 29.97f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    44100, 2, 320, 240, 30000, 1001,
                     "acodec=mpga,ab=256", "vcodec=mp1v", "mpeg1",
                     "vb=4096,venc=ffmpeg{keyint=0,vt=2048}",
                     "vb=2048,venc=ffmpeg{bframes=0,vt=1024}");
@@ -55,8 +56,8 @@ void backend::add_video_protocols()
     if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_PAL",
-                    "video/mpeg", "mpg",
-                    44100, 2, 720, 576, 25.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    44100, 2, 720, 576, 25000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -64,8 +65,8 @@ void backend::add_video_protocols()
     if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_PAL_XAC3",
-                    "video/mpeg", "mpg",
-                    48000, 6, 720, 576, 25.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    48000, 6, 720, 576, 25000, 1000,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ps",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -73,8 +74,8 @@ void backend::add_video_protocols()
     if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_NTSC",
-                    "video/mpeg", "mpg",
-                    44100, 2, 704, 480, 29.97f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    44100, 2, 704, 480, 30000, 1001,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -82,8 +83,8 @@ void backend::add_video_protocols()
     if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_NTSC_XAC3",
-                    "video/mpeg", "mpg",
-                    48000, 6, 704, 480, 29.97f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    48000, 6, 704, 480, 30000, 1001,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ps",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -93,8 +94,8 @@ void backend::add_video_protocols()
     if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_SD_EU_ISO",
-                    "video/x-mpegts", "ts",
-                    44100, 2, 720, 576, 24.0f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    44100, 2, 720, 576, 24000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -102,8 +103,8 @@ void backend::add_video_protocols()
     if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_SD_EU_ISO",
-                    "video/x-mpegts", "ts",
-                    44100, 2, 720, 576, 25.0f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    44100, 2, 720, 576, 25000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -111,8 +112,8 @@ void backend::add_video_protocols()
     if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_SD_EU_ISO",
-                    "video/x-mpegts", "ts",
-                    48000, 6, 720, 576, 24.0f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    48000, 6, 720, 576, 24000, 1000,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ts",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -120,8 +121,8 @@ void backend::add_video_protocols()
     if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_SD_EU_ISO",
-                    "video/x-mpegts", "ts",
-                    48000, 6, 720, 576, 25.0f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    48000, 6, 720, 576, 25000, 1000,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ts",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -129,8 +130,8 @@ void backend::add_video_protocols()
     if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_SD_NA_ISO",
-                    "video/x-mpegts", "ts",
-                    44100, 2, 704, 480, 24.0f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    44100, 2, 704, 480, 24000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -138,8 +139,8 @@ void backend::add_video_protocols()
     if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_SD_NA_ISO",
-                    "video/x-mpegts", "ts",
-                    44100, 2, 704, 480, 29.97f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    44100, 2, 704, 480, 30000, 1001,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -147,8 +148,8 @@ void backend::add_video_protocols()
     if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_SD_NA_ISO",
-                    "video/x-mpegts", "ts",
-                    48000, 6, 704, 480, 24.0f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    48000, 6, 704, 480, 24000, 1000,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ts",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -156,8 +157,8 @@ void backend::add_video_protocols()
     if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_SD_NA_ISO",
-                    "video/x-mpegts", "ts",
-                    48000, 6, 704, 480, 29.97f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    48000, 6, 704, 480, 30000, 1001,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ts",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -167,8 +168,8 @@ void backend::add_video_protocols()
     if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_SD_EU_NONSTD",
-                    "video/mpeg", "mpg",
-                    44100, 2, 720, 576, 24.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    44100, 2, 720, 576, 24000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -176,8 +177,8 @@ void backend::add_video_protocols()
     if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_SD_EU_NONSTD",
-                    "video/mpeg", "mpg",
-                    44100, 2, 720, 576, 25.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    44100, 2, 720, 576, 25000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -185,8 +186,8 @@ void backend::add_video_protocols()
     if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_SD_EU_NONSTD",
-                    "video/mpeg", "mpg",
-                    48000, 6, 720, 576, 24.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    48000, 6, 720, 576, 24000, 1000,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ps",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -194,8 +195,8 @@ void backend::add_video_protocols()
     if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_SD_EU_NONSTD",
-                    "video/mpeg", "mpg",
-                    48000, 6, 720, 576, 25.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    48000, 6, 720, 576, 25000, 1000,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ps",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -203,8 +204,8 @@ void backend::add_video_protocols()
     if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_SD_NA_NONSTD",
-                    "video/mpeg", "mpg",
-                    44100, 2, 704, 480, 24.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    44100, 2, 704, 480, 24000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -212,8 +213,8 @@ void backend::add_video_protocols()
     if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_SD_NA_NONSTD",
-                    "video/mpeg", "mpg",
-                    44100, 2, 704, 480, 29.97f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    44100, 2, 704, 480, 30000, 1001,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -221,8 +222,8 @@ void backend::add_video_protocols()
     if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_SD_NA_NONSTD",
-                    "video/mpeg", "mpg",
-                    48000, 6, 704, 480, 24.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    48000, 6, 704, 480, 24000, 1000,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ps",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -230,8 +231,8 @@ void backend::add_video_protocols()
     if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_SD_NA_NONSTD",
-                    "video/mpeg", "mpg",
-                    48000, 6, 704, 480, 29.97f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    48000, 6, 704, 480, 30000, 1001,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ps",
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -241,8 +242,8 @@ void backend::add_video_protocols()
     if (has_hdtv_720)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_HD_EU_ISO",
-                    "video/x-mpegts", "ts",
-                    44100, 2, 1280, 720, 24.0f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    44100, 2, 1280, 720, 24000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
                     "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
                     "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
@@ -250,8 +251,8 @@ void backend::add_video_protocols()
     if (has_hdtv_720)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_HD_EU_ISO",
-                    "video/x-mpegts", "ts",
-                    44100, 2, 1280, 720, 25.0f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    44100, 2, 1280, 720, 25000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
                     "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
                     "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
@@ -259,8 +260,8 @@ void backend::add_video_protocols()
     if (has_hdtv_720 && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_HD_EU_ISO",
-                    "video/x-mpegts", "ts",
-                    48000, 6, 1280, 720, 24.0f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    48000, 6, 1280, 720, 24000, 1000,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ts",
                     "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
                     "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
@@ -268,8 +269,8 @@ void backend::add_video_protocols()
     if (has_hdtv_720 && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_HD_EU_ISO",
-                    "video/x-mpegts", "ts",
-                    48000, 6, 1280, 720, 25.0f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    48000, 6, 1280, 720, 25000, 1000,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ts",
                     "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
                     "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
@@ -277,8 +278,8 @@ void backend::add_video_protocols()
     if (has_hdtv_720)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_HD_NA_ISO",
-                    "video/x-mpegts", "ts",
-                    44100, 2, 1280, 720, 24.0f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    44100, 2, 1280, 720, 24000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
                     "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
                     "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
@@ -286,8 +287,8 @@ void backend::add_video_protocols()
     if (has_hdtv_720)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_HD_NA_ISO",
-                    "video/x-mpegts", "ts",
-                    44100, 2, 1280, 720, 29.97f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    44100, 2, 1280, 720, 30000, 1001,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
                     "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
                     "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
@@ -295,8 +296,8 @@ void backend::add_video_protocols()
     if (has_hdtv_720 && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_HD_NA_ISO",
-                    "video/x-mpegts", "ts",
-                    48000, 6, 1280, 720, 24.0f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    48000, 6, 1280, 720, 24000, 1000,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ts",
                     "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
                     "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
@@ -304,8 +305,8 @@ void backend::add_video_protocols()
     if (has_hdtv_720 && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_HD_NA_ISO",
-                    "video/x-mpegts", "ts",
-                    48000, 6, 1280, 720, 29.97f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    48000, 6, 1280, 720, 30000, 1001,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ts",
                     "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
                     "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
@@ -315,8 +316,8 @@ void backend::add_video_protocols()
     if (has_hdtv_720)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_HD_EU_NONSTD",
-                    "video/mpeg", "mpg",
-                    44100, 2, 1280, 720, 24.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    44100, 2, 1280, 720, 24000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
                     "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
                     "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
@@ -324,8 +325,8 @@ void backend::add_video_protocols()
     if (has_hdtv_720)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_HD_EU_NONSTD",
-                    "video/mpeg", "mpg",
-                    44100, 2, 1280, 720, 25.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    44100, 2, 1280, 720, 25000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
                     "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
                     "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
@@ -333,8 +334,8 @@ void backend::add_video_protocols()
     if (has_hdtv_720 && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_HD_EU_NONSTD",
-                    "video/mpeg", "mpg",
-                    48000, 6, 1280, 720, 24.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    48000, 6, 1280, 720, 24000, 1000,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ps",
                     "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
                     "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
@@ -342,8 +343,8 @@ void backend::add_video_protocols()
     if (has_hdtv_720 && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_HD_EU_NONSTD",
-                    "video/mpeg", "mpg",
-                    48000, 6, 1280, 720, 25.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    48000, 6, 1280, 720, 25000, 1000,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ps",
                     "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
                     "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
@@ -351,8 +352,8 @@ void backend::add_video_protocols()
     if (has_hdtv_720)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_HD_NA_NONSTD",
-                    "video/mpeg", "mpg",
-                    44100, 2, 1280, 720, 24.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    44100, 2, 1280, 720, 24000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
                     "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
                     "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
@@ -360,8 +361,8 @@ void backend::add_video_protocols()
     if (has_hdtv_720)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_HD_NA_NONSTD",
-                    "video/mpeg", "mpg",
-                    44100, 2, 1280, 720, 29.97f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    44100, 2, 1280, 720, 30000, 1001,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
                     "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
                     "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
@@ -369,8 +370,8 @@ void backend::add_video_protocols()
     if (has_hdtv_720 && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_HD_NA_NONSTD",
-                    "video/mpeg", "mpg",
-                    48000, 6, 1280, 720, 24.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    48000, 6, 1280, 720, 24000, 1000,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ps",
                     "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
                     "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
@@ -378,8 +379,8 @@ void backend::add_video_protocols()
     if (has_hdtv_720 && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_HD_NA_NONSTD",
-                    "video/mpeg", "mpg",
-                    48000, 6, 1280, 720, 29.97f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    48000, 6, 1280, 720, 30000, 1001,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ps",
                     "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
                     "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
@@ -389,8 +390,8 @@ void backend::add_video_protocols()
     if (has_hdtv_1080)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_HD_EU_ISO",
-                    "video/x-mpegts", "ts",
-                    44100, 2, 1920, 1080, 24.0f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    44100, 2, 1920, 1080, 24000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
                     "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
                     "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
@@ -398,8 +399,8 @@ void backend::add_video_protocols()
     if (has_hdtv_1080)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_HD_EU_ISO",
-                    "video/x-mpegts", "ts",
-                    44100, 2, 1920, 1080, 25.0f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    44100, 2, 1920, 1080, 25000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
                     "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
                     "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
@@ -407,8 +408,8 @@ void backend::add_video_protocols()
     if (has_hdtv_1080 && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_HD_EU_ISO",
-                    "video/x-mpegts", "ts",
-                    48000, 6, 1920, 1080, 24.0f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    48000, 6, 1920, 1080, 24000, 1000,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ts",
                     "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
                     "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
@@ -416,8 +417,8 @@ void backend::add_video_protocols()
     if (has_hdtv_1080 && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_HD_EU_ISO",
-                    "video/x-mpegts", "ts",
-                    48000, 6, 1920, 1080, 25.0f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    48000, 6, 1920, 1080, 25000, 1000,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ts",
                     "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
                     "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
@@ -425,8 +426,8 @@ void backend::add_video_protocols()
     if (has_hdtv_1080)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_HD_NA_ISO",
-                    "video/x-mpegts", "ts",
-                    44100, 2, 1920, 1080, 24.0f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    44100, 2, 1920, 1080, 24000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
                     "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
                     "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
@@ -434,8 +435,8 @@ void backend::add_video_protocols()
     if (has_hdtv_1080)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_HD_NA_ISO",
-                    "video/x-mpegts", "ts",
-                    44100, 2, 1920, 1080, 29.97f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    44100, 2, 1920, 1080, 30000, 1001,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
                     "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
                     "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
@@ -443,8 +444,8 @@ void backend::add_video_protocols()
     if (has_hdtv_1080 && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_HD_NA_ISO",
-                    "video/x-mpegts", "ts",
-                    48000, 6, 1920, 1080, 24.0f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    48000, 6, 1920, 1080, 24000, 1000,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ts",
                     "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
                     "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
@@ -452,8 +453,8 @@ void backend::add_video_protocols()
     if (has_hdtv_1080 && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_HD_NA_ISO",
-                    "video/x-mpegts", "ts",
-                    48000, 6, 1920, 1080, 29.97f,
+                    pupnp::upnp::mime_video_mpegts, "ts",
+                    48000, 6, 1920, 1080, 30000, 1001,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ts",
                     "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
                     "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
@@ -463,8 +464,8 @@ void backend::add_video_protocols()
     if (has_hdtv_1080)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_HD_EU_NONSTD",
-                    "video/mpeg", "mpg",
-                    44100, 2, 1920, 1080, 24.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    44100, 2, 1920, 1080, 24000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
                     "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
                     "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
@@ -472,8 +473,8 @@ void backend::add_video_protocols()
     if (has_hdtv_1080)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_HD_EU_NONSTD",
-                    "video/mpeg", "mpg",
-                    44100, 2, 1920, 1080, 25.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    44100, 2, 1920, 1080, 25000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
                     "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
                     "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
@@ -481,8 +482,8 @@ void backend::add_video_protocols()
     if (has_hdtv_1080 && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_HD_EU_NONSTD",
-                    "video/mpeg", "mpg",
-                    48000, 6, 1920, 1080, 24.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    48000, 6, 1920, 1080, 24000, 1000,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ps",
                     "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
                     "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
@@ -490,8 +491,8 @@ void backend::add_video_protocols()
     if (has_hdtv_1080 && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_HD_EU_NONSTD",
-                    "video/mpeg", "mpg",
-                    48000, 6, 1920, 1080, 25.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    48000, 6, 1920, 1080, 25000, 1000,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ps",
                     "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
                     "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
@@ -499,8 +500,8 @@ void backend::add_video_protocols()
     if (has_hdtv_1080)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_HD_NA_NONSTD",
-                    "video/mpeg", "mpg",
-                    44100, 2, 1920, 1080, 24.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    44100, 2, 1920, 1080, 24000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
                     "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
                     "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
@@ -508,8 +509,8 @@ void backend::add_video_protocols()
     if (has_hdtv_1080)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_HD_NA_NONSTD",
-                    "video/mpeg", "mpg",
-                    44100, 2, 1920, 1080, 29.97f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    44100, 2, 1920, 1080, 30000, 1001,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
                     "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
                     "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
@@ -517,8 +518,8 @@ void backend::add_video_protocols()
     if (has_hdtv_1080 && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_HD_NA_NONSTD",
-                    "video/mpeg", "mpg",
-                    48000, 6, 1920, 1080, 24.0f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    48000, 6, 1920, 1080, 24000, 1000,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ps",
                     "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
                     "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
@@ -526,8 +527,8 @@ void backend::add_video_protocols()
     if (has_hdtv_1080 && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_HD_NA_NONSTD",
-                    "video/mpeg", "mpg",
-                    48000, 6, 1920, 1080, 29.97f,
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    48000, 6, 1920, 1080, 30000, 1001,
                     "acodec=a52,ab=640", "vcodec=mp2v", "ps",
                     "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
                     "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");

@@ -63,13 +63,14 @@ void connection_manager::add_source_audio_protocol(
 void connection_manager::add_source_video_protocol(const char *name,
                                                    const char *mime, const char *suffix,
                                                    unsigned sample_rate, unsigned channels,
-                                                   unsigned width, unsigned height, float frame_rate,
+                                                   unsigned width, unsigned height,
+                                                   int frame_rate_num, int frame_rate_den,
                                                    const char *acodec, const char *vcodec, const char *mux,
                                                    const char *fast_encode_options, const char *slow_encode_options)
 {
     std::clog << "[" << this << "] connection_manager: enabled video protocol "
               << name << " " << sample_rate << "/" << channels << " "
-              << width << "x" << height << "@" << frame_rate
+              << width << "x" << height << "@" << (float(frame_rate_num) / float(frame_rate_den))
               << std::endl;
 
     source_video_protocol_list.emplace_back(protocol(
@@ -77,7 +78,8 @@ void connection_manager::add_source_video_protocol(const char *name,
                                                 true, false, false,
                                                 name, suffix,
                                                 sample_rate, channels,
-                                                width, height, frame_rate));
+                                                width, height,
+                                                frame_rate_num, frame_rate_den));
 
     auto &protocol = source_video_protocol_list.back();
     protocol.acodec = acodec;
@@ -115,8 +117,6 @@ std::vector<connection_manager::protocol> connection_manager::get_protocols(unsi
 
 std::vector<connection_manager::protocol> connection_manager::get_protocols(unsigned channels, unsigned width, float frame_rate) const
 {
-    std::clog << "connection_manager::get_protocols " << source_video_protocol_list.size() << std::endl;
-
     std::map<int, std::vector<protocol>> protocols;
     for (auto &protocol : source_video_protocol_list)
     {
@@ -125,7 +125,7 @@ std::vector<connection_manager::protocol> connection_manager::get_protocols(unsi
         score += ((protocol.width > 1280) == (width > 1280)) ? -1 : 0;
         score += ((protocol.width >  876) == (width >  876)) ? -1 : 0;
         score += ((protocol.width >  640) == (width >  640)) ? -1 : 0;
-        score += (std::fabs(protocol.frame_rate - frame_rate) > 0.3f) ? 6 : 0;
+        score += (std::fabs((float(protocol.frame_rate_num) / float(protocol.frame_rate_den)) - frame_rate) > 0.3f) ? 6 : 0;
 
         protocols[score].emplace_back(protocol);
     }
@@ -337,13 +337,15 @@ connection_manager::protocol::protocol(const std::string &network_protocol,
                                        const std::string &profile,
                                        const std::string &suffix,
                                        unsigned sample_rate, unsigned channels,
-                                       unsigned width, unsigned height, float frame_rate)
+                                       unsigned width, unsigned height,
+                                       int frame_rate_num, int frame_rate_den)
     : network_protocol(network_protocol), network("*"), content_format(content_format),
       profile(profile), play_speed(true), conversion_indicator(conversion_indicator),
       operations_range(operations_range), operations_timeseek(operations_timeseek),
       flags(starts_with(content_format, "image/") ? "00100000" : "01700000"),
       suffix(suffix), sample_rate(sample_rate), channels(channels),
-      width(width), height(height), frame_rate(frame_rate)
+      width(width), height(height),
+      frame_rate_num(frame_rate_num), frame_rate_den(frame_rate_den)
 {
 }
 

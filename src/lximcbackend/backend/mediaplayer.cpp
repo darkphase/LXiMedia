@@ -309,9 +309,10 @@ int mediaplayer::play_item(
             {
                 transcode << protocol.vcodec;
 
-                if (std::abs(protocol.frame_rate - item.frame_rate) > 0.3f)
+                const float frame_rate = float(protocol.frame_rate_num) / float(protocol.frame_rate_den);
+                if (std::abs(frame_rate - item.frame_rate) > 0.3f)
                 {
-                    transcode << ",fps=" << protocol.frame_rate;
+                    transcode << ",fps=" << frame_rate;
 //                    if (std::abs(protocol.frame_rate - item.frame_rate) < 1.5f)
 //                        rate = protocol.frame_rate / item.frame_rate;
                 }
