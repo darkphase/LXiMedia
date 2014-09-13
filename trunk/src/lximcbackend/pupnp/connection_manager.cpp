@@ -60,13 +60,14 @@ void connection_manager::add_source_audio_protocol(
     protocol.mux = mux;
 }
 
-void connection_manager::add_source_video_protocol(const char *name,
-                                                   const char *mime, const char *suffix,
-                                                   unsigned sample_rate, unsigned channels,
-                                                   unsigned width, unsigned height,
-                                                   int frame_rate_num, int frame_rate_den,
-                                                   const char *acodec, const char *vcodec, const char *mux,
-                                                   const char *fast_encode_options, const char *slow_encode_options)
+void connection_manager::add_source_video_protocol(
+        const char *name,
+        const char *mime, const char *suffix,
+        unsigned sample_rate, unsigned channels,
+        unsigned width, unsigned height,
+        unsigned frame_rate_num, unsigned frame_rate_den,
+        const char *acodec, const char *vcodec, const char *mux,
+        const char *fast_encode_options, const char *slow_encode_options)
 {
     std::clog << "[" << this << "] connection_manager: enabled video protocol "
               << name << " " << sample_rate << "/" << channels << " "
@@ -329,16 +330,17 @@ connection_manager::protocol::protocol()
 {
 }
 
-connection_manager::protocol::protocol(const std::string &network_protocol,
-                                       const std::string &content_format,
-                                       bool conversion_indicator,
-                                       bool operations_range,
-                                       bool operations_timeseek,
-                                       const std::string &profile,
-                                       const std::string &suffix,
-                                       unsigned sample_rate, unsigned channels,
-                                       unsigned width, unsigned height,
-                                       int frame_rate_num, int frame_rate_den)
+connection_manager::protocol::protocol(
+        const std::string &network_protocol,
+        const std::string &content_format,
+        bool conversion_indicator,
+        bool operations_range,
+        bool operations_timeseek,
+        const std::string &profile,
+        const std::string &suffix,
+        unsigned sample_rate, unsigned channels,
+        unsigned width, unsigned height,
+        unsigned frame_rate_num, unsigned frame_rate_den)
     : network_protocol(network_protocol), network("*"), content_format(content_format),
       profile(profile), play_speed(true), conversion_indicator(conversion_indicator),
       operations_range(operations_range), operations_timeseek(operations_timeseek),

@@ -240,11 +240,14 @@ static const char * to_string(video_mode e)
 {
     switch (e)
     {
-    case video_mode::auto_      : return "Auto";
-    case video_mode::vcd        : return "VCD";
-    case video_mode::dvd        : return "DVD";
-    case video_mode::hdtv_720   : return "720p";
-    case video_mode::hdtv_1080  : return "1080p";
+    case video_mode::auto_      :    return "Auto";
+    case video_mode::vcd            : return "VCD";
+    case video_mode::dvd            : return "DVD";
+    case video_mode::dvd_avc        : return "DVD/AVC";
+    case video_mode::hdtv_720       : return "720p";
+    case video_mode::hdtv_720_avc   : return "720p/AVC";
+    case video_mode::hdtv_1080      : return "1080p";
+    case video_mode::hdtv_1080_avc  : return "1080p/AVC";
     }
 
     assert(false);
@@ -253,11 +256,14 @@ static const char * to_string(video_mode e)
 
 static video_mode to_video_mode(const std::string &e)
 {
-    if      (e == "Auto")   return video_mode::auto_;
-    else if (e == "VCD")    return video_mode::vcd;
-    else if (e == "DVD")    return video_mode::dvd;
-    else if (e == "720p")   return video_mode::hdtv_720;
-    else if (e == "1080p")  return video_mode::hdtv_1080;
+    if      (e == "Auto")       return video_mode::auto_;
+    else if (e == "VCD")        return video_mode::vcd;
+    else if (e == "DVD")        return video_mode::dvd;
+    else if (e == "DVD/AVC")    return video_mode::dvd_avc;
+    else if (e == "720p")       return video_mode::hdtv_720;
+    else if (e == "720p/AVC")   return video_mode::hdtv_720_avc;
+    else if (e == "1080p")      return video_mode::hdtv_1080;
+    else if (e == "1080p/AVC")  return video_mode::hdtv_1080_avc;
 
     assert(false);
     return video_mode::auto_;

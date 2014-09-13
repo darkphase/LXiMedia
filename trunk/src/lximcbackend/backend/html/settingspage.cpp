@@ -136,18 +136,21 @@ static void render_dlna_settings(const class settings &settings, std::ostream &o
            "<input type=\"hidden\" name=\"save_settings\" value=\"dlna\" />"
            "<p>" << tr("Video settings") << ":</p>"
            "<p><select name=\"encode_mode\">"
-           "<option value=\"slow\""         << is_selected(settings.encode_mode() == encode_mode::slow      ) << ">" << tr("Slow; High-quality") << "</option>"
-           "<option value=\"fast\""         << is_selected(settings.encode_mode() == encode_mode::fast      ) << ">" << tr("Fast; Lower-quality") << "</option>"
+           "<option value=\"slow\""                 << is_selected(settings.encode_mode() == encode_mode::slow          ) << ">" << tr("Slow; High-quality") << "</option>"
+           "<option value=\"fast\""                 << is_selected(settings.encode_mode() == encode_mode::fast          ) << ">" << tr("Fast; Lower-quality") << "</option>"
            "</select><select name=\"video_mode\">"
-           "<option value=\"auto\""         << is_selected(settings.video_mode() == video_mode::auto_       ) << ">" << tr("Automatic") << "</option>"
-           "<option value=\"vcd\""          << is_selected(settings.video_mode() == video_mode::vcd         ) << ">" << tr("Video-CD; 288p") << "</option>"
-           "<option value=\"dvd\""          << is_selected(settings.video_mode() == video_mode::dvd         ) << ">" << tr("DVD; 576p") << "</option>"
-           "<option value=\"hdtv_720\""     << is_selected(settings.video_mode() == video_mode::hdtv_720    ) << ">" << tr("HDTV; 720p") << "</option>"
-           "<option value=\"hdtv_1080\""    << is_selected(settings.video_mode() == video_mode::hdtv_1080   ) << ">" << tr("HDTV; 1080p") << "</option>"
-           "</select><select name=\"canvas_mode\"" << is_enabled(settings.canvas_mode_enabled()) << ">"
-           "<option value=\"none\""         << is_selected(settings.canvas_mode() == canvas_mode::none      ) << ">" << tr("None") << "</option>"
-           "<option value=\"pad\""          << is_selected(settings.canvas_mode() == canvas_mode::pad       ) << ">" << tr("Add black bars") << "</option>"
-           "<option value=\"crop\""         << is_selected(settings.canvas_mode() == canvas_mode::crop      ) << ">" << tr("Crop video") << "</option>"
+           "<option value=\"auto\""                 << is_selected(settings.video_mode() == video_mode::auto_           ) << ">" << tr("Automatic") << "</option>"
+           "<option value=\"vcd\""                  << is_selected(settings.video_mode() == video_mode::vcd             ) << ">" << tr("Video-CD; 288p") << "</option>"
+           "<option value=\"dvd\""                  << is_selected(settings.video_mode() == video_mode::dvd             ) << ">" << tr("DVD; 576p") << "</option>"
+           "<option value=\"dvd_avc\""              << is_selected(settings.video_mode() == video_mode::dvd_avc         ) << ">" << tr("DVD; 576p (MPEG-4 AVC)") << "</option>"
+           "<option value=\"hdtv_720\""             << is_selected(settings.video_mode() == video_mode::hdtv_720        ) << ">" << tr("HDTV; 720p") << "</option>"
+           "<option value=\"hdtv_720_avc\""         << is_selected(settings.video_mode() == video_mode::hdtv_720_avc    ) << ">" << tr("HDTV; 720p (MPEG-4 AVC)") << "</option>"
+           "<option value=\"hdtv_1080\""            << is_selected(settings.video_mode() == video_mode::hdtv_1080       ) << ">" << tr("HDTV; 1080p") << "</option>"
+           "<option value=\"hdtv_1080_avc\""        << is_selected(settings.video_mode() == video_mode::hdtv_1080_avc   ) << ">" << tr("HDTV; 1080p (MPEG-4 AVC)") << "</option>"
+           "</select><select name=\"canvas_mode\""  << is_enabled(settings.canvas_mode_enabled()) << ">"
+           "<option value=\"none\""                 << is_selected(settings.canvas_mode() == canvas_mode::none          ) << ">" << tr("None") << "</option>"
+           "<option value=\"pad\""                  << is_selected(settings.canvas_mode() == canvas_mode::pad           ) << ">" << tr("Add black bars") << "</option>"
+           "<option value=\"crop\""                 << is_selected(settings.canvas_mode() == canvas_mode::crop          ) << ">" << tr("Crop video") << "</option>"
            "</select></p>";
 
     if (!settings.canvas_mode_enabled())
@@ -186,11 +189,14 @@ static void save_dlna_settings(class settings &settings, const std::map<std::str
     auto video_mode = query.find("video_mode");
     if (video_mode != query.end())
     {
-        if      (video_mode->second == "auto"       ) settings.set_video_mode(::video_mode::auto_       );
-        else if (video_mode->second == "vcd"        ) settings.set_video_mode(::video_mode::vcd         );
-        else if (video_mode->second == "dvd"        ) settings.set_video_mode(::video_mode::dvd         );
-        else if (video_mode->second == "hdtv_720"   ) settings.set_video_mode(::video_mode::hdtv_720    );
-        else if (video_mode->second == "hdtv_1080"  ) settings.set_video_mode(::video_mode::hdtv_1080   );
+        if      (video_mode->second == "auto"           ) settings.set_video_mode(::video_mode::auto_           );
+        else if (video_mode->second == "vcd"            ) settings.set_video_mode(::video_mode::vcd             );
+        else if (video_mode->second == "dvd"            ) settings.set_video_mode(::video_mode::dvd             );
+        else if (video_mode->second == "dvd_avc"        ) settings.set_video_mode(::video_mode::dvd_avc         );
+        else if (video_mode->second == "hdtv_720"       ) settings.set_video_mode(::video_mode::hdtv_720        );
+        else if (video_mode->second == "hdtv_720_avc"   ) settings.set_video_mode(::video_mode::hdtv_720_avc    );
+        else if (video_mode->second == "hdtv_1080"      ) settings.set_video_mode(::video_mode::hdtv_1080       );
+        else if (video_mode->second == "hdtv_1080_avc"  ) settings.set_video_mode(::video_mode::hdtv_1080_avc   );
     }
 
     auto canvas_mode = query.find("canvas_mode");
