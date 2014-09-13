@@ -25,7 +25,7 @@
 #include <map>
 
 enum class encode_mode { slow, fast };
-enum class video_mode { auto_, vcd, dvd, hdtv_720, hdtv_1080 };
+enum class video_mode { auto_, vcd, dvd, dvd_avc, hdtv_720, hdtv_720_avc, hdtv_1080, hdtv_1080_avc };
 enum class canvas_mode { none, pad, crop };
 enum class surround_mode { stereo, surround51 };
 enum class path_type { auto_, music };

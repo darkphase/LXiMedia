@@ -219,6 +219,7 @@ static unsigned codec_block(const std::string &codec)
 {
     if      (codec.find("mp1v") != codec.npos) return 16;
     else if (codec.find("mp2v") != codec.npos) return 8;
+    else if (codec.find("h264") != codec.npos) return 8;
     else                                       return 16;
 }
 

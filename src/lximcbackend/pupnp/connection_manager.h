@@ -45,7 +45,7 @@ public:
                  const std::string &suffix,
                  unsigned sample_rate = 0, unsigned channels = 0,
                  unsigned width = 0, unsigned height = 0,
-                 int frame_rate_num = 0, int frame_rate_den = 0);
+                 unsigned frame_rate_num = 0, unsigned frame_rate_den = 0);
 
         std::string to_string(bool brief = false) const;  //!< Returns the DLNA protocol string.
         std::string content_features() const;             //!< Returns the DLNA contentFeatures string.
@@ -83,7 +83,7 @@ public:
 
         unsigned sample_rate, channels;
         unsigned width, height;
-        int frame_rate_num, frame_rate_den;
+        unsigned frame_rate_num, frame_rate_den;
 
         std::string acodec, vcodec, mux;
 
@@ -138,12 +138,11 @@ public:
             unsigned sample_rate, unsigned channels,
             const char *acodec, const char *mux);
 
-    void add_source_video_protocol(
-            const char *name,
+    void add_source_video_protocol(const char *name,
             const char *mime, const char *suffix,
             unsigned sample_rate, unsigned channels,
             unsigned width, unsigned height,
-            int frame_rate_num, int frame_rate_den,
+            unsigned frame_rate_num, unsigned frame_rate_den,
             const char *acodec, const char *vcodec, const char *mux,
             const char *fast_encode_options, const char *slow_encode_options);
 
