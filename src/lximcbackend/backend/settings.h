@@ -28,7 +28,7 @@ enum class encode_mode { slow, fast };
 enum class video_mode { auto_, vcd, dvd, hdtv_720, hdtv_1080 };
 enum class canvas_mode { none, pad, crop };
 enum class surround_mode { stereo, surround51 };
-enum class path_type { auto_, music };
+enum class path_type { auto_, music, pictures, videos };
 struct root_path { path_type type; std::string path; };
 
 class settings

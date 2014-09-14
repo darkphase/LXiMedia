@@ -21,8 +21,9 @@
 #include <string>
 #include <vector>
 
-std::vector<std::string> list_root_directories();
+std::string clean_path(const std::string &);
 
+std::vector<std::string> list_root_directories();
 std::vector<std::string> list_files(
         const std::string &path,
         bool directories_only = false,

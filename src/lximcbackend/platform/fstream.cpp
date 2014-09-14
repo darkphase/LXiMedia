@@ -31,7 +31,7 @@ basic_utf8filebuf<_type, _traits>::basic_utf8filebuf(const std::string &filename
 
     if (mode & std::ios_base::in)
     {
-        handle = CreateFileW(
+        handle = CreateFile(
                     to_windows_path(filename).c_str(),
                     GENERIC_READ,
                     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
@@ -42,7 +42,7 @@ basic_utf8filebuf<_type, _traits>::basic_utf8filebuf(const std::string &filename
     }
     else if (mode & std::ios_base::out)
     {
-        handle = CreateFileW(
+        handle = CreateFile(
                     to_windows_path(filename).c_str(),
                     GENERIC_WRITE,
                     FILE_SHARE_READ | FILE_SHARE_DELETE,

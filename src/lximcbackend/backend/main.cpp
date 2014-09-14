@@ -175,13 +175,13 @@ static bool install_service()
 {
     bool result = false;
 
-    SC_HANDLE scm = ::OpenSCManagerW(0, 0, SC_MANAGER_CREATE_SERVICE);
+    SC_HANDLE scm = ::OpenSCManager(0, 0, SC_MANAGER_CREATE_SERVICE);
     if (scm)
     {
         wchar_t path[MAX_PATH + 1];
-        if (::GetModuleFileNameW(0, path, sizeof(path) / sizeof(*path)) > 0)
+        if (::GetModuleFileName(0, path, sizeof(path) / sizeof(*path)) > 0)
         {
-            SC_HANDLE service = ::CreateServiceW(
+            SC_HANDLE service = ::CreateService(
                         scm,
                         service_name, service_name,
                         SERVICE_ALL_ACCESS, SERVICE_WIN32_OWN_PROCESS,
@@ -191,7 +191,7 @@ static bool install_service()
 
             if (service)
             {
-                result = ::StartServiceW(service, 0, NULL);
+                result = ::StartService(service, 0, NULL);
                 ::CloseServiceHandle(service);
             }
         }
@@ -206,10 +206,10 @@ static bool uninstall_service()
 {
     bool result = false;
 
-    SC_HANDLE scm = ::OpenSCManagerW(0, 0, SC_MANAGER_CONNECT);
+    SC_HANDLE scm = ::OpenSCManager(0, 0, SC_MANAGER_CONNECT);
     if (scm)
     {
-        SC_HANDLE service = ::OpenServiceW(scm, service_name, SERVICE_QUERY_STATUS | SERVICE_STOP | DELETE);
+        SC_HANDLE service = ::OpenService(scm, service_name, SERVICE_QUERY_STATUS | SERVICE_STOP | DELETE);
         if (service)
         {
             SERVICE_STATUS status;
@@ -274,7 +274,7 @@ static void WINAPI service_main(DWORD argc, WCHAR *argv[])
     service_status.dwCheckPoint = 0;
     service_status.dwWaitHint = 0;
 
-    service_status_handle = ::RegisterServiceCtrlHandlerW(service_name, &service_control_handler);
+    service_status_handle = ::RegisterServiceCtrlHandler(service_name, &service_control_handler);
     if (service_status_handle)
     {
         service_status.dwCurrentState = SERVICE_START_PENDING;
@@ -323,7 +323,7 @@ static bool start_service_dispatcher()
         { 0, 0 }
     };
 
-    return ::StartServiceCtrlDispatcherW(service_table);
+    return ::StartServiceCtrlDispatcher(service_table);
 }
 
 int main(int argc, const char *argv[])
