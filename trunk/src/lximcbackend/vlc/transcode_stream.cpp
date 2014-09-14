@@ -89,7 +89,6 @@ public:
     bool attach(class streambuf &);
     void detach(class streambuf &);
 
-    void consume();
     bool read(class streambuf &);
 
 private:
@@ -102,6 +101,9 @@ private:
             const std::string &,
             const std::string &,
             float);
+
+    size_t m2ts_filter(int, void *, size_t);
+    void consume();
 
     void recompute_buffer_offset(std::unique_lock<std::mutex> &);
     static void callback(const libvlc_event_t *, void *);
@@ -134,6 +136,10 @@ private:
     std::unique_ptr<std::thread> consume_thread;
     char *write_block;
     size_t write_block_pos;
+
+    const bool m2ts_filter_enabled;
+    std::vector<char> m2ts_filter_buffer;
+    size_t m2ts_filter_buffer_pos;
 };
 
 transcode_stream::transcode_stream(
@@ -243,14 +249,18 @@ transcode_stream::source::source(
       buffer_offset(0),
       buffer_used(0),
       write_block(nullptr),
-      write_block_pos(0)
+      write_block_pos(0),
+      m2ts_filter_enabled(mux == "m2ts"),
+      m2ts_filter_buffer_pos(0)
 {
     pipe_create(pipe);
+
+    const std::string vlc_mux = m2ts_filter_enabled ? "ts" : mux;
 
     std::ostringstream sout;
     sout
             << ":sout=" << transcode
-            << ":std{access=fd,mux=" << mux << ",dst=" << pipe[1] << "}";
+            << ":std{access=fd,mux=" << vlc_mux << ",dst=" << pipe[1] << "}";
 
     std::lock_guard<std::mutex> _(mutex);
 
@@ -372,11 +382,50 @@ void transcode_stream::source::detach(class streambuf &streambuf)
     std::clog << '[' << this << "] detached transcode_stream " << media.mrl() << std::endl;
 }
 
+size_t transcode_stream::source::m2ts_filter(int filedes, void *buf, size_t nbyte)
+{
+    static const size_t ts_packet_size = 188;
+    static const char ts_sync_byte = 0x47;
+    static const uint32_t timestamp = 0;
+
+    if (nbyte > 0)
+    {
+        if (m2ts_filter_buffer_pos == 0)
+        {
+            m2ts_filter_buffer.resize(sizeof(timestamp) + ts_packet_size);
+            memcpy(&m2ts_filter_buffer[0], &timestamp, sizeof(timestamp));
+
+            for (size_t i = sizeof(timestamp); i < m2ts_filter_buffer.size(); )
+            {
+                const size_t c = pipe_read(filedes, &m2ts_filter_buffer[i], m2ts_filter_buffer.size() - i);
+                if ((c > 0) && (c != size_t(-1)))
+                    i += c;
+                else
+                    return c;
+
+                assert(m2ts_filter_buffer[sizeof(timestamp)] == ts_sync_byte);
+                while ((i > sizeof(timestamp)) && (m2ts_filter_buffer[sizeof(timestamp)] != ts_sync_byte))
+                    memmove(&m2ts_filter_buffer[sizeof(timestamp) + 1], &m2ts_filter_buffer[sizeof(timestamp)], --i);
+            }
+        }
+
+        const size_t result = std::min(nbyte, m2ts_filter_buffer.size() - m2ts_filter_buffer_pos);
+        memcpy(buf, &m2ts_filter_buffer[m2ts_filter_buffer_pos], result);
+        m2ts_filter_buffer_pos = (m2ts_filter_buffer_pos + result) % m2ts_filter_buffer.size();
+        return result;
+    }
+
+    return 0;
+}
+
 void transcode_stream::source::consume()
 {
     for (;;)
     {
-        const size_t chunk = pipe_read(pipe[0], &write_block[write_block_pos], block_size - write_block_pos);
+        const size_t chunk = m2ts_filter_enabled
+                ? m2ts_filter(pipe[0], &write_block[write_block_pos], block_size - write_block_pos)
+                : pipe_read(pipe[0], &write_block[write_block_pos], block_size - write_block_pos);
+
         if ((chunk > 0) && (chunk != size_t(-1)))
         {
             write_block_pos += chunk;
