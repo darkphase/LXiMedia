@@ -4,7 +4,7 @@ file(STRINGS "VERSION" VERSION)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -static -DWIN32")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -static -DWIN32")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -static -DWIN32 -DUNICODE")
 else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")

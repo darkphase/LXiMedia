@@ -22,6 +22,25 @@
 #include <mutex>
 #include <unordered_set>
 
+std::string clean_path(const std::string &path)
+{
+    std::string result;
+
+    bool ls = false;
+    for (char i : path)
+    {
+        if ((i != '/') || !ls)
+            result.push_back(i);
+
+        ls = i == '/';
+    }
+
+    if ((result.size() > 1) && (result[result.size() - 1] == '/'))
+        result.pop_back();
+
+    return result;
+}
+
 #if defined(__unix__)
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -127,7 +146,7 @@ std::vector<std::string> list_root_directories()
     std::vector<std::string> result;
 
     wchar_t drives[4096];
-    if (GetLogicalDriveStringsW(sizeof(drives) / sizeof(*drives), drives) != 0)
+    if (GetLogicalDriveStrings(sizeof(drives) / sizeof(*drives), drives) != 0)
     {
         for (wchar_t *i = drives; *i; )
         {
@@ -143,7 +162,7 @@ std::vector<std::string> list_root_directories()
 std::string volume_name(const std::string &path)
 {
     wchar_t volume_name[MAX_PATH + 1];
-    if (GetVolumeInformationW(
+    if (GetVolumeInformation(
                 to_windows_path(path).c_str(),
                 volume_name,
                 sizeof(volume_name) / sizeof(*volume_name),
@@ -235,8 +254,8 @@ std::vector<std::string> list_files(
         if (starts_with(wpath, i + L'\\'))
             return std::vector<std::string>();
 
-    WIN32_FIND_DATAW find_data;
-    HANDLE handle = FindFirstFileW((wpath + L'*').c_str(), &find_data);
+    WIN32_FIND_DATA find_data;
+    HANDLE handle = FindFirstFile((wpath + L'*').c_str(), &find_data);
     if (handle != INVALID_HANDLE_VALUE)
     {
         auto &hidden_names = ::hidden_names();
@@ -257,7 +276,7 @@ std::vector<std::string> list_files(
                 else if (!directories_only && (size_t(stat.st_size) >= min_file_size))
                     files.emplace(from_utf16(lname), from_utf16(name));
             }
-        } while(FindNextFileW(handle, &find_data) != 0);
+        } while(FindNextFile(handle, &find_data) != 0);
 
         CloseHandle(handle);
     }

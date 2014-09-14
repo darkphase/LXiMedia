@@ -154,11 +154,11 @@ static bool shutdown()
     {
         std::clog << "Failed to enable shutdown privilege." << std::endl;
     }
-    else if (::InitiateSystemShutdownW(NULL, const_cast<wchar_t *>(message), 30, TRUE, FALSE) == FALSE)
+    else if (::InitiateSystemShutdown(NULL, const_cast<wchar_t *>(message), 30, TRUE, FALSE) == FALSE)
     {
         std::clog << "InitiateSystemShutdown failed" << ::GetLastError() << " trying WTSShutdownSystem." << std::endl;
 
-        HMODULE lib = ::LoadLibraryW(L"wtsapi32.dll");
+        HMODULE lib = ::LoadLibrary(L"wtsapi32.dll");
         if (lib)
         {
             FARPROC proc = ::GetProcAddress(lib, "WTSShutdownSystem");

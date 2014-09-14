@@ -17,6 +17,7 @@
 
 #include "settings.h"
 #include "platform/fstream.h"
+#include "platform/path.h"
 #include "platform/string.h"
 #include "vlc/instance.h"
 #include <algorithm>
@@ -24,8 +25,36 @@
 #include <sstream>
 #include <thread>
 
+struct user_dirs { std::string download, music, pictures, videos; };
+static struct user_dirs user_dirs();
 static std::string filename();
 static std::string make_uuid();
+
+static std::map<std::string, std::map<std::string, std::string>> read_ini(const std::string &filename)
+{
+    std::map<std::string, std::map<std::string, std::string>> result;
+
+    ifstream file(filename, std::ios_base::binary); // Binary needed to support UTF-8 on Windows
+    for (std::string line, section; std::getline(file, line); )
+        if (!line.empty() && (line[0] != ';') && (line[0] != '#'))
+            {
+                auto o = line.find_first_of('[');
+                if (o == 0)
+                {
+                    auto c = line.find_first_of(']', o);
+                    if (c != line.npos)
+                        section = line.substr(o + 1, c - 1);
+
+                    continue;
+                }
+
+                auto e = line.find_first_of('=');
+                if (e != line.npos)
+                    result[section][line.substr(0, e)] = line.substr(e + 1);
+            }
+
+    return result;
+}
 
 settings::settings(class messageloop &messageloop)
     : messageloop(messageloop),
@@ -33,23 +62,7 @@ settings::settings(class messageloop &messageloop)
       save_delay(250),
       touched(false)
 {
-    ifstream file(filename(), std::ios_base::binary); // Binary needed to support UTF-8 on Windows
-    for (std::string line, section; std::getline(file, line); )
-    {
-        auto o = line.find_first_of('[');
-        if (o == 0)
-        {
-            auto c = line.find_first_of(']', o);
-            if (c != line.npos)
-                section = line.substr(o + 1, c - 1);
-
-            continue;
-        }
-
-        auto e = line.find_first_of('=');
-        if (e != line.npos)
-            values[section][line.substr(0, e)] = line.substr(e + 1);
-    }
+    values = read_ini(filename());
 }
 
 settings::~settings()
@@ -57,22 +70,26 @@ settings::~settings()
     save();
 }
 
+static void write_ini(const std::string &filename, const std::map<std::string, std::map<std::string, std::string>> &values)
+{
+    ofstream file(filename, std::ios_base::binary); // Binary needed to support UTF-8 on Windows
+    for (auto &section : values)
+    {
+        file << '[' << section.first << ']' << std::endl;
+        for (auto &value : section.second)
+            file << value.first << '=' << value.second << std::endl;
+
+        file << std::endl;
+    }
+}
+
 void settings::save()
 {
     if (touched)
     {
-        ofstream file(filename(), std::ios_base::binary); // Binary needed to support UTF-8 on Windows
-        for (auto &section : values)
-        {
-            file << '[' << section.first << ']' << std::endl;
-            for (auto &value : section.second)
-                file << value.first << '=' << value.second << std::endl;
-
-            file << std::endl;
-        }
+        write_ini(filename(), values);
+        touched = false;
     }
-
-    touched = false;
 }
 
 std::string settings::read(const std::string &section, const std::string &name, const std::string &def) const
@@ -459,6 +476,8 @@ static const char * to_string(path_type e)
     {
     case path_type::auto_   : return "Auto";
     case path_type::music   : return "Music";
+    case path_type::pictures: return "Pictures";
+    case path_type::videos  : return "Videos";
     }
 
     assert(false);
@@ -467,18 +486,38 @@ static const char * to_string(path_type e)
 
 static path_type to_path_type(const std::string &e)
 {
-    if      (e == "Auto")   return path_type::auto_;
-    else if (e == "Music")  return path_type::music;
+    if      (e == "Auto")       return path_type::auto_;
+    else if (e == "Music")      return path_type::music;
+    else if (e == "Pictures")   return path_type::pictures;
+    else if (e == "Videos")     return path_type::videos;
 
     assert(false);
     return path_type::auto_;
 }
 
-std::vector<root_path> settings::root_paths() const
+static std::string to_string(const std::vector<root_path> &paths)
+{
+    std::ostringstream str;
+    for (auto &i : paths)
+    {
+#if defined(__unix__)
+        str << ", \"" << to_string(i.type) << ",file://" << i.path << "\"";
+#elif defined(WIN32)
+        std::string path = i.path;
+        std::replace(path.begin(), path.end(), '/', '\\');
+        str << ", \"" << to_string(i.type) << ",file:" << path << "\"";
+#endif
+    }
+
+    const std::string string = str.str();
+    return !string.empty() ? string.substr(2) : string;
+}
+
+static std::vector<root_path> to_root_paths(const std::string &str)
 {
     std::vector<std::string> entries;
     bool open = false;
-    for (char c : read("Media%20Player", "RootPaths", std::string()))
+    for (char c : str)
     {
         if (c == '\"')
         {
@@ -517,48 +556,86 @@ std::vector<root_path> settings::root_paths() const
     return result;
 }
 
+static std::vector<root_path> default_root_paths()
+{
+    std::vector<root_path> result;
+
+    const auto user_dirs = ::user_dirs();
+    if (!user_dirs.download .empty()) result.emplace_back(root_path { path_type::auto_      , user_dirs.download  });
+    if (!user_dirs.music    .empty()) result.emplace_back(root_path { path_type::music      , user_dirs.music     });
+    if (!user_dirs.pictures .empty()) result.emplace_back(root_path { path_type::pictures   , user_dirs.pictures  });
+    if (!user_dirs.videos   .empty()) result.emplace_back(root_path { path_type::videos     , user_dirs.videos    });
+
+    return result;
+}
+
+std::vector<root_path> settings::root_paths() const
+{
+    return to_root_paths(read("Media%20Player", "RootPaths", to_string(default_root_paths())));
+}
+
 void settings::set_root_paths(const std::vector<root_path> &paths)
 {
-    std::ostringstream str;
-    for (auto &i : paths)
-    {
-#if defined(__unix__)
-        str << ", \"" << to_string(i.type) << ",file://" << i.path << "\"";
-#elif defined(WIN32)
-        std::string path = i.path;
-        std::replace(path.begin(), path.end(), '/', '\\');
-        str << ", \"" << to_string(i.type) << ",file:" << path << "\"";
-#endif
-    }
-
-    const std::string string = str.str();
-    if (!string.empty())
-        return write("Media%20Player", "RootPaths", string.substr(2));
+    const std::string string = to_string(paths);
+    if (!string.empty() && (string != to_string(default_root_paths())))
+        return write("Media%20Player", "RootPaths", string);
     else
         return erase("Media%20Player", "RootPaths");
 }
 
-
 #if defined(__unix__)
 #include <unistd.h>
-
-#ifndef TEST_H
 #include <sys/types.h>
 #include <pwd.h>
 
-static std::string filename()
+static std::string home_dir()
 {
-    static const char conffile[] = "/.config/LeX-Interactive/LXiMediaCenter.conf";
-
     const char *home = getenv("HOME");
     if (home)
-        return std::string(home) + conffile;
+        return clean_path(home);
 
     struct passwd *pw = getpwuid(getuid());
     if (pw && pw->pw_dir)
-        return std::string(pw->pw_dir) + conffile;
+        return clean_path(pw->pw_dir);
 
     return std::string();
+}
+
+static std::string unquote_and_replace_home(const std::string &src, const std::string &home)
+{
+    std::string result;
+    const size_t fq = src.find_first_of('\"');
+    const size_t sq = src.find_first_of('\"', fq + 1);
+    if ((fq != src.npos) && (sq != src.npos))
+        result = clean_path(src.substr(fq + 1, sq - fq - 1));
+    else
+        result = clean_path(src);
+
+    result.replace(result.find("$HOME"), 5, home);
+    if (!result.empty() && (result[result.length() - 1] != '/'))
+        result.push_back('/');
+
+    return result;
+}
+
+static struct user_dirs user_dirs()
+{
+    const std::string home = home_dir(), empty;
+    auto dirs = read_ini(home + "/.config/user-dirs.dirs");
+
+    struct user_dirs user_dirs;
+    user_dirs.download  = unquote_and_replace_home(dirs[empty]["XDG_DOWNLOAD_DIR"], home);
+    user_dirs.music     = unquote_and_replace_home(dirs[empty]["XDG_MUSIC_DIR"], home);
+    user_dirs.pictures  = unquote_and_replace_home(dirs[empty]["XDG_PICTURES_DIR"], home);
+    user_dirs.videos    = unquote_and_replace_home(dirs[empty]["XDG_VIDEOS_DIR"], home);
+
+    return user_dirs;
+}
+
+#ifndef TEST_H
+static std::string filename()
+{
+    return home_dir() + "/.config/LeX-Interactive/LXiMediaCenter.conf";
 }
 #endif // TEST_H
 
@@ -590,12 +667,77 @@ static std::string default_devicename()
 }
 
 #elif defined(WIN32)
-
-#ifndef TEST_H
-#include "platform/path.h"
 #include <cstdlib>
 #include <direct.h>
+#include <shlobj.h>
 
+static struct user_dirs user_dirs()
+{
+    struct user_dirs user_dirs;
+
+    HMODULE shell32 = LoadLibrary(L"shell32.dll");
+    if (shell32 != NULL)
+    {
+        typedef HRESULT WINAPI (* SHGetKnownFolderPathFunc)(REFKNOWNFOLDERID rfid, DWORD dwFlags, HANDLE hToken, PWSTR *ppszPath);
+        auto SHGetKnownFolderPath = SHGetKnownFolderPathFunc(GetProcAddress(shell32, "SHGetKnownFolderPath"));
+        if (SHGetKnownFolderPath)
+        {
+            PWSTR path = NULL;
+
+            if (SHGetKnownFolderPath(FOLDERID_Downloads, 0, NULL, &path) == S_OK)
+            {
+                user_dirs.download = clean_path(from_windows_path(path)) + '/';
+                CoTaskMemFree(path);
+                path = NULL;
+            }
+
+            if (SHGetKnownFolderPath(FOLDERID_Music, 0, NULL, &path) == S_OK)
+            {
+                user_dirs.music = clean_path(from_windows_path(path)) + '/';
+                CoTaskMemFree(path);
+                path = NULL;
+            }
+
+            if (SHGetKnownFolderPath(FOLDERID_Pictures, 0, NULL, &path) == S_OK)
+            {
+                user_dirs.pictures = clean_path(from_windows_path(path)) + '/';
+                CoTaskMemFree(path);
+                path = NULL;
+            }
+
+            if (SHGetKnownFolderPath(FOLDERID_Videos, 0, NULL, &path) == S_OK)
+            {
+                user_dirs.videos = clean_path(from_windows_path(path)) + '/';
+                CoTaskMemFree(path);
+                path = NULL;
+            }
+        }
+        else // Windows XP and older
+        {
+            typedef HRESULT WINAPI(* SHGetFolderPathFunc)(HWND hwnd, int csidl, HANDLE hToken, DWORD dwFlags, LPWSTR pszPath);
+            auto SHGetFolderPath = SHGetFolderPathFunc(GetProcAddress(shell32, "SHGetFolderPathW"));
+            if (SHGetFolderPath)
+            {
+                wchar_t path[MAX_PATH];
+
+                if (SHGetFolderPath(NULL, CSIDL_MYMUSIC, NULL, SHGFP_TYPE_CURRENT, path) == S_OK)
+                    user_dirs.music = clean_path(from_windows_path(path)) + '/';
+
+                if (SHGetFolderPath(NULL, CSIDL_MYPICTURES, NULL, SHGFP_TYPE_CURRENT, path) == S_OK)
+                    user_dirs.pictures = clean_path(from_windows_path(path)) + '/';
+
+                if (SHGetFolderPath(NULL, CSIDL_MYVIDEO, NULL, SHGFP_TYPE_CURRENT, path) == S_OK)
+                    user_dirs.videos = clean_path(from_windows_path(path)) + '/';
+            }
+        }
+
+        FreeLibrary(shell32);
+    }
+
+    return user_dirs;
+}
+
+#ifndef TEST_H
 static std::string filename()
 {
     static const wchar_t confdir[] = L"\\LeX-Interactive\\";
@@ -631,7 +773,7 @@ static std::string make_uuid()
         throw std::runtime_error("out of memory");
 
     const std::string result = reinterpret_cast<const char *>(rpc_string);
-    RpcStringFree(&rpc_string);
+    RpcStringFreeA(&rpc_string);
 
     return result;
 }

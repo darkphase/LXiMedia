@@ -494,6 +494,8 @@ static void fill_item(
                 switch (type)
                 {
                 case path_type::auto_:
+                case path_type::pictures:
+                case path_type::videos:
                     if (item.duration >= std::chrono::minutes(50))
                         item.type = pupnp::content_directory::item_type::audio_book;
                     else if (item.duration < std::chrono::minutes(5))
@@ -503,7 +505,7 @@ static void fill_item(
 
                     break;
 
-                case path_type::music: item.type = pupnp::content_directory::item_type::music;  break;
+                case path_type::music:      item.type = pupnp::content_directory::item_type::music;  break;
                 }
 
             item.sample_rate = track.audio.sample_rate;
@@ -515,6 +517,8 @@ static void fill_item(
                 switch (type)
                 {
                 case path_type::auto_:
+                case path_type::pictures:
+                case path_type::videos:
                     if (item.duration >= std::chrono::minutes(50))
                         item.type = pupnp::content_directory::item_type::movie;
                     else

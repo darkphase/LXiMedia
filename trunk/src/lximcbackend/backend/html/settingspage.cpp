@@ -312,8 +312,10 @@ static void render_path_settings(const std::map<std::string, std::string> &query
         out << "<tr><td><input type=\"text\" size=\"50\" name=\"path_" << i << "\" disabled=\"disabled\" "
                "value=\"" << escape_xml(format_path(paths[i].path)) << "\" /></td>";
         out << "<td class=\"right\"><select name=\"path_type_" << i << "\">"
-               "<option value=\"auto\""     << is_selected(paths[i].type == path_type::auto_) << ">" << tr("Automatic") << "</option>"
-               "<option value=\"music\""    << is_selected(paths[i].type == path_type::music) << ">" << tr("Music") << "</option>"
+               "<option value=\"auto\""     << is_selected(paths[i].type == path_type::auto_    ) << ">" << tr("Automatic") << "</option>"
+               "<option value=\"music\""    << is_selected(paths[i].type == path_type::music    ) << ">" << tr("Music") << "</option>"
+               "<option value=\"pictures\"" << is_selected(paths[i].type == path_type::pictures ) << ">" << tr("Pictures") << "</option>"
+               "<option value=\"videos\""   << is_selected(paths[i].type == path_type::videos   ) << ">" << tr("Videos") << "</option>"
                "</select><input type=\"submit\" name=\"remove_" << i << "\" value=\"" << tr("Remove") << "\" /></td></tr>";
     }
 
@@ -364,6 +366,8 @@ static void save_path_settings(class settings &settings, const std::map<std::str
         {
             if      (path_type->second == "auto"    ) paths[i].type = ::path_type::auto_;
             else if (path_type->second == "music"   ) paths[i].type = ::path_type::music;
+            else if (path_type->second == "pictures") paths[i].type = ::path_type::pictures;
+            else if (path_type->second == "videos"  ) paths[i].type = ::path_type::videos;
 
             dirty = true;
         }
