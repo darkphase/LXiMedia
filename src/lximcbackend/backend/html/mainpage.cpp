@@ -24,6 +24,8 @@ static const char base_css[] = {
 #include "base.css.h"
 }, main_css[] = {
 #include "main.css.h"
+}, lximedia_svg[] = {
+#include "lximedia.svg.h"
 }, main_svg[] = {
 #include "main.svg.h"
 }, running_svg[] = {
@@ -44,11 +46,12 @@ mainpage::mainpage(class pupnp::upnp &upnp, class pupnp::connection_manager &con
     upnp.http_callback_register("/css", std::bind(&mainpage::handle_http_request, this, _1, _2, _3));
     upnp.http_callback_register("/img", std::bind(&mainpage::handle_http_request, this, _1, _2, _3));
 
-    add_file("/css/base.css", file { pupnp::upnp::mime_text_css, base_css, sizeof(base_css) });
-    add_file("/css/main.css", file { pupnp::upnp::mime_text_css, main_css, sizeof(main_css) });
-    add_file("/img/main.svg", file { pupnp::upnp::mime_image_svg, main_svg, sizeof(main_svg) });
-    add_file("/img/running.svg", file { pupnp::upnp::mime_image_svg, running_svg, sizeof(running_svg) });
-    add_file("/img/vlc-icon.svg", file { pupnp::upnp::mime_image_svg, vlc_icon_svg, sizeof(vlc_icon_svg) });
+    add_file("/css/base.css"    , file { pupnp::upnp::mime_text_css , base_css      , sizeof(base_css       ) });
+    add_file("/css/main.css"    , file { pupnp::upnp::mime_text_css , main_css      , sizeof(main_css       ) });
+    add_file("/img/lximedia.svg", file { pupnp::upnp::mime_image_svg, lximedia_svg  , sizeof(lximedia_svg   ) });
+    add_file("/img/main.svg"    , file { pupnp::upnp::mime_image_svg, main_svg      , sizeof(main_svg       ) });
+    add_file("/img/running.svg" , file { pupnp::upnp::mime_image_svg, running_svg   , sizeof(running_svg    ) });
+    add_file("/img/vlc-icon.svg", file { pupnp::upnp::mime_image_svg, vlc_icon_svg  , sizeof(vlc_icon_svg   ) });
 
     page_order.push_back("/");
 }
@@ -129,6 +132,7 @@ int mainpage::render_page(const struct pupnp::upnp::request &request, const std:
            "<head>"
            "<title>" << devicename << "</title>"
            "<meta http-equiv=\"Content-Type\" content=\"" << content_type << "\" />"
+           "<link rel=\"shortcut icon\" href=\"/img/lximedia.svg\">"
            "<link rel=\"stylesheet\" href=\"/css/base.css\" type=\"text/css\" media=\"screen, handheld, projection\" />";
 
     if (page.render_headers)
