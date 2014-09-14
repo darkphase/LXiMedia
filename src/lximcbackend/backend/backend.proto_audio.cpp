@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "backend.h"
+#include "pupnp/upnp.h"
 
 void backend::add_audio_protocols()
 {
@@ -26,28 +27,28 @@ void backend::add_audio_protocols()
 
     connection_manager.add_source_audio_protocol(
                 "LPCM",
-                "audio/L16;rate=48000;channels=2", "lpcm",
+                pupnp::upnp::mime_audio_lpcm, "lpcm",
                 48000, 2,
                 "acodec=lpcm",
                 "dummy");
 
     connection_manager.add_source_audio_protocol(
                 "MP2",
-                "audio/mpeg", "mp2",
+                pupnp::upnp::mime_audio_mpeg, "mp2",
                 44100, 2,
                 "acodec=mpga,ab=256",
                 "dummy");
 
     connection_manager.add_source_audio_protocol(
                 "MP3",
-                "audio/mpeg", "mp3",
+                pupnp::upnp::mime_audio_mp3, "mp3",
                 44100, 2,
                 "acodec=mp3,ab=160",
                 "dummy");
 
     connection_manager.add_source_audio_protocol(
                 "AAC_ADTS",
-                "audio/aac", "aac",
+                pupnp::upnp::mime_audio_aac, "aac",
                 48000, 2,
                 "acodec=mp4a,ab=128",
                 "dummy");
@@ -55,7 +56,7 @@ void backend::add_audio_protocols()
     if (has_surround51)
         connection_manager.add_source_audio_protocol(
                     "AC3",
-                    "audio/x-ac3", "ac3",
+                    pupnp::upnp::mime_audio_ac3, "ac3",
                     48000, 6,
                     "acodec=a52,ab=640",
                     "dummy");

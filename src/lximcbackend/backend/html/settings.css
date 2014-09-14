@@ -33,7 +33,7 @@ tr {
 td {
  padding: 0;
  margin: 0;
- vertical-align: middle;
+ vertical-align: top;
 }
 td.right {
  padding: 0;
@@ -50,6 +50,9 @@ p.bug {
  font-size: 0.75em;
  font-style: italic;
  color: #808080;
+}
+p.advanced {
+ margin-top: 1em;
 }
 .bug a:link      { color: #808080; text-decoration: underline; }
 .bug a:visited   { color: #808080; text-decoration: underline; }

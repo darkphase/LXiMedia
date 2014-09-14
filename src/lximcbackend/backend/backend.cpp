@@ -59,7 +59,7 @@ bool backend::initialize()
     if (upnp.initialize(settings.http_port(), false))
     {
         vlc_instance.reset(new class vlc::instance(
-                               settings.verbose_logging()));
+                               settings.verbose_logging_enabled()));
 
         mediaplayer.reset(new class mediaplayer(
                               messageloop,

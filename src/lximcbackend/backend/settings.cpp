@@ -240,14 +240,11 @@ static const char * to_string(video_mode e)
 {
     switch (e)
     {
-    case video_mode::auto_      :    return "Auto";
-    case video_mode::vcd            : return "VCD";
-    case video_mode::dvd            : return "DVD";
-    case video_mode::dvd_avc        : return "DVD/AVC";
-    case video_mode::hdtv_720       : return "720p";
-    case video_mode::hdtv_720_avc   : return "720p/AVC";
-    case video_mode::hdtv_1080      : return "1080p";
-    case video_mode::hdtv_1080_avc  : return "1080p/AVC";
+    case video_mode::auto_      : return "Auto";
+    case video_mode::vcd        : return "VCD";
+    case video_mode::dvd        : return "DVD";
+    case video_mode::hdtv_720   : return "720p";
+    case video_mode::hdtv_1080  : return "1080p";
     }
 
     assert(false);
@@ -259,11 +256,8 @@ static video_mode to_video_mode(const std::string &e)
     if      (e == "Auto")       return video_mode::auto_;
     else if (e == "VCD")        return video_mode::vcd;
     else if (e == "DVD")        return video_mode::dvd;
-    else if (e == "DVD/AVC")    return video_mode::dvd_avc;
     else if (e == "720p")       return video_mode::hdtv_720;
-    else if (e == "720p/AVC")   return video_mode::hdtv_720_avc;
     else if (e == "1080p")      return video_mode::hdtv_1080;
-    else if (e == "1080p/AVC")  return video_mode::hdtv_1080_avc;
 
     assert(false);
     return video_mode::auto_;
@@ -376,12 +370,82 @@ void settings::set_surround_mode(enum surround_mode surround_mode)
         return erase("DLNA", "SurroundMode");
 }
 
-bool settings::verbose_logging() const
+bool settings::mpeg2_enabled() const
+{
+    return read("DLNA", "CODEC_MPEG2", "true") == "true";
+}
+
+void settings::set_mpeg2_enabled(bool on)
+{
+    if (on)
+        return erase("DLNA", "CODEC_MPEG2");
+    else
+        return write("DLNA", "CODEC_MPEG2", "false");
+}
+
+static bool default_mpeg4_enabled()
+{
+    return std::thread::hardware_concurrency() > 3;
+}
+
+bool settings::mpeg4_enabled() const
+{
+    return read("DLNA", "CODEC_H264", default_mpeg4_enabled() ? "true" : "false") == "true";
+}
+
+void settings::set_mpeg4_enabled(bool on)
+{
+    if (on == default_mpeg4_enabled())
+        return erase("DLNA", "CODEC_H264");
+    else
+        return write("DLNA", "CODEC_H264", on ? "true" : "false");
+}
+
+bool settings::video_mpegm2ts_enabled() const
+{
+    return read("DLNA", "FORMAT_M2TS", "true") == "true";
+}
+
+void settings::set_video_mpegm2ts_enabled(bool on)
+{
+    if (on)
+        return erase("DLNA", "FORMAT_M2TS");
+    else
+        return write("DLNA", "FORMAT_M2TS", "false");
+}
+
+bool settings::video_mpegts_enabled() const
+{
+    return read("DLNA", "FORMAT_TS", "true") == "true";
+}
+
+void settings::set_video_mpegts_enabled(bool on)
+{
+    if (on)
+        return erase("DLNA", "FORMAT_TS");
+    else
+        return write("DLNA", "FORMAT_TS", "false");
+}
+
+bool settings::video_mpeg_enabled() const
+{
+    return read("DLNA", "FORMAT_PS", "true") == "true";
+}
+
+void settings::set_video_mpeg_enabled(bool on)
+{
+    if (on)
+        return erase("DLNA", "FORMAT_PS");
+    else
+        return write("DLNA", "FORMAT_PS", "false");
+}
+
+bool settings::verbose_logging_enabled() const
 {
     return read("DLNA", "VerboseLogging", "false") != "false";
 }
 
-void settings::set_verbose_logging(bool on)
+void settings::set_verbose_logging_enabled(bool on)
 {
     if (on)
         return write("DLNA", "VerboseLogging", "true");

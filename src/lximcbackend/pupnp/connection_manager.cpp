@@ -126,7 +126,10 @@ std::vector<connection_manager::protocol> connection_manager::get_protocols(unsi
         score += ((protocol.width > 1280) == (width > 1280)) ? -1 : 0;
         score += ((protocol.width >  876) == (width >  876)) ? -1 : 0;
         score += ((protocol.width >  640) == (width >  640)) ? -1 : 0;
-        score += (std::fabs((float(protocol.frame_rate_num) / float(protocol.frame_rate_den)) - frame_rate) > 0.3f) ? 6 : 0;
+
+        const float rate = float(protocol.frame_rate_num) / float(protocol.frame_rate_den);
+        score += (std::fabs(rate - frame_rate) > 0.01f) ? 2 : 0;
+        score += (std::fabs(rate - frame_rate) > 0.3f) ? 4 : 0;
 
         protocols[score].emplace_back(protocol);
     }
