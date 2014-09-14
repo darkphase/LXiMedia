@@ -64,7 +64,7 @@ static void add_source_video_protocols(
 
 static void add_source_video_protocols(
         class pupnp::connection_manager &connection_manager,
-        const char * const (& name)[4],
+        const char * const (& name)[6],
         unsigned sample_rate, unsigned channels,
         const unsigned (& width)[2], const unsigned (& height)[2],
         const char *acodec, const char *vcodec,
@@ -76,78 +76,66 @@ static void add_source_video_protocols(
     add_source_video_protocols(
                 connection_manager,
                 name[0],
-                pupnp::upnp::mime_video_mpegts, "ts",
+                pupnp::upnp::mime_video_mpegm2ts, "m2ts",
                 sample_rate, channels,
                 width[0], height[0],
                 eu_frame_rate_num, eu_frame_rate_den,
-                acodec, vcodec, "ts",
+                acodec, vcodec, "m2ts",
                 fast_encode_options,
                 slow_encode_options);
 
     add_source_video_protocols(
                 connection_manager,
                 name[1],
-                pupnp::upnp::mime_video_mpeg, "mpg",
+                pupnp::upnp::mime_video_mpegts, "ts",
                 sample_rate, channels,
                 width[0], height[0],
                 eu_frame_rate_num, eu_frame_rate_den,
-                acodec, vcodec, "ps",
+                acodec, vcodec, "ts",
                 fast_encode_options,
                 slow_encode_options);
 
     add_source_video_protocols(
                 connection_manager,
                 name[2],
-                pupnp::upnp::mime_video_mpegts, "ts",
+                pupnp::upnp::mime_video_mpeg, "mpg",
                 sample_rate, channels,
-                width[1], height[1],
-                na_frame_rate_num, na_frame_rate_den,
-                acodec, vcodec, "ts",
+                width[0], height[0],
+                eu_frame_rate_num, eu_frame_rate_den,
+                acodec, vcodec, "ps",
                 fast_encode_options,
                 slow_encode_options);
 
     add_source_video_protocols(
                 connection_manager,
                 name[3],
+                pupnp::upnp::mime_video_mpegm2ts, "m2ts",
+                sample_rate, channels,
+                width[1], height[1],
+                na_frame_rate_num, na_frame_rate_den,
+                acodec, vcodec, "m2ts",
+                fast_encode_options,
+                slow_encode_options);
+
+    add_source_video_protocols(
+                connection_manager,
+                name[4],
+                pupnp::upnp::mime_video_mpegts, "ts",
+                sample_rate, channels,
+                width[1], height[1],
+                na_frame_rate_num, na_frame_rate_den,
+                acodec, vcodec, "ts",
+                fast_encode_options,
+                slow_encode_options);
+
+    add_source_video_protocols(
+                connection_manager,
+                name[5],
                 pupnp::upnp::mime_video_mpeg, "mpg",
                 sample_rate, channels,
                 width[1], height[1],
                 na_frame_rate_num, na_frame_rate_den,
                 acodec, vcodec, "ps",
-                fast_encode_options,
-                slow_encode_options);
-}
-
-static void add_source_video_protocols(
-        class pupnp::connection_manager &connection_manager,
-        const char *name,
-        unsigned sample_rate, unsigned channels,
-        const unsigned (& width)[2], const unsigned (& height)[2],
-        const char *acodec, const char *vcodec,
-        const char *fast_encode_options, const char *slow_encode_options)
-{
-    static const unsigned eu_frame_rate_num[] = { 24000, 25000 }, eu_frame_rate_den[] = { 1000, 1000 };
-    static const unsigned na_frame_rate_num[] = { 24000, 30000, 30000 }, na_frame_rate_den[] = { 1001, 1001, 1000 };
-
-    add_source_video_protocols(
-                connection_manager,
-                name,
-                pupnp::upnp::mime_video_mpegts, "ts",
-                sample_rate, channels,
-                width[0], height[0],
-                eu_frame_rate_num, eu_frame_rate_den,
-                acodec, vcodec, "ts",
-                fast_encode_options,
-                slow_encode_options);
-
-    add_source_video_protocols(
-                connection_manager,
-                name,
-                pupnp::upnp::mime_video_mpegts, "ts",
-                sample_rate, channels,
-                width[1], height[1],
-                na_frame_rate_num, na_frame_rate_den,
-                acodec, vcodec, "ts",
                 fast_encode_options,
                 slow_encode_options);
 }
@@ -166,6 +154,10 @@ void backend::add_video_protocols()
     const bool has_hdtv_1080_avc    = (video_mode == ::video_mode::auto_) || (video_mode == ::video_mode::hdtv_1080_avc );
 
     // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
+
+    static const unsigned width_sd[] = { 720, 704 }, height_sd[] = { 576, 480 };
+    static const unsigned width_720[] = { 1280, 1280 }, height_720[] = { 720, 720 };
+    static const unsigned width_1080[] = { 1920, 1920 }, height_1080[] = { 1080, 1080 };
 
     /////////////////////////////////////////////////////////////////////////////
     // MPEG1
@@ -188,66 +180,65 @@ void backend::add_video_protocols()
 
     /////////////////////////////////////////////////////////////////////////////
     // MPEG2 PAL/NTSC
+    if (has_dvd)
     {
-        if (has_dvd)
-        {
-            connection_manager.add_source_video_protocol(
-                        "MPEG_PS_PAL",
-                        pupnp::upnp::mime_video_mpeg, "mpg",
-                        44100, 2,
-                        720, 576,
-                        25000, 1000,
-                        "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-                        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-                        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_PAL",
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    44100, 2,
+                    720, 576,
+                    25000, 1000,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-            connection_manager.add_source_video_protocol(
-                        "MPEG_PS_NTSC",
-                        pupnp::upnp::mime_video_mpeg, "mpg",
-                        44100, 2,
-                        704, 480,
-                        30000, 1001,
-                        "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-                        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-                        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
-        }
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_NTSC",
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    44100, 2,
+                    704, 480,
+                    30000, 1001,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    }
 
-        if (has_dvd && has_surround51)
-        {
-            connection_manager.add_source_video_protocol(
-                        "MPEG_PS_PAL_XAC3",
-                        pupnp::upnp::mime_video_mpeg, "mpg",
-                        48000, 6,
-                        720, 576,
-                        25000, 1000,
-                        "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-                        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-                        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    if (has_dvd && has_surround51)
+    {
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_PAL_XAC3",
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    48000, 6,
+                    720, 576,
+                    25000, 1000,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-            connection_manager.add_source_video_protocol(
-                         "MPEG_PS_NTSC_XAC3",
-                        pupnp::upnp::mime_video_mpeg, "mpg",
-                        48000, 6,
-                        704, 480,
-                        30000, 1001,
-                        "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-                        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-                        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
-        }
+        connection_manager.add_source_video_protocol(
+                     "MPEG_PS_NTSC_XAC3",
+                    pupnp::upnp::mime_video_mpeg, "mpg",
+                    48000, 6,
+                    704, 480,
+                    30000, 1001,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
     }
 
     /////////////////////////////////////////////////////////////////////////////
     // MPEG2 SD
     {
-        static const char * const name[] = { "MPEG_TS_SD_EU_ISO", "MPEG_PS_SD_EU_NONSTD", "MPEG_TS_SD_NA_ISO", "MPEG_PS_SD_NA_NONSTD" };
-        static const unsigned width[] = { 720, 704 }, height[] = { 576, 480 };
+        static const char * const name[] = {
+            "MPEG_TS_SD_EU", "MPEG_TS_SD_EU_ISO", "MPEG_PS_SD_EU_NONSTD",
+            "MPEG_TS_SD_NA", "MPEG_TS_SD_NA_ISO", "MPEG_PS_SD_NA_NONSTD" };
 
         if (has_dvd)
             add_source_video_protocols(
                         connection_manager,
                         name,
                         44100, 2,
-                        width, height,
+                        width_sd, height_sd,
                         "acodec=mpga,ab=256", "vcodec=mp2v",
                         "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                         "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -257,7 +248,7 @@ void backend::add_video_protocols()
                         connection_manager,
                         name,
                         48000, 6,
-                        width, height,
+                        width_sd, height_sd,
                         "acodec=a52,ab=640", "vcodec=mp2v",
                         "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                         "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
@@ -266,9 +257,9 @@ void backend::add_video_protocols()
     /////////////////////////////////////////////////////////////////////////////
     // MPEG2 HD
     {
-        static const char * const name[] = { "MPEG_TS_HD_EU_ISO", "MPEG_PS_HD_EU_NONSTD", "MPEG_TS_HD_NA_ISO", "MPEG_PS_HD_NA_NONSTD" };
-        static const unsigned width_720[] = { 1280, 1280 }, height_720[] = { 720, 720 };
-        static const unsigned width_1080[] = { 1920, 1920 }, height_1080[] = { 1080, 1080 };
+        static const char * const name[] = {
+            "MPEG_TS_HD_EU", "MPEG_TS_HD_EU_ISO", "MPEG_PS_HD_EU_NONSTD",
+            "MPEG_TS_HD_NA", "MPEG_TS_HD_NA_ISO", "MPEG_PS_HD_NA_NONSTD" };
 
         if (has_hdtv_720)
             add_source_video_protocols(
@@ -313,40 +304,53 @@ void backend::add_video_protocols()
 
     /////////////////////////////////////////////////////////////////////////////
     // MPEG4 SD
+    if (has_dvd_avc)
     {
-        static const unsigned width[] = { 720, 704 }, height[] = { 576, 480 };
+        static const char * const name[] = {
+            "AVC_TS_MP_SD_MPEG1_L3", "AVC_TS_MP_SD_MPEG1_L3_ISO", "AVC_PS_MP_SD_MPEG1_L3_NONSTD",
+            "AVC_TS_MP_SD_MPEG1_L3", "AVC_TS_MP_SD_MPEG1_L3_ISO", "AVC_PS_MP_SD_MPEG1_L3_NONSTD" };
 
-        if (has_dvd_avc)
-            add_source_video_protocols(
-                        connection_manager,
-                        "AVC_TS_MP_SD_MPEG1_L3_ISO",
-                        44100, 2,
-                        width, height,
-                        "acodec=mp3,ab=128", "vcodec=h264",
-                        "vb=4096,venc=x264{keyint=1,bframes=0}",
-                        "vb=2048,venc=x264{keyint=25,bframes=3}");
+        add_source_video_protocols(
+                    connection_manager,
+                    name,
+                    44100, 2,
+                    width_sd, height_sd,
+                    "acodec=mp3,ab=128", "vcodec=h264",
+                    "vb=4096,venc=x264{keyint=1,bframes=0}",
+                    "vb=2048,venc=x264{keyint=25,bframes=3}");
+    }
 
-        if (has_dvd_avc && has_surround51)
-            add_source_video_protocols(
-                        connection_manager,
-                        "AVC_TS_MP_SD_AC3_ISO",
-                        48000, 6,
-                        width, height,
-                        "acodec=a52,ab=640", "vcodec=h264",
-                        "vb=4096,venc=x264{keyint=1,bframes=0}",
-                        "vb=2048,venc=x264{keyint=25,bframes=3}");
+    if (has_dvd_avc && has_surround51)
+    {
+        static const char * const name[] = {
+            "AVC_TS_MP_SD_AC3", "AVC_TS_MP_SD_AC3_ISO", "AVC_PS_MP_SD_AC3_NONSTD",
+            "AVC_TS_MP_SD_AC3", "AVC_TS_MP_SD_AC3_ISO", "AVC_PS_MP_SD_AC3_NONSTD" };
+
+        add_source_video_protocols(
+                    connection_manager,
+                    name,
+                    48000, 6,
+                    width_sd, height_sd,
+                    "acodec=a52,ab=640", "vcodec=h264",
+                    "vb=4096,venc=x264{keyint=1,bframes=0}",
+                    "vb=2048,venc=x264{keyint=25,bframes=3}");
     }
 
     /////////////////////////////////////////////////////////////////////////////
     // MPEG4 HD
     {
-        static const unsigned width_720[] = { 1280, 1280 }, height_720[] = { 720, 720 };
-        static const unsigned width_1080[] = { 1920, 1920 }, height_1080[] = { 1080, 1080 };
+        static const char * const name_mp3[] = {
+            "AVC_TS_MP_HD_MPEG1_L3", "AVC_TS_MP_HD_MPEG1_L3_ISO", "AVC_PS_MP_HD_MPEG1_L3_NONSTD",
+            "AVC_TS_MP_HD_MPEG1_L3", "AVC_TS_MP_HD_MPEG1_L3_ISO", "AVC_PS_MP_HD_MPEG1_L3_NONSTD" };
+
+        static const char * const name_ac3[] = {
+            "AVC_TS_MP_HD_AC3", "AVC_TS_MP_HD_AC3_ISO", "AVC_PS_MP_HD_AC3_NONSTD",
+            "AVC_TS_MP_HD_AC3", "AVC_TS_MP_HD_AC3_ISO", "AVC_PS_MP_HD_AC3_NONSTD" };
 
         if (has_hdtv_720_avc)
             add_source_video_protocols(
                         connection_manager,
-                        "AVC_TS_MP_HD_MPEG1_L3_ISO",
+                        name_mp3,
                         44100, 2,
                         width_720, height_720,
                         "acodec=mp3,ab=128", "vcodec=h264",
@@ -356,7 +360,7 @@ void backend::add_video_protocols()
         if (has_hdtv_720_avc && has_surround51)
             add_source_video_protocols(
                         connection_manager,
-                        "AVC_TS_MP_HD_AC3_ISO",
+                        name_ac3,
                         48000, 6,
                         width_720, height_720,
                         "acodec=a52,ab=640", "vcodec=h264",
@@ -366,7 +370,7 @@ void backend::add_video_protocols()
         if (has_hdtv_1080_avc)
             add_source_video_protocols(
                         connection_manager,
-                        "AVC_TS_MP_HD_MPEG1_L3_ISO",
+                        name_mp3,
                         44100, 2,
                         width_1080, height_1080,
                         "acodec=mp3,ab=128", "vcodec=h264",
@@ -376,7 +380,7 @@ void backend::add_video_protocols()
         if (has_hdtv_1080_avc && has_surround51)
             add_source_video_protocols(
                         connection_manager,
-                        "AVC_TS_MP_HD_AC3_ISO",
+                        name_ac3,
                         48000, 6,
                         width_1080, height_1080,
                         "acodec=a52,ab=640", "vcodec=h264",
