@@ -20,10 +20,9 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
         SYSTEM
         ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/include)
 
-    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/libvlc.dll COMMAND cp ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlc.dll ${CMAKE_BINARY_DIR} VERBATIM)
-    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/libvlccore.dll COMMAND cp ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlccore.dll ${CMAKE_BINARY_DIR} VERBATIM)
+    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/libvlc.dll COMMAND cp ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/*.dll ${CMAKE_BINARY_DIR})
     add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/plugins COMMAND cp -R ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/plugins ${CMAKE_BINARY_DIR} VERBATIM)
-    add_custom_target(vlc ALL DEPENDS ${CMAKE_BINARY_DIR}/libvlc.dll ${CMAKE_BINARY_DIR}/libvlccore.dll ${CMAKE_BINARY_DIR}/plugins VERBATIM)
+    add_custom_target(vlc ALL DEPENDS ${CMAKE_BINARY_DIR}/libvlc.dll ${CMAKE_BINARY_DIR}/plugins VERBATIM)
 endif()
 
 #######################################
