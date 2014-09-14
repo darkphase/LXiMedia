@@ -25,7 +25,7 @@
 #include <map>
 
 enum class encode_mode { slow, fast };
-enum class video_mode { auto_, vcd, dvd, dvd_avc, hdtv_720, hdtv_720_avc, hdtv_1080, hdtv_1080_avc };
+enum class video_mode { auto_, vcd, dvd, hdtv_720, hdtv_1080 };
 enum class canvas_mode { none, pad, crop };
 enum class surround_mode { stereo, surround51 };
 enum class path_type { auto_, music };
@@ -61,8 +61,19 @@ public:
     enum surround_mode surround_mode() const;
     void set_surround_mode(enum surround_mode);
 
-    bool verbose_logging() const;
-    void set_verbose_logging(bool);
+    bool mpeg2_enabled() const;
+    void set_mpeg2_enabled(bool);
+    bool mpeg4_enabled() const;
+    void set_mpeg4_enabled(bool);
+    bool video_mpegm2ts_enabled() const;
+    void set_video_mpegm2ts_enabled(bool);
+    bool video_mpegts_enabled() const;
+    void set_video_mpegts_enabled(bool);
+    bool video_mpeg_enabled() const;
+    void set_video_mpeg_enabled(bool);
+
+    bool verbose_logging_enabled() const;
+    void set_verbose_logging_enabled(bool);
 
     std::vector<root_path> root_paths() const;
     void set_root_paths(const std::vector<root_path> &);
