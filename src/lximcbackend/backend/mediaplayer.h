@@ -21,6 +21,7 @@
 #include "platform/messageloop.h"
 #include "pupnp/connection_manager.h"
 #include "pupnp/content_directory.h"
+#include "vlc/media_cache.h"
 #include "settings.h"
 #include <cstdint>
 #include <cstdlib>
@@ -56,6 +57,7 @@ private:
 private:
   class messageloop &messageloop;
   class vlc::instance &vlc_instance;
+  mutable class vlc::media_cache media_cache;
   class pupnp::connection_manager &connection_manager;
   class pupnp::content_directory &content_directory;
   const class settings &settings;

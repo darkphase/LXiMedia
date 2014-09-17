@@ -1,5 +1,6 @@
 #include "test.h"
 #include "vlc/transcode_stream.cpp"
+#include "vlc/media_cache.h"
 #include "platform/fstream.h"
 #include <algorithm>
 
@@ -33,19 +34,20 @@ static const struct transcode_stream_test
 
         class messageloop messageloop;
         class instance instance;
+        class media_cache media_cache(instance);
 
         // Transcode file.
         const std::string outfile = filename("output.ts");
         {
             struct transcode_stream::track_ids track_ids;
-            const class media media = media::from_file(instance, infile);
-            for (auto &track : media.tracks())
+            class media media = media::from_file(instance, infile);
+            for (auto &track : media_cache.tracks(media))
                 switch (track.type)
                 {
-                case media::track_type::unknown: break;
-                case media::track_type::audio:  track_ids.audio = track.id; break;
-                case media::track_type::video:  track_ids.video = track.id; break;
-                case media::track_type::text:   track_ids.text  = track.id; break;
+                case media_cache::track_type::unknown: break;
+                case media_cache::track_type::audio:  track_ids.audio = track.id; break;
+                case media_cache::track_type::video:  track_ids.video = track.id; break;
+                case media_cache::track_type::text:   track_ids.text  = track.id; break;
                 }
 
             class transcode_stream transcode_stream(messageloop, instance, nullptr);
@@ -82,23 +84,23 @@ static const struct transcode_stream_test
         {
             auto media = media::from_file(instance, outfile);
 
-            const auto tracks = media.tracks();
+            const auto tracks = media_cache.tracks(media);
             test_assert(tracks.size() == 2);
             for (const auto &track : tracks)
             {
                 switch (track.type)
                 {
-                case media::track_type::unknown:
-                case media::track_type::text:
+                case media_cache::track_type::unknown:
+                case media_cache::track_type::text:
                     test_assert(false);
                     break;
 
-                case media::track_type::audio:
+                case media_cache::track_type::audio:
                     test_assert(track.audio.sample_rate == 44100);
                     test_assert(track.audio.channels == 2);
                     break;
 
-                case media::track_type::video:
+                case media_cache::track_type::video:
                     test_assert(std::abs(track.video.width - 1024) < 16);
                     test_assert(std::abs(track.video.height - 576) < 16);
                     break;

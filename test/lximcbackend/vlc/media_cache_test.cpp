@@ -1,5 +1,6 @@
 #include "test.h"
 #include "vlc/media.cpp"
+#include "vlc/media_cache.cpp"
 #include "platform/fstream.h"
 #include <algorithm>
 
@@ -12,15 +13,15 @@ static std::string write_file(const char *, const uint8_t *, size_t);
 
 namespace vlc {
 
-static const struct media_test
+static const struct media_cache_test
 {
-    media_test()
-        : png_test("vlc::media::png", &media_test::png),
-          mp4_test("vlc::media::mp4", &media_test::mp4)
+    media_cache_test()
+        : png_test("vlc::media::png", &media_cache_test::png),
+          mp4_test("vlc::media::mp4", &media_cache_test::mp4)
     {
     }
 
-    ~media_test()
+    ~media_cache_test()
     {
         ::remove(filename("pm5544.png").c_str());
         ::remove(filename("pm5544.mp4").c_str());
@@ -38,19 +39,20 @@ static const struct media_test
         test_assert(static_cast< ::libvlc_media_t *>(media) != nullptr);
         test_assert(!media.mrl().empty());
 
-        const auto tracks = media.tracks();
+        class media_cache media_cache(instance);
+        const auto tracks = media_cache.tracks(media);
         test_assert(tracks.size() == 1);
         for (const auto &track : tracks)
         {
             switch (track.type)
             {
-            case media::track_type::unknown:
-            case media::track_type::text:
-            case media::track_type::audio:
+            case media_cache::track_type::unknown:
+            case media_cache::track_type::text:
+            case media_cache::track_type::audio:
                 test_assert(false);
                 break;
 
-            case media::track_type::video:
+            case media_cache::track_type::video:
                 test_assert(std::abs(track.video.width - 768) < 16);
                 test_assert(std::abs(track.video.height - 576) < 16);
                 break;
@@ -69,35 +71,36 @@ static const struct media_test
         test_assert(static_cast< ::libvlc_media_t *>(media) != nullptr);
         test_assert(!media.mrl().empty());
 
-        const auto tracks = media.tracks();
+        class media_cache media_cache(instance);
+        const auto tracks = media_cache.tracks(media);
         test_assert(tracks.size() == 3);
         for (const auto &track : tracks)
         {
             switch (track.type)
             {
-            case media::track_type::unknown:
+            case media_cache::track_type::unknown:
                 test_assert(false);
                 break;
 
-            case media::track_type::text:
+            case media_cache::track_type::text:
                 break;
 
-            case media::track_type::audio:
+            case media_cache::track_type::audio:
                 test_assert(track.audio.sample_rate == 44100);
                 test_assert(track.audio.channels == 2);
                 break;
 
-            case media::track_type::video:
+            case media_cache::track_type::video:
                 test_assert(std::abs(track.video.width - 768) < 16);
                 test_assert(std::abs(track.video.height - 576) < 16);
                 break;
             }
         }
 
-        test_assert(std::abs(media.duration().count() - 10000) < 100);
-        test_assert(media.chapter_count() == 0);
+        test_assert(std::abs(media_cache.duration(media).count() - 10000) < 100);
+        test_assert(media_cache.chapter_count(media) == 0);
     }
-} media_test;
+} media_cache_test;
 
 } // End of namespace
 
