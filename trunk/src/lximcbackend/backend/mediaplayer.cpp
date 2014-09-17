@@ -22,12 +22,10 @@
 #include "vlc/media.h"
 #include "vlc/transcode_stream.h"
 #include <cmath>
-#include <future>
 #include <iomanip>
 #include <iostream>
 #include <map>
 #include <sstream>
-#include <thread>
 
 static const size_t min_file_size = 65536;
 
@@ -39,6 +37,7 @@ mediaplayer::mediaplayer(
         const class settings &settings)
     : messageloop(messageloop),
       vlc_instance(vlc_instance),
+      media_cache(vlc_instance),
       connection_manager(connection_manager),
       content_directory(content_directory),
       settings(settings),
@@ -53,21 +52,21 @@ mediaplayer::~mediaplayer()
     content_directory.item_source_unregister(basedir);
 }
 
-typedef std::vector<std::pair<std::string, std::vector<vlc::media::track>>> track_list;
-static track_list list_tracks(const class vlc::media &media)
+typedef std::vector<std::pair<std::string, std::vector<vlc::media_cache::track>>> track_list;
+static track_list list_tracks(class vlc::media_cache &media_cache, class vlc::media &media)
 {
-    std::vector<vlc::media::track> video, audio, text;
-    vlc::media::track none;
-    none.type = vlc::media::track_type::unknown;
+    std::vector<vlc::media_cache::track> video, audio, text;
+    vlc::media_cache::track none;
+    none.type = vlc::media_cache::track_type::unknown;
     text.push_back(none);
 
-    for (auto &track : media.tracks())
+    for (auto &track : media_cache.tracks(media))
         switch (track.type)
         {
-        case vlc::media::track_type::unknown:   break;
-        case vlc::media::track_type::video:     video.push_back(track); break;
-        case vlc::media::track_type::audio:     audio.push_back(track); break;
-        case vlc::media::track_type::text:      text.push_back(track);  break;
+        case vlc::media_cache::track_type::unknown:   break;
+        case vlc::media_cache::track_type::video:     video.push_back(track); break;
+        case vlc::media_cache::track_type::audio:     audio.push_back(track); break;
+        case vlc::media_cache::track_type::text:      text.push_back(track);  break;
         }
 
     if (video.empty()) video.push_back(none);
@@ -79,9 +78,9 @@ static track_list list_tracks(const class vlc::media &media)
             for (size_t t = 0; t < text.size(); t++)
             {
                 std::string name;
-                std::vector<vlc::media::track> tracks;
+                std::vector<vlc::media_cache::track> tracks;
 
-                if (video[v].type != vlc::media::track_type::unknown)
+                if (video[v].type != vlc::media_cache::track_type::unknown)
                 {
                     tracks.push_back(video[v]);
                     if (video.size() > 1)
@@ -94,7 +93,7 @@ static track_list list_tracks(const class vlc::media &media)
                     }
                 }
 
-                if (audio[a].type != vlc::media::track_type::unknown)
+                if (audio[a].type != vlc::media_cache::track_type::unknown)
                 {
                     tracks.push_back(audio[a]);
                     if (audio.size() > 1)
@@ -111,7 +110,7 @@ static track_list list_tracks(const class vlc::media &media)
                 if (!name.empty()) name += ", ";
                 name += std::to_string(t + 1) + ". ";
                 tracks.push_back(text[t]);
-                if (text[t].type != vlc::media::track_type::unknown)
+                if (text[t].type != vlc::media_cache::track_type::unknown)
                 {
                     if (!text[t].language.empty() && (text[t].language != "und"))
                         name += text[t].language + ' ' + tr("subtitles");
@@ -150,6 +149,18 @@ static std::string root_path_name(const std::string &path)
     return std::string();
 }
 
+static void split_path(const std::string &path, std::string &file_path, std::string &track_name)
+{
+    const size_t sep = path.find("//");
+    if (sep != path.npos)
+    {
+        file_path = path.substr(0, sep);
+        track_name = path.substr(sep + 2);
+    }
+    else
+        file_path = path;
+}
+
 std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(
         const std::string &client,
         const std::string &path,
@@ -169,9 +180,10 @@ std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(
         if (ends_with(path, "//"))
         {
             const auto system_path = to_system_path(path.substr(0, path.length() - 2));
-            const auto media = vlc::media::from_file(vlc_instance, system_path.path);
-            for (auto &track : list_tracks(media))
-                files.emplace_back(track.first);
+            auto media = vlc::media::from_file(vlc_instance, system_path.path);
+            if (media_cache.has_data(media))
+                for (auto &track : list_tracks(media_cache, media))
+                    files.emplace_back(track.first);
         }
         else for (auto &i : list_files(to_system_path(path).path, false, min_file_size))
         {
@@ -185,16 +197,19 @@ std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(
         }
     }
 
-    std::vector<std::future<pupnp::content_directory::item>> futures;
+    std::vector<vlc::media> items;
+    std::vector<std::string> paths;
     for (auto &file : files)
         if (return_all || (count > 0))
         {
             if (start == 0)
             {
-                futures.emplace_back(std::async(std::launch::async, [this, &client, &path, &file]
-                {
-                    return make_item(client, path + file);
-                }));
+                std::string full_path = path + file, file_path, track_name;
+                split_path(full_path, file_path, track_name);
+                if (!ends_with(file_path, "/"))
+                    items.emplace_back(vlc::media::from_file(vlc_instance, to_system_path(file_path).path));
+
+                paths.emplace_back(std::move(full_path));
 
                 if (count > 0)
                     count--;
@@ -203,8 +218,11 @@ std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(
                 start--;
         }
 
-    for (auto &future : futures)
-        result.emplace_back(future.get());
+    media_cache.async_parse_items(items);
+    media_cache.wait_for(std::chrono::milliseconds(std::max(300 * items.size(), size_t(1000))));
+
+    for (auto &path : paths)
+        result.emplace_back(make_item(client, path));
 
     count = result.size();
     return result;
@@ -273,18 +291,6 @@ void mediaplayer::correct_protocol(const pupnp::content_directory::item &item, p
     case canvas_mode::crop:
         break;
     }
-}
-
-static void split_path(const std::string &path, std::string &file_path, std::string &track_name)
-{
-    const size_t sep = path.find("//");
-    if (sep != path.npos)
-    {
-        file_path = path.substr(0, sep);
-        track_name = path.substr(sep + 2);
-    }
-    else
-        file_path = path;
 }
 
 int mediaplayer::play_item(
@@ -420,16 +426,16 @@ int mediaplayer::play_item(
         std::string file_path, track_name;
         split_path(item.path, file_path, track_name);
         const auto system_path = to_system_path(file_path);
-        const auto media = vlc::media::from_file(vlc_instance, system_path.path);
-        for (auto &track : list_tracks(media))
+        auto media = vlc::media::from_file(vlc_instance, system_path.path);
+        for (auto &track : list_tracks(media_cache, media))
             if (track.first == track_name)
                 for (auto &t : track.second)
                     switch (t.type)
                     {
-                    case vlc::media::track_type::unknown: break;
-                    case vlc::media::track_type::audio:  track_ids.audio = t.id; break;
-                    case vlc::media::track_type::video:  track_ids.video = t.id; break;
-                    case vlc::media::track_type::text:   track_ids.text  = t.id; break;
+                    case vlc::media_cache::track_type::unknown: break;
+                    case vlc::media_cache::track_type::audio:  track_ids.audio = t.id; break;
+                    case vlc::media_cache::track_type::video:  track_ids.video = t.id; break;
+                    case vlc::media_cache::track_type::text:   track_ids.text  = t.id; break;
                     }
 
         // Otherwise create a new stream.
@@ -479,17 +485,18 @@ int mediaplayer::play_item(
 
 static void fill_item(
         pupnp::content_directory::item &item,
-        const class vlc::media &media,
-        const std::vector<vlc::media::track> &tracks,
+        class vlc::media_cache &media_cache,
+        class vlc::media &media,
+        const std::vector<vlc::media_cache::track> &tracks,
         path_type type)
 {
     for (auto &track : tracks)
         switch (track.type)
         {
-        case vlc::media::track_type::unknown:
+        case vlc::media_cache::track_type::unknown:
             break;
 
-        case vlc::media::track_type::audio:
+        case vlc::media_cache::track_type::audio:
             if (!item.is_audio() && !item.is_video())
                 switch (type)
                 {
@@ -512,7 +519,7 @@ static void fill_item(
             item.channels = track.audio.channels;
             break;
 
-        case vlc::media::track_type::video:
+        case vlc::media_cache::track_type::video:
             if (!item.is_video())
                 switch (type)
                 {
@@ -534,15 +541,15 @@ static void fill_item(
             item.frame_rate = track.video.frame_rate;
             break;
 
-        case vlc::media::track_type::text:
+        case vlc::media_cache::track_type::text:
             break;
         }
 
     if (item.is_audio() || item.is_video())
     {
-        item.duration = media.duration();
+        item.duration = media_cache.duration(media);
 
-        for (int i = 0, n = media.chapter_count(); i < n; i++)
+        for (int i = 0, n = media_cache.chapter_count(media); i < n; i++)
         {
             std::ostringstream str;
             str << tr("Chapter") << ' ' << (i + 1);
@@ -573,29 +580,32 @@ pupnp::content_directory::item mediaplayer::make_item(const std::string &/*clien
         item.title = path.substr(lsl + 1);
 
         const auto system_path = to_system_path(file_path);
-        const auto media = vlc::media::from_file(vlc_instance, system_path.path);
-        auto tracks = list_tracks(media);
-        if (!track_name.empty())
+        auto media = vlc::media::from_file(vlc_instance, system_path.path);
+        if (media_cache.has_data(media))
         {
-            for (auto &track : tracks)
-                if (track.first == track_name)
-                {
-                    item.mrl = media.mrl();
+            auto tracks = list_tracks(media_cache, media);
+            if (!track_name.empty())
+            {
+                for (auto &track : tracks)
+                    if (track.first == track_name)
+                    {
+                        item.mrl = media.mrl();
 
-                    fill_item(item, media, track.second, system_path.type);
-                    break;
-                }
-        }
-        else if (tracks.size() > 1)
-        {
-            item.is_dir = true;
-            item.path = file_path + "//";
-        }
-        else if (tracks.size() == 1)
-        {
-            item.mrl = media.mrl();
+                        fill_item(item, media_cache, media, track.second, system_path.type);
+                        break;
+                    }
+            }
+            else if (tracks.size() > 1)
+            {
+                item.is_dir = true;
+                item.path = file_path + "//";
+            }
+            else if (tracks.size() == 1)
+            {
+                item.mrl = media.mrl();
 
-            fill_item(item, media, tracks.front().second, system_path.type);
+                fill_item(item, media_cache, media, tracks.front().second, system_path.type);
+            }
         }
     }
 

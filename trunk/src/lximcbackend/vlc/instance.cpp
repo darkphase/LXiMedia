@@ -16,7 +16,6 @@
  ******************************************************************************/
 
 #include "instance.h"
-#include "media.h"
 #include <vlc/vlc.h>
 #include <iostream>
 
@@ -77,8 +76,6 @@ instance::instance(bool verbose_logging) noexcept
 
 instance::~instance() noexcept
 {
-    media::flush_cache();
-
     libvlc_release(libvlc_instance);
 }
 

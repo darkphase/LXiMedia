@@ -18,10 +18,7 @@
 #ifndef VLC_MEDIA_H
 #define VLC_MEDIA_H
 
-#include <chrono>
-#include <memory>
 #include <string>
-#include <vector>
 
 struct libvlc_media_t;
 
@@ -32,27 +29,10 @@ class instance;
 class media
 {
 public:
-    enum class track_type { unknown, audio, video, text };
-
-    struct track
-    {
-        int id;
-        std::string language;
-        std::string description;
-
-        track_type type;
-        union
-        {
-            struct { unsigned sample_rate, channels; } audio;
-            struct { unsigned width, height; float frame_rate; } video;
-        };
-    };
-
-public:
     static media from_file(class instance &, const std::string &path) noexcept;
     static media from_mrl(class instance &, const std::string &mrl) noexcept;
-    static void flush_cache();
 
+    media();
     media(const media &) noexcept;
     media(media &&) noexcept;
     ~media() noexcept;
@@ -63,18 +43,10 @@ public:
 
     std::string mrl() const noexcept;
 
-    const std::vector<track> & tracks() const;
-    std::chrono::milliseconds duration() const;
-    int chapter_count() const;
-
 private:
     media(libvlc_media_t *) noexcept;
 
     libvlc_media_t *libvlc_media;
-
-    struct parsed_data;
-    const parsed_data &parse() const;
-    mutable std::shared_ptr<parsed_data> parsed;
 };
 
 } // End of namespace
