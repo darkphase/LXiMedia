@@ -2,6 +2,7 @@
 #include "vlc/media.cpp"
 #include "vlc/media_cache.cpp"
 #include "platform/fstream.h"
+#include "platform/messageloop.h"
 #include <algorithm>
 
 extern const uint8_t pm5544_png[15118];
@@ -39,7 +40,8 @@ static const struct media_cache_test
         test_assert(static_cast< ::libvlc_media_t *>(media) != nullptr);
         test_assert(!media.mrl().empty());
 
-        class media_cache media_cache(instance);
+        class messageloop messageloop;
+        class media_cache media_cache(messageloop);
         const auto tracks = media_cache.tracks(media);
         test_assert(tracks.size() == 1);
         for (const auto &track : tracks)
@@ -71,7 +73,8 @@ static const struct media_cache_test
         test_assert(static_cast< ::libvlc_media_t *>(media) != nullptr);
         test_assert(!media.mrl().empty());
 
-        class media_cache media_cache(instance);
+        class messageloop messageloop;
+        class media_cache media_cache(messageloop);
         const auto tracks = media_cache.tracks(media);
         test_assert(tracks.size() == 3);
         for (const auto &track : tracks)

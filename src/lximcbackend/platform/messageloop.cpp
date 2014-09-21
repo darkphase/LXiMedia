@@ -123,6 +123,14 @@ void messageloop::post(const std::function<void()> &message)
     message_added.notify_one();
 }
 
+void messageloop::post(std::function<void()> &&message)
+{
+    std::lock_guard<std::mutex> _(mutex);
+
+    messages.emplace(message);
+    message_added.notify_one();
+}
+
 void messageloop::send(const std::function<void()> &message)
 {
     std::unique_lock<std::mutex> lock(mutex);

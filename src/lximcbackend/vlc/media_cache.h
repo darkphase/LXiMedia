@@ -23,11 +23,14 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <queue>
 #include <string>
 #include <thread>
 #include <vector>
 
 struct libvlc_media_t;
+
+class messageloop;
 
 namespace vlc {
 
@@ -54,13 +57,14 @@ public:
     };
 
 public:
-    explicit media_cache(class instance &);
+    explicit media_cache(class messageloop &);
     ~media_cache();
 
     void async_parse_items(const std::vector<class media> &items);
     void wait();
     template< class Rep, class Period >
     std::cv_status wait_for(const std::chrono::duration<Rep, Period>& rel_time);
+    void abort();
 
     bool has_data(const class media &);
 
@@ -68,13 +72,16 @@ public:
     std::chrono::milliseconds duration(class media &);
     int chapter_count(class media &);
 
+    std::function<void()> on_finished;
+
 private:
     struct parsed_data;
     const struct parsed_data &read_parsed_data(class media &media);
     void worker_thread();
+    void finish();
 
 private:
-    class instance &instance;
+    class messageloop &messageloop;
 
     std::mutex mutex;
     std::condition_variable condition;
@@ -83,7 +90,7 @@ private:
 
     std::map<std::thread::id, std::unique_ptr<std::thread>> thread_pool;
     std::vector<std::unique_ptr<std::thread>> thread_dump;
-    std::vector<class media> work_list;
+    std::queue<class media> work_list;
 };
 
 template< class Rep, class Period >
@@ -96,8 +103,8 @@ std::cv_status media_cache::wait_for(const std::chrono::duration<Rep, Period> &r
     while (!thread_pool.empty() && (result == std::cv_status::no_timeout))
         result = condition.wait_until(l, deadline);
 
-    for (auto &i : thread_dump) i->join();
-    thread_dump.clear();
+    if (result == std::cv_status::no_timeout)
+        this->on_finished = nullptr;
 
     return result;
 }

@@ -27,8 +27,6 @@
 #include <map>
 #include <sstream>
 
-static const size_t min_file_size = 65536;
-
 mediaplayer::mediaplayer(
         class messageloop &messageloop,
         class vlc::instance &vlc_instance,
@@ -37,7 +35,7 @@ mediaplayer::mediaplayer(
         const class settings &settings)
     : messageloop(messageloop),
       vlc_instance(vlc_instance),
-      media_cache(vlc_instance),
+      media_cache(messageloop),
       connection_manager(connection_manager),
       content_directory(content_directory),
       settings(settings),
@@ -166,40 +164,63 @@ std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(
         const std::string &path,
         size_t start, size_t &count)
 {
-    const bool return_all = count == 0;
-    std::vector<pupnp::content_directory::item> result;
+    static const char dir_prefix = 'D', file_prefix = 'F';
 
-    std::vector<std::string> files;
-    if (path == basedir)
+    const size_t chunk_size = count;
+    const bool return_all = count == 0;
+
+    auto files_cache_item = (start > 0) ? files_cache.find(path) : files_cache.end();
+    if (files_cache_item == files_cache.end())
     {
-        for (auto &i : settings.root_paths())
-            files.emplace_back(root_path_name(i.path) + '/');
-    }
-    else if (starts_with(path, basedir))
-    {
-        if (ends_with(path, "//"))
+        std::multimap<std::string, std::string, alphanum_less> files;
+        if (path == basedir)
         {
-            const auto system_path = to_system_path(path.substr(0, path.length() - 2));
-            auto media = vlc::media::from_file(vlc_instance, system_path.path);
-            if (media_cache.has_data(media))
-                for (auto &track : list_tracks(media_cache, media))
-                    files.emplace_back(track.first);
-        }
-        else for (auto &i : list_files(to_system_path(path).path, false, min_file_size))
-        {
-            const std::string lname = to_lower(i);
-            if (!ends_with(lname, ".db" ) && !ends_with(lname, ".idx") &&
-                !ends_with(lname, ".nfo") && !ends_with(lname, ".srt") &&
-                !ends_with(lname, ".sub") && !ends_with(lname, ".txt"))
+            for (auto &i : settings.root_paths())
             {
-                files.emplace_back(std::move(i));
+                const auto name = root_path_name(i.path) + '/';
+                files.emplace(dir_prefix + to_lower(name), name);
             }
         }
+        else if (starts_with(path, basedir))
+        {
+            if (ends_with(path, "//"))
+            {
+                const auto system_path = to_system_path(path.substr(0, path.length() - 2));
+                auto media = vlc::media::from_file(vlc_instance, system_path.path);
+                if (media_cache.has_data(media))
+                    for (auto &track : list_tracks(media_cache, media))
+                        files.emplace(file_prefix + to_lower(track.first), track.first);
+            }
+            else
+            {
+                const auto system_path = to_system_path(path).path;
+                for (auto &i : list_files(system_path, false))
+                {
+                    if (ends_with(i, "/"))
+                    {
+                        const auto children = list_files(system_path + i, false, 2);
+                        if ((children.size() == 1) && !ends_with(children.front(), "/"))
+                            files.emplace(file_prefix + to_lower(children.front()), i + children.front());
+                        else if (children.size() > 0)
+                            files.emplace(dir_prefix + to_lower(i), i);
+                    }
+                    else
+                        files.emplace(file_prefix + to_lower(i), i);
+                }
+            }
+        }
+
+        std::vector<std::string> sorted_files;
+        for (auto &i : files)
+            sorted_files.emplace_back(std::move(i.second));
+
+        files_cache.emplace(path, std::move(sorted_files));
+        files_cache_item = files_cache.find(path);
     }
 
-    std::vector<vlc::media> items;
+    std::vector<vlc::media> items, next_items;
     std::vector<std::string> paths;
-    for (auto &file : files)
+    for (auto &file : files_cache_item->second)
         if (return_all || (count > 0))
         {
             if (start == 0)
@@ -217,14 +238,33 @@ std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(
             else
                 start--;
         }
+        else if ((start == 0) && (next_items.size() < chunk_size))
+        {
+            std::string full_path = path + file, file_path, track_name;
+            split_path(full_path, file_path, track_name);
+            if (!ends_with(file_path, "/"))
+                next_items.emplace_back(vlc::media::from_file(vlc_instance, to_system_path(file_path).path));
+        }
 
+    media_cache.on_finished = nullptr;
     media_cache.async_parse_items(items);
-    media_cache.wait_for(std::chrono::milliseconds(std::max(300 * items.size(), size_t(1000))));
+    if (media_cache.wait_for(std::chrono::milliseconds(3000)) == std::cv_status::timeout)
+    {
+        media_cache.on_finished = [this, path, next_items]
+        {
+            content_directory.update_path(path);
+            if (!next_items.empty())
+                media_cache.async_parse_items(next_items);
+        };
+    }
+    else if (!next_items.empty())
+        media_cache.async_parse_items(next_items);
 
+    std::vector<pupnp::content_directory::item> result;
     for (auto &path : paths)
         result.emplace_back(make_item(client, path));
 
-    count = result.size();
+    count = files_cache_item->second.size();
     return result;
 }
 
@@ -440,6 +480,8 @@ int mediaplayer::play_item(
 
         // Otherwise create a new stream.
         std::clog << '[' << this << "] Creating new stream " << item.mrl << " transcode=" << transcode.str() << " mux=" << protocol.mux << std::endl;
+
+        media_cache.abort();
 
         auto &connection_manager = this->connection_manager;
         const auto mrl = item.mrl;

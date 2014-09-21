@@ -17,6 +17,7 @@
 
 #include "string.h"
 #include <algorithm>
+#include <climits>
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>
@@ -50,6 +51,67 @@ std::string to_lower(const std::string &input)
     std::string result = input;
     std::transform(result.begin(), result.end(), result.begin(), ::tolower);
     return result;
+}
+
+static bool is_number(char c)
+{
+    return (c >= '0') && (c <= '9');
+}
+
+static unsigned read_number(const std::string &s, size_t &p)
+{
+    unsigned n = 0;
+    while (p < s.length())
+    {
+        const char c = s[p];
+        if (is_number(c))
+        {
+            const unsigned v = unsigned(c - '0');
+            if (n <= (UINT_MAX - v) / 10)
+                n = (n * 10) + v;
+            else
+                n = UINT_MAX;
+
+            p++;
+        }
+        else
+            break;
+    }
+
+    return n;
+}
+
+bool alphanum_less::operator()(const std::string &a, const std::string &b) const
+{
+    for (size_t ap = 0, bp = 0, m = 0; (ap < a.length()) && (bp < b.length()); )
+        if (m == 0) // Processing strings
+        {
+            const char ac = a[ap], bc = b[bp];
+            if (is_number(ac) && is_number(bc))
+                m = 1;
+            else if (ac < bc)
+                return true;
+            else if (ac > bc)
+                return false;
+            else
+            {
+                ap++;
+                bp++;
+            }
+        }
+        else // Processing numbers
+        {
+            const unsigned an = read_number(a, ap);
+            const unsigned bn = read_number(b, bp);
+            if (an < bn)
+                return true;
+            else if (an > bn)
+                return false;
+            else
+                m = 0;
+        }
+
+    return false;
 }
 
 std::string from_base64(const std::string &input)

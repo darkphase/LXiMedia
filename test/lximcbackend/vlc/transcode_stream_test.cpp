@@ -34,7 +34,7 @@ static const struct transcode_stream_test
 
         class messageloop messageloop;
         class instance instance;
-        class media_cache media_cache(instance);
+        class media_cache media_cache(messageloop);
 
         // Transcode file.
         const std::string outfile = filename("output.ts");

@@ -72,13 +72,9 @@ void content_directory::item_source_unregister(const std::string &path)
 
 void content_directory::update_system()
 {
-    const uint32_t update_id = ::time(nullptr);
-    if (update_id != system_update_id)
-    {
-        system_update_id = update_id;
-
-        messageloop.post([this] { rootdevice.emit_event(service_id); });
-    }
+    system_update_id++;
+    if (allow_process_pending_updates)
+        update_timer.start(update_timer_interval, true);
 }
 
 void content_directory::update_path(const std::string &path)
@@ -86,11 +82,12 @@ void content_directory::update_path(const std::string &path)
     const std::string objectid = to_objectid(path, false);
     if (!objectid.empty() && (objectid != "0") && (objectid != "-1"))
     {
-        if (pending_container_updates.find(objectid) != pending_container_updates.end())
+        auto container_update_id = container_update_ids.find(objectid);
+        if (container_update_id != container_update_ids.end())
         {
+            (container_update_id->second.id)++;
             pending_container_updates.insert(objectid);
-            if (allow_process_pending_updates)
-                update_timer.start(update_timer_interval, true);
+            update_system();
         }
     }
 }
@@ -106,15 +103,10 @@ void content_directory::process_pending_updates(void)
 {
     if (allow_process_pending_updates)
     {
-        const uint32_t update_id = ::time(nullptr);
-
-        for (auto &objectid : pending_container_updates)
-            container_update_ids[objectid] = update_id;
-
-        if (pending_container_updates.empty())
-            messageloop.post([this] { rootdevice.emit_event(service_id); });
-
+        updated_container_update_ids = std::move(pending_container_updates);
         pending_container_updates.clear();
+
+        messageloop.post([this] { rootdevice.emit_event(service_id); });
     }
 }
 
@@ -392,7 +384,19 @@ void content_directory::handle_action(const upnp::request &request, action_brows
     {
         auto container_update_id = container_update_ids.find(objectid);
         if (container_update_id != container_update_ids.end())
-            updateid = container_update_id->second;
+        {
+            if ((start == 0) && (totalmatches != container_update_id->second.totalmatches))
+            {
+                updateid = ++(container_update_id->second.id);
+                container_update_id->second.totalmatches = totalmatches;
+                pending_container_updates.insert(objectid);
+                update_system();
+            }
+            else
+                updateid = container_update_id->second.id;
+        }
+        else
+            container_update_ids[objectid] = update_id { updateid, totalmatches };
     }
 
     action.set_response(totalmatches, updateid);
@@ -452,6 +456,7 @@ void content_directory::close(void)
 
     update_timer.stop();
     pending_container_updates.clear();
+    updated_container_update_ids.clear();
     container_update_ids.clear();
 
     objectid_list.clear();
@@ -527,10 +532,15 @@ void content_directory::write_eventable_statevariables(rootdevice::eventable_pro
     propset.add_property("SystemUpdateID", std::to_string(system_update_id));
 
     std::string update_ids;
-    for (auto &i : container_update_ids)
-        update_ids += ',' + i.first + ',' + std::to_string(i.second);
+    for (auto &i : updated_container_update_ids)
+    {
+        auto j = container_update_ids.find(i);
+        if (j != container_update_ids.end())
+            update_ids += ',' + j->first + ',' + std::to_string(j->second.id);
+    }
 
-    propset.add_property("ContainerUpdateIDs", update_ids.empty() ? update_ids : update_ids.substr(1));
+    if (!update_ids.empty())
+        propset.add_property("ContainerUpdateIDs", update_ids.substr(1));
 
     propset.add_property("TransferIDs", "");
 }

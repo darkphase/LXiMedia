@@ -65,6 +65,8 @@ private:
 
   std::map<std::string, std::pair<int, std::shared_ptr<vlc::transcode_stream>>> pending_streams;
   timer pending_streams_sever_timer;
+
+  std::map<std::string, std::vector<std::string>> files_cache;
 };
 
 #endif
