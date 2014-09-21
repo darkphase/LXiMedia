@@ -223,7 +223,9 @@ private:
     uint32_t system_update_id;
     std::set<std::string> pending_container_updates;
     bool allow_process_pending_updates;
-    std::map<std::string, uint32_t> container_update_ids;
+    std::set<std::string> updated_container_update_ids;
+    struct update_id { uint32_t id; size_t totalmatches; };
+    std::map<std::string, update_id> container_update_ids;
     std::map<std::string, item_source *> item_sources;
 
     std::vector<std::string> objectid_list;

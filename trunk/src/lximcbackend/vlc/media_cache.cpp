@@ -18,6 +18,7 @@
 #include "media_cache.h"
 #include "instance.h"
 #include "media.h"
+#include "platform/messageloop.h"
 #include <stdexcept>
 #include <vlc/vlc.h>
 
@@ -32,17 +33,17 @@ struct media_cache::parsed_data
     int chapter_count;
 };
 
-media_cache::media_cache(class instance &instance)
-  : instance(instance),
+media_cache::media_cache(class messageloop &messageloop)
+  : messageloop(messageloop),
     pending_items(0)
 {
 }
 
 media_cache::~media_cache() noexcept
 {
-    std::unique_lock<std::mutex> l(mutex);
+    abort();
 
-    work_list.clear();
+    std::unique_lock<std::mutex> l(mutex);
 
     while (!thread_pool.empty() || (pending_items > 0))
         condition.wait(l);
@@ -55,18 +56,25 @@ void media_cache::async_parse_items(const std::vector<class media> &items)
 {
     std::lock_guard<std::mutex> _(mutex);
 
-    for (auto &i : thread_dump) i->join();
-    thread_dump.clear();
+    while (!work_list.empty())
+        work_list.pop();
 
     for (auto &i : items)
-        work_list.push_back(i);
+        if (cache.find(i.mrl()) == cache.end())
+            work_list.push(i);
 
-    for (size_t i = 0, n = std::max(std::thread::hardware_concurrency(), 1u);
-         (i < n) && (i < work_list.size());
-         i++)
+    if (!work_list.empty())
     {
-        auto thread = new std::thread(std::bind(&media_cache::worker_thread, this));
-        thread_pool.emplace(thread->get_id(), std::unique_ptr<std::thread>(thread));
+        if (on_finished)
+            this->on_finished = on_finished;
+
+        for (size_t i = thread_pool.size(), n = std::max(std::thread::hardware_concurrency(), 1u);
+             (i < n) && (i < work_list.size());
+             i++)
+        {
+            auto thread = new std::thread(std::bind(&media_cache::worker_thread, this));
+            thread_pool.emplace(thread->get_id(), std::unique_ptr<std::thread>(thread));
+        }
     }
 }
 
@@ -76,9 +84,14 @@ void media_cache::wait()
 
     while (!thread_pool.empty())
         condition.wait(l);
+}
 
-    for (auto &i : thread_dump) i->join();
-    thread_dump.clear();
+void media_cache::abort()
+{
+    std::unique_lock<std::mutex> l(mutex);
+
+    while (!work_list.empty())
+        work_list.pop();
 }
 
 bool media_cache::has_data(const class media &media)
@@ -298,8 +311,8 @@ void media_cache::worker_thread()
 
             if (!work_list.empty())
             {
-                item = work_list.back();
-                work_list.pop_back();
+                item = work_list.front();
+                work_list.pop();
             }
             else
                 break;
@@ -318,6 +331,22 @@ void media_cache::worker_thread()
             thread_pool.erase(i);
             condition.notify_all();
         }
+
+        messageloop.post(std::bind(&media_cache::finish, this));
+    }
+}
+
+void media_cache::finish()
+{
+    std::lock_guard<std::mutex> _(mutex);
+
+    if (thread_pool.empty())
+    {
+        for (auto &i : thread_dump) i->join();
+        thread_dump.clear();
+
+        if (on_finished)
+            messageloop.post(on_finished);
     }
 }
 

@@ -22,6 +22,8 @@
 #include <mutex>
 #include <unordered_set>
 
+static const size_t min_file_size = 65536;
+
 std::string clean_path(const std::string &path)
 {
     std::string result;
@@ -89,13 +91,37 @@ static const std::unordered_set<std::string> & hidden_names()
     return hidden_names;
 }
 
+static const std::unordered_set<std::string> & hidden_suffixes()
+{
+    static std::unordered_set<std::string> hidden_suffixes;
+    static std::once_flag flag;
+    std::call_once(flag, []
+    {
+        hidden_suffixes.insert(".db" );
+        hidden_suffixes.insert(".nfo");
+        hidden_suffixes.insert(".sub");
+        hidden_suffixes.insert(".idx");
+        hidden_suffixes.insert(".srt");
+        hidden_suffixes.insert(".txt");
+    });
+
+    return hidden_suffixes;
+}
+
+static std::string suffix_of(const std::string &name)
+{
+    const size_t ldot = name.find_last_of('.');
+    if (ldot != name.npos)
+        return name.substr(ldot);
+
+    return name;
+}
+
 std::vector<std::string> list_files(
         const std::string &path,
         bool directories_only,
-        const size_t min_file_size)
+        size_t max_count)
 {
-    std::multimap<std::string, std::string> dirs, files;
-
     std::string cpath = path;
     while (!cpath.empty() && (cpath[cpath.length() - 1] == '/')) cpath.pop_back();
     cpath.push_back('/');
@@ -105,12 +131,17 @@ std::vector<std::string> list_files(
         if (starts_with(cpath, i + '/'))
             return std::vector<std::string>();
 
+    std::vector<std::string> result;
+
     auto dir = ::opendir(cpath.c_str());
     if (dir)
     {
         auto &hidden_names = ::hidden_names();
+        auto &hidden_suffixes = ::hidden_suffixes();
 
-        for (auto dirent = ::readdir(dir); dirent; dirent = ::readdir(dir))
+        for (auto dirent = ::readdir(dir);
+             dirent && (result.size() < max_count);
+             dirent = ::readdir(dir))
         {
             struct stat stat;
             if ((dirent->d_name[0] != '.') &&
@@ -121,20 +152,19 @@ std::vector<std::string> list_files(
                     (hidden_names.find(lname) == hidden_names.end()) &&
                     (hidden_dirs.find(cpath + name) == hidden_dirs.end()))
                 {
-                    dirs.emplace(std::move(lname), name + '/');
+                    result.emplace_back(name + '/');
                 }
-                else if (!directories_only && (size_t(stat.st_size) >= min_file_size))
-                    files.emplace(std::move(lname), std::move(name));
+                else if (!directories_only && (size_t(stat.st_size) >= min_file_size) &&
+                         (hidden_suffixes.find(suffix_of(lname)) == hidden_suffixes.end()))
+                {
+                    result.emplace_back(std::move(name));
+                }
             }
         }
 
         ::closedir(dir);
     }
 
-    std::vector<std::string> result;
-    result.reserve(dirs.size() + files.size());
-    for (auto &i : dirs) result.emplace_back(std::move(i.second));
-    for (auto &i : files) result.emplace_back(std::move(i.second));
     return result;
 }
 #elif defined(WIN32)
@@ -240,13 +270,37 @@ static const std::unordered_set<std::wstring> & hidden_names()
     return hidden_names;
 }
 
+static const std::unordered_set<std::wstring> & hidden_suffixes()
+{
+    static std::unordered_set<std::wstring> hidden_suffixes;
+    static std::once_flag flag;
+    std::call_once(flag, []
+    {
+        hidden_suffixes.insert(L".db" );
+        hidden_suffixes.insert(L".nfo");
+        hidden_suffixes.insert(L".sub");
+        hidden_suffixes.insert(L".idx");
+        hidden_suffixes.insert(L".srt");
+        hidden_suffixes.insert(L".txt");
+    });
+
+    return hidden_suffixes;
+}
+
+static std::wstring suffix_of(const std::wstring &name)
+{
+    const size_t ldot = name.find_last_of(L'.');
+    if (ldot != name.npos)
+        return name.substr(ldot);
+
+    return name;
+}
+
 std::vector<std::string> list_files(
         const std::string &path,
         bool directories_only,
-        const size_t min_file_size)
+        size_t max_count)
 {
-    std::multimap<std::string, std::string> dirs, files;
-
     const std::wstring wpath = clean_path(to_windows_path(to_lower(path))) + L'\\';
 
     auto &hidden_dirs = ::hidden_dirs();
@@ -254,11 +308,14 @@ std::vector<std::string> list_files(
         if (starts_with(wpath, i + L'\\'))
             return std::vector<std::string>();
 
+    std::vector<std::string> result;
+
     WIN32_FIND_DATA find_data;
     HANDLE handle = FindFirstFile((wpath + L'*').c_str(), &find_data);
     if (handle != INVALID_HANDLE_VALUE)
     {
         auto &hidden_names = ::hidden_names();
+        auto &hidden_suffixes = ::hidden_suffixes();
 
         do
         {
@@ -271,20 +328,19 @@ std::vector<std::string> list_files(
                     (hidden_names.find(lname) == hidden_names.end()) &&
                     (hidden_dirs.find(wpath + lname) == hidden_dirs.end()))
                 {
-                    dirs.emplace(from_utf16(lname), from_utf16(name) + '/');
+                    result.emplace_back(from_utf16(name) + '/');
                 }
-                else if (!directories_only && (size_t(stat.st_size) >= min_file_size))
-                    files.emplace(from_utf16(lname), from_utf16(name));
+                else if (!directories_only && (size_t(stat.st_size) >= min_file_size) &&
+                         (hidden_suffixes.find(suffix_of(lname)) == hidden_suffixes.end()))
+                {
+                    result.emplace_back(from_utf16(name));
+                }
             }
-        } while(FindNextFile(handle, &find_data) != 0);
+        } while((result.size() < max_count) && (FindNextFile(handle, &find_data) != 0));
 
         CloseHandle(handle);
     }
 
-    std::vector<std::string> result;
-    result.reserve(dirs.size() + files.size());
-    for (auto &i : dirs) result.emplace_back(std::move(i.second));
-    for (auto &i : files) result.emplace_back(std::move(i.second));
     return result;
 }
 

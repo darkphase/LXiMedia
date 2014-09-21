@@ -27,7 +27,7 @@ std::vector<std::string> list_root_directories();
 std::vector<std::string> list_files(
         const std::string &path,
         bool directories_only = false,
-        const size_t min_file_size = 0);
+        size_t max_count = size_t(-1));
 
 #ifdef WIN32
 std::string volume_name(const std::string &);

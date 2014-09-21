@@ -38,6 +38,7 @@ public:
     int run();
     void stop(int);
     void post(const std::function<void()> &);
+    void post(std::function<void()> &&);
     void send(const std::function<void()> &);
 
     void process_events(const std::chrono::milliseconds &duration);
