@@ -360,8 +360,8 @@ int mediaplayer::play_item(
                 if (std::abs(frame_rate - item.frame_rate) > 0.3f)
                 {
                     transcode << ",fps=" << frame_rate;
-//                    if (std::abs(protocol.frame_rate - item.frame_rate) < 1.5f)
-//                        rate = protocol.frame_rate / item.frame_rate;
+                    //                    if (std::abs(protocol.frame_rate - item.frame_rate) < 1.5f)
+                    //                        rate = protocol.frame_rate / item.frame_rate;
                 }
 
                 unsigned width = 0, height = 0;
@@ -486,27 +486,27 @@ int mediaplayer::play_item(
         auto &connection_manager = this->connection_manager;
         const auto mrl = item.mrl;
         auto stream = std::make_shared<vlc::transcode_stream>(messageloop, vlc_instance,
-            [&connection_manager, protocol, mrl, source_address](int32_t id)
+                                                              [&connection_manager, protocol, mrl, source_address](int32_t id)
+        {
+            if (id == 0)
             {
-                if (id == 0)
+                id = connection_manager.output_connection_add(protocol);
+                if (id != 0)
                 {
-                    id = connection_manager.output_connection_add(protocol);
-                    if (id != 0)
-                    {
-                        auto connection_info = connection_manager.output_connection(id);
-                        connection_info.mrl = mrl;
-                        connection_info.endpoint = source_address;
-                        connection_manager.output_connection_update(id, connection_info);
-                    }
+                    auto connection_info = connection_manager.output_connection(id);
+                    connection_info.mrl = mrl;
+                    connection_info.endpoint = source_address;
+                    connection_manager.output_connection_update(id, connection_info);
                 }
-                else
-                {
-                    connection_manager.output_connection_remove(id);
-                    id = 0;
-                }
+            }
+            else
+            {
+                connection_manager.output_connection_remove(id);
+                id = 0;
+            }
 
-                return id;
-            });
+            return id;
+        });
 
         if ((item.chapter > 0)
                 ? stream->open(item.mrl, item.chapter, track_ids, transcode.str(), protocol.mux, rate)

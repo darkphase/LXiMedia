@@ -18,11 +18,10 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
+#include "platform/inifile.h"
 #include "platform/messageloop.h"
 #include <chrono>
 #include <cstdint>
-#include <string>
-#include <map>
 
 enum class encode_mode { slow, fast };
 enum class video_mode { auto_, vcd, dvd, hdtv_720, hdtv_1080 };
@@ -79,18 +78,13 @@ public:
     void set_root_paths(const std::vector<root_path> &);
 
 private:
-    void save();
-    std::string read(const std::string &, const std::string &, const std::string &) const;
-    void write(const std::string &, const std::string &, const std::string &);
-    void erase(const std::string &, const std::string &);
-
-private:
     class messageloop &messageloop;
+    class inifile inifile;
+    class inifile::section general;
+    class inifile::section dlna;
+    class inifile::section media_player;
     class timer timer;
     const std::chrono::milliseconds save_delay;
-
-    std::map<std::string, std::map<std::string, std::string>> values;
-    bool touched;
 };
 
 #endif

@@ -30,114 +30,29 @@ static struct user_dirs user_dirs();
 static std::string filename();
 static std::string make_uuid();
 
-static std::map<std::string, std::map<std::string, std::string>> read_ini(const std::string &filename)
-{
-    std::map<std::string, std::map<std::string, std::string>> result;
-
-    ifstream file(filename, std::ios_base::binary); // Binary needed to support UTF-8 on Windows
-    for (std::string line, section; std::getline(file, line); )
-        if (!line.empty() && (line[0] != ';') && (line[0] != '#'))
-            {
-                auto o = line.find_first_of('[');
-                if (o == 0)
-                {
-                    auto c = line.find_first_of(']', o);
-                    if (c != line.npos)
-                        section = line.substr(o + 1, c - 1);
-
-                    continue;
-                }
-
-                auto e = line.find_first_of('=');
-                if (e != line.npos)
-                    result[section][line.substr(0, e)] = line.substr(e + 1);
-            }
-
-    return result;
-}
-
 settings::settings(class messageloop &messageloop)
     : messageloop(messageloop),
-      timer(messageloop, std::bind(&settings::save, this)),
-      save_delay(250),
-      touched(false)
+      inifile(filename()),
+      general(inifile.open_section("General")),
+      dlna(inifile.open_section("DLNA")),
+      media_player(inifile.open_section("Media Player")),
+      timer(messageloop, std::bind(&inifile::save, &inifile)),
+      save_delay(250)
 {
-    values = read_ini(filename());
+    inifile.on_touched = [this] { timer.start(save_delay, true); };
 }
 
 settings::~settings()
 {
-    save();
-}
-
-static void write_ini(const std::string &filename, const std::map<std::string, std::map<std::string, std::string>> &values)
-{
-    ofstream file(filename, std::ios_base::binary); // Binary needed to support UTF-8 on Windows
-    for (auto &section : values)
-    {
-        file << '[' << section.first << ']' << std::endl;
-        for (auto &value : section.second)
-            file << value.first << '=' << value.second << std::endl;
-
-        file << std::endl;
-    }
-}
-
-void settings::save()
-{
-    if (touched)
-    {
-        write_ini(filename(), values);
-        touched = false;
-    }
-}
-
-std::string settings::read(const std::string &section, const std::string &name, const std::string &def) const
-{
-    auto i = values.find(section);
-    if (i != values.end())
-    {
-        auto j = i->second.find(name);
-        if (j != i->second.end())
-            return j->second;
-    }
-
-    return def;
-}
-
-void settings::write(const std::string &section, const std::string &name, const std::string &value)
-{
-    values[section][name] = value;
-    touched = true;
-
-    timer.start(save_delay, true);
-}
-
-void settings::erase(const std::string &section, const std::string &name)
-{
-    auto i = values.find(section);
-    if (i != values.end())
-    {
-        auto j = i->second.find(name);
-        if (j != i->second.end())
-        {
-            i->second.erase(j);
-            if (i->second.empty())
-                values.erase(i);
-
-            touched = true;
-            timer.start(save_delay, true);
-        }
-    }
 }
 
 std::string settings::uuid()
 {
-    auto value = read("General", "UUID", std::string());
+    auto value = general.read("UUID");
     if (value.empty())
     {
         value = make_uuid();
-        write("General", "UUID", value);
+        general.write("UUID", value);
     }
 
     return value;
@@ -147,71 +62,69 @@ static std::string default_devicename();
 
 std::string settings::devicename() const
 {
-    return read("General", "DeviceName", default_devicename());
+    return general.read("DeviceName", default_devicename());
 }
 
 void settings::set_devicename(const std::string &devicename)
 {
     if (devicename != default_devicename())
-        return write("General", "DeviceName", devicename);
+        return general.write("DeviceName", devicename);
     else
-        return erase("General", "DeviceName");
+        return general.erase("DeviceName");
 }
 
 static const uint16_t default_http_port = 4280;
 
 uint16_t settings::http_port() const
 {
-    try { return uint16_t(std::stoi(read("General", "HttpPort", std::to_string(default_http_port)))); }
-    catch (const std::invalid_argument &) { return default_http_port; }
-    catch (const std::out_of_range &) { return default_http_port; }
+    return uint16_t(general.read("HttpPort", default_http_port));
 }
 
 void settings::set_http_port(uint16_t http_port)
 {
     if (http_port != default_http_port)
-        return write("General", "HttpPort", std::to_string(http_port));
+        return general.write("HttpPort", http_port);
     else
-        return erase("General", "HttpPort");
+        return general.erase("HttpPort");
 }
 
 bool settings::bind_all_networks() const
 {
-    return read("General", "BindAllNetworks", "false") != "false";
+    return general.read("BindAllNetworks", false);
 }
 
 void settings::set_bind_all_networks(bool on)
 {
     if (on)
-        return write("General", "BindAllNetworks", "true");
+        return general.write("BindAllNetworks", true);
     else
-        return erase("General", "BindAllNetworks");
+        return general.erase("BindAllNetworks");
 }
 
 bool settings::republish_rootdevice() const
 {
-    return read("General", "RepublishRootDevice", "true") == "true";
+    return general.read("RepublishRootDevice", true);
 }
 
 void settings::set_republish_rootdevice(bool on)
 {
     if (on)
-        return erase("General", "RepublishRootDevice");
+        return general.erase("RepublishRootDevice");
     else
-        return write("General", "RepublishRootDevice", "false");
+        return general.write("RepublishRootDevice", false);
 }
 
 bool settings::allow_shutdown() const
 {
-    return read("General", "AllowShutdown", "true") == "true";
+    return general.read("AllowShutdown", true);
 }
 
 void settings::set_allow_shutdown(bool on)
 {
     if (on)
-        return erase("General", "AllowShutdown");
+        return general.erase("AllowShutdown");
     else
-        return write("General", "AllowShutdown", "false");
+        return general.write("AllowShutdown", false);
 }
 
 static const char * to_string(encode_mode e)
@@ -242,15 +155,15 @@ static enum encode_mode default_encode_mode()
 
 enum encode_mode settings::encode_mode() const
 {
-    return to_encode_mode(read("DLNA", "EncodeMode", to_string(default_encode_mode())));
+    return to_encode_mode(dlna.read("EncodeMode", to_string(default_encode_mode())));
 }
 
 void settings::set_encode_mode(enum encode_mode encode_mode)
 {
     if (encode_mode != default_encode_mode())
-        return write("DLNA", "EncodeMode", to_string(encode_mode));
+        return dlna.write("EncodeMode", to_string(encode_mode));
     else
-        return erase("DLNA", "EncodeMode");
+        return dlna.erase("EncodeMode");
 }
 
 static const char * to_string(video_mode e)
@@ -284,15 +197,15 @@ static const enum video_mode default_video_mode = video_mode::dvd;
 
 enum video_mode settings::video_mode() const
 {
-    return to_video_mode(read("DLNA", "VideoMode", to_string(default_video_mode)));
+    return to_video_mode(dlna.read("VideoMode", to_string(default_video_mode)));
 }
 
 void settings::set_video_mode(enum video_mode video_mode)
 {
     if (video_mode != default_video_mode)
-        return write("DLNA", "VideoMode", to_string(video_mode));
+        return dlna.write("VideoMode", to_string(video_mode));
     else
-        return erase("DLNA", "VideoMode");
+        return dlna.erase("VideoMode");
 }
 
 static const char * to_string(canvas_mode e)
@@ -331,15 +244,15 @@ enum canvas_mode settings::canvas_mode() const
     if (!canvas_mode_enabled())
         return ::canvas_mode::none;
 
-    return to_canvas_mode(read("DLNA", "CanvasMode", to_string(default_canvas_mode)));
+    return to_canvas_mode(dlna.read("CanvasMode", to_string(default_canvas_mode)));
 }
 
 void settings::set_canvas_mode(enum canvas_mode canvas_mode)
 {
     if (canvas_mode != default_canvas_mode)
-        return write("DLNA", "CanvasMode", to_string(canvas_mode));
+        return dlna.write("CanvasMode", to_string(canvas_mode));
     else
-        return erase("DLNA", "CanvasMode");
+        return dlna.erase("CanvasMode");
 }
 
 static const char * to_string(surround_mode e)
@@ -376,28 +289,28 @@ enum surround_mode settings::surround_mode() const
     if (!surround_mode_enabled())
         return ::surround_mode::stereo;
 
-    return to_surround_mode(read("DLNA", "SurroundMode", to_string(default_surround_mode)));
+    return to_surround_mode(dlna.read("SurroundMode", to_string(default_surround_mode)));
 }
 
 void settings::set_surround_mode(enum surround_mode surround_mode)
 {
     if (surround_mode != default_surround_mode)
-        return write("DLNA", "SurroundMode", to_string(surround_mode));
+        return dlna.write("SurroundMode", to_string(surround_mode));
     else
-        return erase("DLNA", "SurroundMode");
+        return dlna.erase("SurroundMode");
 }
 
 bool settings::mpeg2_enabled() const
 {
-    return read("DLNA", "CODEC_MPEG2", "true") == "true";
+    return dlna.read("CODEC_MPEG2", true);
 }
 
 void settings::set_mpeg2_enabled(bool on)
 {
     if (on)
-        return erase("DLNA", "CODEC_MPEG2");
+        return dlna.erase("CODEC_MPEG2");
     else
-        return write("DLNA", "CODEC_MPEG2", "false");
+        return dlna.write("CODEC_MPEG2", false);
 }
 
 static bool default_mpeg4_enabled()
@@ -407,67 +320,67 @@ static bool default_mpeg4_enabled()
 
 bool settings::mpeg4_enabled() const
 {
-    return read("DLNA", "CODEC_H264", default_mpeg4_enabled() ? "true" : "false") == "true";
+    return dlna.read("CODEC_H264", default_mpeg4_enabled());
 }
 
 void settings::set_mpeg4_enabled(bool on)
 {
     if (on == default_mpeg4_enabled())
-        return erase("DLNA", "CODEC_H264");
+        return dlna.erase("CODEC_H264");
     else
-        return write("DLNA", "CODEC_H264", on ? "true" : "false");
+        return dlna.write("CODEC_H264", on);
 }
 
 bool settings::video_mpegm2ts_enabled() const
 {
-    return read("DLNA", "FORMAT_M2TS", "true") == "true";
+    return dlna.read("FORMAT_M2TS", true);
 }
 
 void settings::set_video_mpegm2ts_enabled(bool on)
 {
     if (on)
-        return erase("DLNA", "FORMAT_M2TS");
+        return dlna.erase("FORMAT_M2TS");
     else
-        return write("DLNA", "FORMAT_M2TS", "false");
+        return dlna.write("FORMAT_M2TS", false);
 }
 
 bool settings::video_mpegts_enabled() const
 {
-    return read("DLNA", "FORMAT_TS", "true") == "true";
+    return dlna.read("FORMAT_TS", true);
 }
 
 void settings::set_video_mpegts_enabled(bool on)
 {
     if (on)
-        return erase("DLNA", "FORMAT_TS");
+        return dlna.erase("FORMAT_TS");
     else
-        return write("DLNA", "FORMAT_TS", "false");
+        return dlna.write("FORMAT_TS", false);
 }
 
 bool settings::video_mpeg_enabled() const
 {
-    return read("DLNA", "FORMAT_PS", "true") == "true";
+    return dlna.read("FORMAT_PS", true);
 }
 
 void settings::set_video_mpeg_enabled(bool on)
 {
     if (on)
-        return erase("DLNA", "FORMAT_PS");
+        return dlna.erase("FORMAT_PS");
     else
-        return write("DLNA", "FORMAT_PS", "false");
+        return dlna.write("FORMAT_PS", false);
 }
 
 bool settings::verbose_logging_enabled() const
 {
-    return read("DLNA", "VerboseLogging", "false") != "false";
+    return dlna.read("VerboseLogging", false);
 }
 
 void settings::set_verbose_logging_enabled(bool on)
 {
     if (on)
-        return write("DLNA", "VerboseLogging", "true");
+        return dlna.write("VerboseLogging", true);
     else
-        return erase("DLNA", "VerboseLogging");
+        return dlna.erase("VerboseLogging");
 }
 
 static const char * to_string(path_type e)
@@ -571,16 +484,16 @@ static std::vector<root_path> default_root_paths()
 
 std::vector<root_path> settings::root_paths() const
 {
-    return to_root_paths(read("Media%20Player", "RootPaths", to_string(default_root_paths())));
+    return to_root_paths(media_player.read("RootPaths", to_string(default_root_paths())));
 }
 
 void settings::set_root_paths(const std::vector<root_path> &paths)
 {
     const std::string string = to_string(paths);
     if (!string.empty() && (string != to_string(default_root_paths())))
-        return write("Media%20Player", "RootPaths", string);
+        return media_player.write("RootPaths", string);
     else
-        return erase("Media%20Player", "RootPaths");
+        return media_player.erase("RootPaths");
 }
 
 #if defined(__unix__)
@@ -611,7 +524,10 @@ static std::string unquote_and_replace_home(const std::string &src, const std::s
     else
         result = clean_path(src);
 
-    result.replace(result.find("$HOME"), 5, home);
+    const size_t h = result.find("$HOME");
+    if (h != result.npos)
+        result.replace(h, 5, home);
+
     if (!result.empty() && (result[result.length() - 1] != '/'))
         result.push_back('/');
 
@@ -620,14 +536,15 @@ static std::string unquote_and_replace_home(const std::string &src, const std::s
 
 static struct user_dirs user_dirs()
 {
-    const std::string home = home_dir(), empty;
-    auto dirs = read_ini(home + "/.config/user-dirs.dirs");
+    const std::string home = home_dir();
+    const class inifile inifile(home + "/.config/user-dirs.dirs");
+    const auto section = inifile.open_section();
 
     struct user_dirs user_dirs;
-    user_dirs.download  = unquote_and_replace_home(dirs[empty]["XDG_DOWNLOAD_DIR"], home);
-    user_dirs.music     = unquote_and_replace_home(dirs[empty]["XDG_MUSIC_DIR"], home);
-    user_dirs.pictures  = unquote_and_replace_home(dirs[empty]["XDG_PICTURES_DIR"], home);
-    user_dirs.videos    = unquote_and_replace_home(dirs[empty]["XDG_VIDEOS_DIR"], home);
+    user_dirs.download  = unquote_and_replace_home(section.read("XDG_DOWNLOAD_DIR"), home);
+    user_dirs.music     = unquote_and_replace_home(section.read("XDG_MUSIC_DIR"), home);
+    user_dirs.pictures  = unquote_and_replace_home(section.read("XDG_PICTURES_DIR"), home);
+    user_dirs.videos    = unquote_and_replace_home(section.read("XDG_VIDEOS_DIR"), home);
 
     return user_dirs;
 }

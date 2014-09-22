@@ -1,4 +1,5 @@
 #include "test.h"
+#include "platform/inifile.cpp"
 #include "settings.cpp"
 #include <cstdio>
 
