@@ -8,7 +8,7 @@
 
 static int run(class messageloop &messageloop, const std::string &logfile)
 {
-    std::clog << "Starting LXiMediaCenter Backend version " VERSION << std::endl;
+    std::clog << "Starting LXiMediaCenter Backend version " << VERSION << std::endl;
 
     std::unique_ptr<class backend> backend;
     ::backend::recreate_backend = [&messageloop, &logfile, &backend]
