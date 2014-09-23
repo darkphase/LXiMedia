@@ -34,6 +34,7 @@
 #include "mediaplayer.h"
 #include "settings.h"
 #include "setup.h"
+#include "watchlist.h"
 
 class messageloop;
 
@@ -57,6 +58,7 @@ private:
 private:
     class messageloop &messageloop;
     class settings settings;
+    class watchlist watchlist;
 
     class pupnp::upnp upnp;
     class pupnp::rootdevice rootdevice;

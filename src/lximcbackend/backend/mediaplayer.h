@@ -30,6 +30,8 @@
 
 namespace vlc { class instance; class transcode_stream; }
 
+class watchlist;
+
 class mediaplayer : private pupnp::content_directory::item_source
 {
 public:
@@ -38,7 +40,8 @@ public:
             class vlc::instance &,
             pupnp::connection_manager &,
             pupnp::content_directory &,
-            const class settings &);
+            const class settings &,
+            class watchlist &);
 
     virtual ~mediaplayer();
 
@@ -61,6 +64,7 @@ private:
     class pupnp::connection_manager &connection_manager;
     class pupnp::content_directory &content_directory;
     const class settings &settings;
+    class watchlist &watchlist;
     const std::string basedir;
 
     std::map<std::string, std::pair<int, std::shared_ptr<vlc::transcode_stream>>> pending_streams;

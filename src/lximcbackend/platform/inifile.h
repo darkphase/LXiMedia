@@ -71,6 +71,7 @@ public:
     std::function<void()> on_touched;
     void save();
 
+    bool has_section(const std::string &name) const;
     class const_section open_section(const std::string &name = std::string()) const;
     class section open_section(const std::string &name = std::string());
 
