@@ -21,6 +21,7 @@
 #include "platform/translator.h"
 #include "vlc/media.h"
 #include "vlc/transcode_stream.h"
+#include "watchlist.h"
 #include <cmath>
 #include <iomanip>
 #include <iostream>
@@ -32,13 +33,15 @@ mediaplayer::mediaplayer(
         class vlc::instance &vlc_instance,
         pupnp::connection_manager &connection_manager,
         pupnp::content_directory &content_directory,
-        const class settings &settings)
+        const class settings &settings,
+        class watchlist &watchlist)
     : messageloop(messageloop),
       vlc_instance(vlc_instance),
       media_cache(messageloop),
       connection_manager(connection_manager),
       content_directory(content_directory),
       settings(settings),
+      watchlist(watchlist),
       basedir('/' + tr("Media Player") + '/'),
       pending_streams_sever_timer(messageloop, std::bind(&mediaplayer::sever_pending_streams, this))
 {
@@ -482,6 +485,7 @@ int mediaplayer::play_item(
         std::clog << '[' << this << "] Creating new stream " << item.mrl << " transcode=" << transcode.str() << " mux=" << protocol.mux << std::endl;
 
         media_cache.abort();
+        watchlist.set_last_seen(item.mrl);
 
         auto &connection_manager = this->connection_manager;
         const auto mrl = item.mrl;
@@ -623,6 +627,9 @@ pupnp::content_directory::item mediaplayer::make_item(const std::string &/*clien
 
         const auto system_path = to_system_path(file_path);
         auto media = vlc::media::from_file(vlc_instance, system_path.path);
+
+        const auto mrl = media.mrl();
+
         if (media_cache.has_data(media))
         {
             auto tracks = list_tracks(media_cache, media);
@@ -631,7 +638,7 @@ pupnp::content_directory::item mediaplayer::make_item(const std::string &/*clien
                 for (auto &track : tracks)
                     if (track.first == track_name)
                     {
-                        item.mrl = media.mrl();
+                        item.mrl = mrl;
 
                         fill_item(item, media_cache, media, track.second, system_path.type);
                         break;
@@ -641,10 +648,14 @@ pupnp::content_directory::item mediaplayer::make_item(const std::string &/*clien
             {
                 item.is_dir = true;
                 item.path = file_path + "//";
+                if (watchlist.has_entry(mrl))
+                    item.title = '*' + item.title;
             }
             else if (tracks.size() == 1)
             {
-                item.mrl = media.mrl();
+                item.mrl = mrl;
+                if (watchlist.has_entry(mrl))
+                    item.title = '*' + item.title;
 
                 fill_item(item, media_cache, media, tracks.front().second, system_path.type);
             }

@@ -28,6 +28,7 @@ public:
     explicit watchlist(class messageloop &);
     ~watchlist();
 
+    bool has_entry(const std::string &mrl);
     std::chrono::milliseconds last_position(const std::string &mrl);
     void set_last_position(const std::string &mrl, std::chrono::milliseconds position);
     std::chrono::system_clock::time_point last_seen(const std::string &mrl);

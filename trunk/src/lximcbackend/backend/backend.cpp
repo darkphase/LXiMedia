@@ -23,6 +23,7 @@ std::function<void()> backend::recreate_backend;
 backend::backend(class messageloop &messageloop, const std::string &logfilename)
     : messageloop(messageloop),
       settings(messageloop),
+      watchlist(messageloop),
       upnp(messageloop),
       rootdevice(messageloop, upnp, settings.uuid(), "urn:schemas-upnp-org:device:MediaServer:1"),
       connection_manager(messageloop, rootdevice),
@@ -66,7 +67,8 @@ bool backend::initialize()
                               *vlc_instance,
                               connection_manager,
                               content_directory,
-                              settings));
+                              settings,
+                              watchlist));
 
         setup.reset(new class setup(
                         messageloop,

@@ -18,7 +18,34 @@
 #include "inifile.h"
 #include "platform/fstream.h"
 #include "platform/path.h"
-#include "platform/string.h"
+
+static std::string unescape(const std::string &input)
+{
+    std::string result;
+    result.reserve(input.size());
+
+    for (size_t i = 0, n = input.length(); i < n; i++)
+    {
+        const char c = input[i];
+        if (c != '\\')
+        {
+            result.push_back(c);
+        }
+        else if (i + 1 < n)
+        {
+            switch (input[++i])
+            {
+            case 'r': result.push_back('\r'); break;
+            case 'n': result.push_back('\n'); break;
+            default : result.push_back(input[i]); break;
+            }
+        }
+        else
+            break;
+    }
+
+    return result;
+}
 
 inifile::inifile(const std::string &filename)
     : filename(filename),
@@ -28,25 +55,64 @@ inifile::inifile(const std::string &filename)
     for (std::string line, section; std::getline(file, line); )
         if (!line.empty() && (line[0] != ';') && (line[0] != '#'))
             {
-                auto o = line.find_first_of('[');
-                if (o == 0)
+                if (line[0] == '[')
                 {
-                    auto c = line.find_first_of(']', o);
+                    auto c = line.find_first_of(']');
+                    while ((c != line.npos) && (c > 1) && (line[c - 1] == '\\'))
+                        c = line.find_first_of(']', c + 1);
+
                     if (c != line.npos)
-                        section = line.substr(o + 1, c - 1);
+                        section = unescape(line.substr(1, c - 1));
 
                     continue;
                 }
 
                 auto e = line.find_first_of('=');
+                while ((e != line.npos) && (e > 1) && (line[e - 1] == '\\'))
+                    e = line.find_first_of('=', e + 1);
+
                 if (e != line.npos)
-                    values[section][line.substr(0, e)] = line.substr(e + 1);
+                    values[section][unescape(line.substr(0, e))] = unescape(line.substr(e + 1));
             }
 }
 
 inifile::~inifile()
 {
     save();
+}
+
+static std::string escape(const std::string &input)
+{
+    std::string result;
+    result.reserve(input.size());
+
+    for (auto c : input)
+        switch (c)
+        {
+        case '\r':
+            result.push_back('\\');
+            result.push_back('r');
+            break;
+
+        case '\n':
+            result.push_back('\\');
+            result.push_back('n');
+            break;
+
+        case '\\':
+        case '=' :
+        case '[' :
+        case ']' :
+        case ';' :
+        case '#' :
+            result.push_back('\\');
+
+        default:
+            result.push_back(c);
+            break;
+        }
+
+    return result;
 }
 
 void inifile::save()
@@ -57,16 +123,21 @@ void inifile::save()
         for (auto &section : values)
         {
             if (!section.first.empty())
-                file << '[' << section.first << ']' << std::endl;
+                file << '[' << escape(section.first) << ']' << std::endl;
 
             for (auto &value : section.second)
-                file << value.first << '=' << value.second << std::endl;
+                file << escape(value.first) << '=' << escape(value.second) << std::endl;
 
             file << std::endl;
         }
 
         touched = false;
     }
+}
+
+bool inifile::has_section(const std::string &name) const
+{
+    return values.find(name) != values.end();
 }
 
 class inifile::const_section inifile::open_section(const std::string &name) const
@@ -82,7 +153,7 @@ class inifile::section inifile::open_section(const std::string &name)
 
 inifile::const_section::const_section(const class inifile &inifile, const std::string &section_name)
     : inifile(inifile),
-      section_name(to_percent(section_name))
+      section_name(section_name)
 {
 }
 
@@ -97,7 +168,7 @@ std::string inifile::const_section::read(const std::string &name, const std::str
     auto i = inifile.values.find(section_name);
     if (i != inifile.values.end())
     {
-        auto j = i->second.find(to_percent(name));
+        auto j = i->second.find(name);
         if (j != i->second.end())
             return j->second;
     }
@@ -144,7 +215,7 @@ inifile::section::section(const section &from)
 
 void inifile::section::write(const std::string &name, const std::string &value)
 {
-    inifile.values[section_name][to_percent(name)] = value;
+    inifile.values[section_name][name] = value;
 
     inifile.touched = true;
     if (inifile.on_touched) inifile.on_touched();
@@ -175,7 +246,7 @@ void inifile::section::erase(const std::string &name)
     auto i = inifile.values.find(section_name);
     if (i != inifile.values.end())
     {
-        auto j = i->second.find(to_percent(name));
+        auto j = i->second.find(name);
         if (j != i->second.end())
         {
             i->second.erase(j);
