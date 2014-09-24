@@ -47,6 +47,18 @@ static std::string unescape(const std::string &input)
     return result;
 }
 
+bool is_escaped(const std::string &str, size_t offset)
+{
+    int n = 0;
+    for (size_t i = offset; i > 1; i--)
+        if (str[i - 1] == '\\')
+            n++;
+        else
+            break;
+
+    return n & 1;
+}
+
 inifile::inifile(const std::string &filename)
     : filename(filename),
       touched(false)
@@ -58,7 +70,7 @@ inifile::inifile(const std::string &filename)
                 if (line[0] == '[')
                 {
                     auto c = line.find_first_of(']');
-                    while ((c != line.npos) && (c > 1) && (line[c - 1] == '\\'))
+                    while ((c != line.npos) && is_escaped(line, c))
                         c = line.find_first_of(']', c + 1);
 
                     if (c != line.npos)
@@ -68,7 +80,7 @@ inifile::inifile(const std::string &filename)
                 }
 
                 auto e = line.find_first_of('=');
-                while ((e != line.npos) && (e > 1) && (line[e - 1] == '\\'))
+                while ((e != line.npos) && is_escaped(line, e))
                     e = line.find_first_of('=', e + 1);
 
                 if (e != line.npos)
