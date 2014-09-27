@@ -36,6 +36,7 @@ public:
         bool read(const std::string &name, bool default_) const;
         int read(const std::string &name, int default_) const;
         long read(const std::string &name, long default_) const;
+        long long read(const std::string &name, long long default_) const;
 
     protected:
         const_section(const class inifile &, const std::string &);
@@ -55,6 +56,7 @@ public:
         void write(const std::string &name, bool value);
         void write(const std::string &name, int value);
         void write(const std::string &name, long value);
+        void write(const std::string &name, long long value);
 
         void erase(const std::string &name);
 
