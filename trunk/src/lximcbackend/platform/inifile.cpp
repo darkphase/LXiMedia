@@ -212,6 +212,13 @@ long inifile::const_section::read(const std::string &name, long default_) const
     catch (const std::out_of_range &) { return default_; }
 }
 
+long long inifile::const_section::read(const std::string &name, long long default_) const
+{
+    try { return int(std::stoll(read(name, std::to_string(default_)))); }
+    catch (const std::invalid_argument &) { return default_; }
+    catch (const std::out_of_range &) { return default_; }
+}
+
 
 inifile::section::section(class inifile &inifile, const std::string &section_name)
     : const_section(inifile, section_name),
@@ -249,6 +256,11 @@ void inifile::section::write(const std::string &name, int value)
 }
 
 void inifile::section::write(const std::string &name, long value)
+{
+    return write(name, std::to_string(value));
+}
+
+void inifile::section::write(const std::string &name, long long value)
 {
     return write(name, std::to_string(value));
 }
