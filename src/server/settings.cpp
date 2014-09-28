@@ -470,13 +470,26 @@ std::vector<root_path> settings::root_paths() const
 
 void settings::set_root_paths(const std::vector<root_path> &root_paths)
 {
+    const auto default_paths = default_root_paths();
+
+    size_t defaults = 0;
     std::set<std::string> new_names;
     for (auto &i : root_paths)
         if (new_names.find(i.path) == new_names.end())
         {
             new_names.insert(i.path);
             paths.write(i.path, to_string(i.type));
+
+            for (auto &j : default_paths)
+                if ((j.type == i.type) && (j.path == i.path))
+                {
+                    defaults++;
+                    break;
+                }
         }
+
+    if ((defaults == default_paths.size()) && (defaults == root_paths.size()))
+        new_names.clear();
 
     for (auto &i : paths.names())
         if (new_names.find(i) == new_names.end())
