@@ -483,11 +483,13 @@ bool transcode_stream::source::read(class streambuf &streambuf)
     recompute_buffer_offset(l);
 
     while (!stream_end &&
-           ((buffer_offset + buffer_used) <= streambuf.buffer_offset))
+           (((streambuf.buffer_offset == 0) && (buffer_used < (block_size * 8))) ||
+            ((buffer_offset + buffer_used) <= streambuf.buffer_offset)))
     {
         if (stream_end_pending)
         {
             buffer_used += write_block_pos;
+            write_block_pos = 0;
             stream_end = true;
         }
         else
