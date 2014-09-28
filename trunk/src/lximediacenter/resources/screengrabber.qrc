@@ -1,7 +1,0 @@
-<RCC>
-    <qresource prefix="/">
-        <file>img/play-all.png</file>
-        <file>img/eyes.png</file>
-        <file>img/video-display.png</file>
-    </qresource>
-</RCC>

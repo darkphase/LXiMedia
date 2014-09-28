@@ -1,0 +1,27 @@
+Source: lximediaserver
+Priority: extra
+Maintainer: A.J. Admiraal <code@admiraal.dds.nl>
+Build-Depends: debhelper (>= 7),
+               dpkg-dev (>= 1.13.9),
+               bash, 
+               g++,
+               gcc,
+               make,
+               cmake,
+               binutils-dev,
+               uuid-dev,
+               libvlc-dev,
+               libvlccore-dev
+Standards-Version: 3.8.4
+Section: libs
+Homepage: http://lximedia.sourceforge.net/
+
+Package: lximediaserver
+Section: multimedia
+Architecture: any
+Depends: ${misc:Depends},
+         uuid,
+         vlc (>= 2.1.0),
+Description: A DLNA based transcoding media server
+ LXiMediaCenter is a DLNA based transcoding media server.
+

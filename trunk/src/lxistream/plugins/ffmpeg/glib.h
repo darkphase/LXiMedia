@@ -1,1 +1,0 @@
-/* Placeholder to make libmms work */

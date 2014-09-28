@@ -2,7 +2,7 @@
 
 CURDIR="$( cd "$( dirname "$0" )" && pwd )"
 OUTDIR=${CURDIR}/../../..
-PKGFILE=lximedia_`cat ${CURDIR}/../../VERSION`
+PKGFILE=lximediaserver_`cat ${CURDIR}/../../VERSION`
 
 mkdir -p ${CURDIR}/../../../pbuilder
 
