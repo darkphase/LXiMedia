@@ -33,7 +33,7 @@ const char  rootdevice::servicedescriptionfile[]  = "service-";
 const char  rootdevice::servicecontrolfile[]      = "control-";
 const char  rootdevice::serviceeventfile[]        = "event-";
 
-rootdevice::rootdevice(class messageloop &messageloop, class upnp &upnp, const std::string &uuid, const std::string &devicetype)
+rootdevice::rootdevice(class platform::messageloop &messageloop, class upnp &upnp, const std::string &uuid, const std::string &devicetype)
     : messageloop(messageloop),
       upnp(upnp),
       uuid(uuid),

@@ -29,7 +29,7 @@
 #include <sstream>
 
 mediaplayer::mediaplayer(
-        class messageloop &messageloop,
+        class platform::messageloop &messageloop,
         class vlc::instance &vlc_instance,
         pupnp::connection_manager &connection_manager,
         pupnp::content_directory &content_directory,
@@ -197,11 +197,11 @@ std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(
             else
             {
                 const auto system_path = to_system_path(path).path;
-                for (auto &i : list_files(system_path, false))
+                for (auto &i : platform::list_files(system_path, false))
                 {
                     if (ends_with(i, "/"))
                     {
-                        const auto children = list_files(system_path + i, false, 2);
+                        const auto children = platform::list_files(system_path + i, false, 2);
                         if ((children.size() == 1) && !ends_with(children.front(), "/"))
                             files.emplace(file_prefix + to_lower(children.front()), i + children.front());
                         else if (children.size() > 0)

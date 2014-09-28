@@ -22,6 +22,8 @@
 #include "string.h"
 #include <windows.h>
 
+namespace platform {
+
 template <class _type, class _traits>
 basic_utf8filebuf<_type, _traits>::basic_utf8filebuf(const std::string &filename, std::ios_base::openmode mode)
     : binary(mode & std::ios_base::binary),
@@ -201,5 +203,7 @@ bool basic_ofstream<_type, _traits>::is_open() const
 }
 
 template class basic_ofstream<char>;
+
+} // End of namespace
 
 #endif

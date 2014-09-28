@@ -20,7 +20,7 @@
 
 std::function<void()> backend::recreate_backend;
 
-backend::backend(class messageloop &messageloop, const std::string &logfilename)
+backend::backend(class platform::messageloop &messageloop, const std::string &logfilename)
     : messageloop(messageloop),
       settings(messageloop),
       watchlist(messageloop),
@@ -51,8 +51,9 @@ backend::~backend()
 
 bool backend::initialize()
 {
-    rootdevice.set_devicename(settings.devicename());
-    mainpage.set_devicename(settings.devicename());
+    const std::string upnp_devicename = settings.upnp_devicename();
+    rootdevice.set_devicename(upnp_devicename);
+    mainpage.set_devicename(upnp_devicename);
 
     add_audio_protocols();
     add_video_protocols();

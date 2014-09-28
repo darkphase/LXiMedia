@@ -6,7 +6,7 @@
 #include <iostream>
 #include <memory>
 
-static int run(class messageloop &messageloop, const std::string &logfile)
+static int run(class platform::messageloop &messageloop, const std::string &logfile)
 {
     std::clog << "Starting LXiMediaServer version " << VERSION << std::endl;
 
@@ -88,7 +88,7 @@ static int start_daemon(uid_t daemon_uid, gid_t daemon_gid)
 
             if ((setgid(daemon_gid) == 0) && (setuid(daemon_uid) == 0))
             {
-                class messageloop messageloop;
+                class platform::messageloop messageloop;
 
                 result = run(messageloop, logfile ? logfilename : std::string());
             }
@@ -161,7 +161,7 @@ int main(int argc, const char *argv[])
         return 1;
     }
 
-    class messageloop messageloop;
+    class platform::messageloop messageloop;
     return run(messageloop, std::string());
 }
 
@@ -238,7 +238,7 @@ static bool uninstall_service()
 
 static SERVICE_STATUS service_status;
 static SERVICE_STATUS_HANDLE service_status_handle = 0;
-static std::unique_ptr<class messageloop> messageloop;
+static std::unique_ptr<class platform::messageloop> messageloop;
 
 static void WINAPI service_control_handler(DWORD controlCode)
 {
@@ -280,7 +280,7 @@ static void WINAPI service_main(DWORD argc, WCHAR *argv[])
         service_status.dwCurrentState = SERVICE_START_PENDING;
         ::SetServiceStatus(service_status_handle, &service_status);
 
-        messageloop.reset(new class messageloop());
+        messageloop.reset(new class platform::messageloop());
         messageloop->post([]
         {
             service_status.dwControlsAccepted |= (SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN);
@@ -348,7 +348,7 @@ int main(int argc, const char *argv[])
         }
         else if (strcmp(argv[i], "--run") == 0)
         {
-            class messageloop messageloop;
+            class platform::messageloop messageloop;
             return run(messageloop, std::string());
         }
         else

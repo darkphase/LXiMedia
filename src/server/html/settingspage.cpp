@@ -91,12 +91,10 @@ static void render_http_settings(const class settings &settings, std::ostream &o
            "<input type=\"checkbox\" name=\"bind_all_networks\" value=\"on\"" << is_checked(settings.bind_all_networks()) << " />"
            << tr("Bind all networks") << "</p>"
            "<p>" << tr("Device name") << ": "
-           "<input type=\"text\" size=\"40\" name=\"devicename\" value=\"" << escape_xml(settings.devicename()) << "\" /></p>"
+           "<input type=\"text\" size=\"40\" name=\"upnp_devicename\" value=\"" << escape_xml(settings.upnp_devicename()) << "\" /></p>"
            "<p><input type=\"checkbox\" name=\"republish_rootdevice\" value=\"on\"" << is_checked(settings.republish_rootdevice()) << " />"
            << tr("Regularly reinitialize the server while inactive to force all clients "
                  "to update their device lists.") << "</p>"
-           "<p><input type=\"checkbox\" name=\"allow_shutdown\" value=\"on\"" << is_checked(settings.allow_shutdown()) << " />"
-           << tr("Allow shutting down the computer remotely.") << "</p>"
            "<p class=\"buttons\"><input type=\"submit\" name=\"save_button\" value=\"" << tr("Save") << "\" /></p>"
            "</form></fieldset>";
 }
@@ -114,15 +112,12 @@ static void save_http_settings(class settings &settings, const std::map<std::str
     auto bind_all_networks = query.find("bind_all_networks");
     settings.set_bind_all_networks(bind_all_networks != query.end());
 
-    auto devicename = query.find("devicename");
+    auto devicename = query.find("upnp_devicename");
     if (devicename != query.end())
-        settings.set_devicename(from_percent(devicename->second));
+        settings.set_upnp_devicename(from_percent(devicename->second));
 
     auto republish_rootdevice = query.find("republish_rootdevice");
     settings.set_republish_rootdevice(republish_rootdevice != query.end());
-
-    auto allow_shutdown = query.find("allow_shutdown");
-    settings.set_allow_shutdown(allow_shutdown != query.end());
 }
 
 static void render_dlna_settings(const class settings &settings, std::ostream &out)
@@ -246,7 +241,7 @@ static std::string format_path(const std::string &src)
 
 static void render_path_box(const std::string &full_path, const std::string &current, size_t index, std::ostream &out)
 {
-    const std::vector<std::string> items = full_path.empty() ? list_root_directories() : list_files(full_path, true);
+    const std::vector<std::string> items = full_path.empty() ? platform::list_root_directories() : platform::list_files(full_path, true);
     if (!items.empty())
     {
         out << "<select name=\"append_path_" << index << "\" onchange=\"if(this.value != 0) { this.form.submit(); }\">";

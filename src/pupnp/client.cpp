@@ -22,7 +22,7 @@
 
 namespace pupnp {
 
-client::client(class messageloop &messageloop, class upnp &upnp)
+client::client(class platform::messageloop &messageloop, class upnp &upnp)
     : messageloop(messageloop),
       upnp(upnp),
       client_enabled(false),

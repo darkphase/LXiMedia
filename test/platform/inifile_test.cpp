@@ -29,15 +29,17 @@ static const struct inifile_test
 
         const std::string filename = ::filename();
         {
-            inifile out(filename);
+            platform::inifile out(filename);
             out.open_section("section[1]\\").write("string=", data);
             out.open_section("section[2]\\").write("int=", 1234);
             out.open_section("section[2]\\").write("long=", 12345678L);
             out.open_section("section[2]\\").write("long long=", 123456789101112LL);
         }
         {
-            const inifile in(filename);
+            const platform::inifile in(filename);
+            test_assert(in.open_section("section[1]\\").names().size() == 1);
             test_assert(in.open_section("section[1]\\").read("string=") == data);
+            test_assert(in.open_section("section[1]\\").names().size() == 3);
             test_assert(in.open_section("section[2]\\").read("int=", 0) == 1234);
             test_assert(in.open_section("section[2]\\").read("long=", 0L) == 12345678L);
             test_assert(in.open_section("section[2]\\").read("long long=", 0LL) == 123456789101112LL);

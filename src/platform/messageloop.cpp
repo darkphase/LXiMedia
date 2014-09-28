@@ -20,8 +20,10 @@
 #include <cstring>
 #include <map>
 
-static void set_abort_handler(void(messageloop::*)(), messageloop *);
-static void clear_abort_handler(messageloop *);
+static void set_abort_handler(void(platform::messageloop::*)(), platform::messageloop *);
+static void clear_abort_handler(platform::messageloop *);
+
+namespace platform {
 
 messageloop::messageloop()
     : stopped(false),
@@ -226,7 +228,9 @@ void timer::stop()
     messageloop.timer_remove(*this);
 }
 
-static std::map<messageloop *, void(messageloop::*)()> abort_handlers;
+} // End of namespace
+
+static std::map<platform::messageloop *, void(platform::messageloop::*)()> abort_handlers;
 
 #if defined(__unix__)
 #include <iostream>
@@ -240,7 +244,7 @@ static void signal_handler(int signal)
         for (auto &i : abort_handlers) ((i.first)->*(i.second))();
 }
 
-static void set_abort_handler(void(messageloop::*handler)(), messageloop *object)
+static void set_abort_handler(void(platform::messageloop::*handler)(), platform::messageloop *object)
 {
     if (abort_handlers.empty())
     {
@@ -257,7 +261,7 @@ static void set_abort_handler(void(messageloop::*handler)(), messageloop *object
     abort_handlers[object] = handler;
 }
 
-static void clear_abort_handler(messageloop *object)
+static void clear_abort_handler(platform::messageloop *object)
 {
     abort_handlers.erase(object);
 
@@ -301,7 +305,7 @@ static BOOL WINAPI console_ctrl_handler(DWORD type)
     }
 }
 
-static void set_abort_handler(void(messageloop::*handler)(), messageloop *object)
+static void set_abort_handler(void(platform::messageloop::*handler)(), platform::messageloop *object)
 {
     if (abort_handlers.empty())
         SetConsoleCtrlHandler(&console_ctrl_handler, TRUE);
@@ -309,7 +313,7 @@ static void set_abort_handler(void(messageloop::*handler)(), messageloop *object
     abort_handlers[object] = handler;
 }
 
-static void clear_abort_handler(messageloop *object)
+static void clear_abort_handler(platform::messageloop *object)
 {
     abort_handlers.erase(object);
 

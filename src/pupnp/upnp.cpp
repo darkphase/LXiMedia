@@ -73,7 +73,7 @@ std::string upnp::hostname()
     return buffer;
 }
 
-upnp::upnp(class messageloop &messageloop)
+upnp::upnp(class platform::messageloop &messageloop)
     : messageloop(messageloop),
       basedir("/upnp/"),
       update_interfaces_timer(messageloop, std::bind(&upnp::update_interfaces, this)),

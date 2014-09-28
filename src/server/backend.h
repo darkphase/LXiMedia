@@ -44,7 +44,7 @@ public:
     static std::function<void()> recreate_backend;
 
 public:
-    backend(class messageloop &, const std::string &);
+    backend(class platform::messageloop &, const std::string &);
     ~backend();
 
     bool initialize();
@@ -56,7 +56,7 @@ private:
     void add_video_protocols();
 
 private:
-    class messageloop &messageloop;
+    class platform::messageloop &messageloop;
     class settings settings;
     class watchlist watchlist;
 
@@ -75,11 +75,11 @@ private:
     std::unique_ptr<class mediaplayer> mediaplayer;
     std::unique_ptr<class setup> setup;
 
-    timer republish_timer;
+    platform::timer republish_timer;
     const std::chrono::seconds republish_timeout;
     bool republish_required;
 
-    timer recreate_backend_timer;
+    platform::timer recreate_backend_timer;
     const std::chrono::milliseconds recreate_backend_timeout;
 };
 

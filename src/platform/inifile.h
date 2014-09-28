@@ -21,6 +21,9 @@
 #include <string>
 #include <functional>
 #include <map>
+#include <set>
+
+namespace platform {
 
 class inifile
 {
@@ -30,6 +33,8 @@ public:
     friend class inifile;
     public:
         const_section(const const_section &);
+
+        std::set<std::string> names() const;
 
         std::string read(const std::string &name, const std::string &default_ = std::string()) const;
         std::string read(const std::string &name, const char *default_) const;
@@ -82,5 +87,7 @@ private:
     std::map<std::string, std::map<std::string, std::string>> values;
     bool touched;
 };
+
+} // End of namespace
 
 #endif

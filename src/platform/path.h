@@ -21,6 +21,8 @@
 #include <string>
 #include <vector>
 
+namespace platform {
+
 std::string clean_path(const std::string &);
 
 std::vector<std::string> list_root_directories();
@@ -29,10 +31,15 @@ std::vector<std::string> list_files(
         bool directories_only = false,
         size_t max_count = size_t(-1));
 
+std::string home_dir();
+std::string config_dir();
+
 #ifdef WIN32
 std::string volume_name(const std::string &);
 std::wstring to_windows_path(const std::string &);
 std::string from_windows_path(const std::wstring &);
 #endif
+
+} // End of namespace
 
 #endif

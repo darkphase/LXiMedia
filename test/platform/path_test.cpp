@@ -13,7 +13,7 @@ static const struct path_test
     struct test list_root_directories_test;
     static void list_root_directories()
     {
-        const auto dirs = ::list_root_directories();
+        const auto dirs = platform::list_root_directories();
 #if defined(__unix__)
         test_assert(dirs.size() == 1);
         test_assert(dirs[0] == "/");
@@ -23,9 +23,9 @@ static const struct path_test
     struct test list_files_test;
     static void list_files()
     {
-        for (const auto &i : ::list_root_directories())
+        for (const auto &i : platform::list_root_directories())
         {
-            const auto files = ::list_files(i);
+            const auto files = platform::list_files(i);
 #if defined(__unix__)
             test_assert(!files.empty());
 

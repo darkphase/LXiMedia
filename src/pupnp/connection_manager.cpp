@@ -26,7 +26,7 @@ namespace pupnp {
 const char connection_manager::service_id[]   = "urn:upnp-org:serviceId:ConnectionManager";
 const char connection_manager::service_type[] = "urn:schemas-upnp-org:service:ConnectionManager:1";
 
-connection_manager::connection_manager(class messageloop &messageloop, class rootdevice &rootdevice)
+connection_manager::connection_manager(class platform::messageloop &messageloop, class rootdevice &rootdevice)
     : messageloop(messageloop),
       rootdevice(rootdevice),
       connection_id_counter(0)

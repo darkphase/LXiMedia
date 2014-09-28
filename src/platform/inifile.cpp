@@ -19,6 +19,8 @@
 #include "platform/fstream.h"
 #include "platform/path.h"
 
+namespace platform {
+
 static std::string unescape(const std::string &input)
 {
     std::string result;
@@ -63,7 +65,7 @@ inifile::inifile(const std::string &filename)
     : filename(filename),
       touched(false)
 {
-    ifstream file(filename, std::ios_base::binary); // Binary needed to support UTF-8 on Windows
+    platform::ifstream file(filename, std::ios_base::binary); // Binary needed to support UTF-8 on Windows
     for (std::string line, section; std::getline(file, line); )
         if (!line.empty() && (line[0] != ';') && (line[0] != '#'))
             {
@@ -131,7 +133,7 @@ void inifile::save()
 {
     if (touched)
     {
-        ofstream file(filename, std::ios_base::binary); // Binary needed to support UTF-8 on Windows
+        platform::ofstream file(filename, std::ios_base::binary); // Binary needed to support UTF-8 on Windows
         for (auto &section : values)
         {
             if (!section.first.empty())
@@ -173,6 +175,21 @@ inifile::const_section::const_section(const const_section &from)
     : inifile(from.inifile),
       section_name(from.section_name)
 {
+}
+
+std::set<std::string> inifile::const_section::names() const
+{
+    auto i = inifile.values.find(section_name);
+    if (i != inifile.values.end())
+    {
+        std::set<std::string> result;
+        for (auto &j : i->second)
+            result.insert(j.first);
+
+        return result;
+    }
+
+    return std::set<std::string>();
 }
 
 std::string inifile::const_section::read(const std::string &name, const std::string &default_) const
@@ -282,3 +299,5 @@ void inifile::section::erase(const std::string &name)
         }
     }
 }
+
+} // End of namespace

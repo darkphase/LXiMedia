@@ -129,7 +129,7 @@ public:
     static const char service_id[];
     static const char service_type[];
 
-    connection_manager(class messageloop &, class rootdevice &);
+    connection_manager(class platform::messageloop &, class rootdevice &);
     virtual ~connection_manager();
 
     void add_source_audio_protocol(
@@ -173,7 +173,7 @@ private: // From rootdevice::service
     virtual void write_eventable_statevariables(rootdevice::eventable_propertyset &) const override final;
 
 private:
-    class messageloop &messageloop;
+    class platform::messageloop &messageloop;
     class rootdevice &rootdevice;
 
     std::vector<protocol> source_audio_protocol_list;

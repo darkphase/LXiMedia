@@ -33,20 +33,18 @@ struct root_path { path_type type; std::string path; };
 class settings
 {
 public:
-    explicit settings(class messageloop &);
+    explicit settings(class platform::messageloop &);
     ~settings();
 
     std::string uuid();
-    std::string devicename() const;
-    void set_devicename(const std::string &);
+    std::string upnp_devicename() const;
+    void set_upnp_devicename(const std::string &);
     uint16_t http_port() const;
     void set_http_port(uint16_t);
     bool bind_all_networks() const;
     void set_bind_all_networks(bool);
     bool republish_rootdevice() const;
     void set_republish_rootdevice(bool);
-    bool allow_shutdown() const;
-    void set_allow_shutdown(bool);
 
     enum encode_mode encode_mode() const;
     void set_encode_mode(enum encode_mode);
@@ -78,12 +76,13 @@ public:
     void set_root_paths(const std::vector<root_path> &);
 
 private:
-    class messageloop &messageloop;
-    class inifile inifile;
-    class inifile::section general;
-    class inifile::section dlna;
-    class inifile::section media_player;
-    class timer timer;
+    class platform::messageloop &messageloop;
+    class platform::inifile inifile;
+    class platform::inifile::section general;
+    class platform::inifile::section codecs;
+    class platform::inifile::section formats;
+    class platform::inifile::section paths;
+    class platform::timer timer;
     const std::chrono::milliseconds save_delay;
 };
 

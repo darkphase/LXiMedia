@@ -32,7 +32,7 @@ class setup : private pupnp::content_directory::item_source
 {
 public:
   setup(
-          class messageloop &,
+          class platform::messageloop &,
           pupnp::content_directory &,
           const class settings &);
 
@@ -45,7 +45,7 @@ private: // From content_directory::item_source
   int play_item(const std::string &, const pupnp::content_directory::item &, const std::string &, std::string &, std::shared_ptr<std::istream> &) override;
 
 private:
-  class messageloop &messageloop;
+  class platform::messageloop &messageloop;
   class pupnp::content_directory &content_directory;
   const class settings &settings;
   const std::string basedir;

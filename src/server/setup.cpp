@@ -23,7 +23,7 @@
 static bool shutdown();
 
 setup::setup(
-        class messageloop &messageloop,
+        class platform::messageloop &messageloop,
         pupnp::content_directory &content_directory,
         const class settings &settings)
     : messageloop(messageloop),
@@ -48,7 +48,7 @@ std::vector<pupnp::content_directory::item> setup::list_contentdir_items(
     const bool return_all = count == 0;
 
     std::vector<pupnp::content_directory::item> items;
-    if (!shutdown_pending && settings.allow_shutdown())
+    if (!shutdown_pending)
         items.emplace_back(get_contentdir_item(client, basedir + "shutdown"));
 
     std::vector<pupnp::content_directory::item> result;
@@ -94,7 +94,7 @@ int setup::play_item(
         std::string &,
         std::shared_ptr<std::istream> &)
 {
-    if (ends_with(item.path, "/shutdown") && settings.allow_shutdown())
+    if (ends_with(item.path, "/shutdown"))
     {
         if (!shutdown_pending)
             shutdown_pending = shutdown();
