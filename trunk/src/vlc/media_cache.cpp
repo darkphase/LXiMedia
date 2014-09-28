@@ -33,7 +33,7 @@ struct media_cache::parsed_data
     int chapter_count;
 };
 
-media_cache::media_cache(class messageloop &messageloop)
+media_cache::media_cache(class platform::messageloop &messageloop)
   : messageloop(messageloop),
     pending_items(0)
 {

@@ -61,7 +61,7 @@ void logpage::render_headers(const struct pupnp::upnp::request &, std::ostream &
 
 int logpage::render_page(const struct pupnp::upnp::request &, std::ostream &out)
 {
-    ifstream logfile(logfilename);
+    platform::ifstream logfile(logfilename);
     if (logfile.is_open())
     {
         out << "<p class=\"filename\">" << escape_xml(logfilename) << ":</p>";

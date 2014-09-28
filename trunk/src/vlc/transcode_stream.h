@@ -24,7 +24,7 @@
 #include <memory>
 #include <string>
 
-class messageloop;
+namespace platform { class messageloop; }
 
 namespace vlc {
 
@@ -37,7 +37,7 @@ public:
 
 public:
     transcode_stream(
-            class messageloop &,
+            class platform::messageloop &,
             class instance &,
             const std::function<int32_t(int32_t)> &changed);
 
@@ -68,7 +68,7 @@ private:
 
     static const size_t block_size;
     static const size_t block_count;
-    class messageloop &messageloop;
+    class platform::messageloop &messageloop;
     class instance &instance;
     const std::function<int32_t(int32_t)> changed;
     std::unique_ptr<class streambuf> streambuf;

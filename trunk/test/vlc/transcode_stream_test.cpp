@@ -32,7 +32,7 @@ static const struct transcode_stream_test
         const std::string infile = write_file("pm5544.mp4", pm5544_mp4, sizeof(pm5544_mp4));
         write_file("pm5544.srt", pm5544_srt, sizeof(pm5544_srt));
 
-        class messageloop messageloop;
+        class platform::messageloop messageloop;
         class instance instance;
         class media_cache media_cache(messageloop);
 
@@ -73,7 +73,7 @@ static const struct transcode_stream_test
                 test_assert(transcode_stream.open(media.mrl(), 0, track_ids, transcode, "ts"));
             }
 
-            ofstream out(outfile, std::ios::binary);
+            platform::ofstream out(outfile, std::ios::binary);
             test_assert(out.is_open());
             std::copy(  std::istreambuf_iterator<char>(transcode_stream),
                         std::istreambuf_iterator<char>(),
@@ -138,7 +138,7 @@ static std::string write_file(const char *file, const uint8_t *data, size_t size
 {
     const std::string filename = ::filename(file);
 
-    ofstream str(filename, std::ios::binary);
+    platform::ofstream str(filename, std::ios::binary);
     test_assert(str.is_open());
     str.write(reinterpret_cast<const char *>(data), size);
 

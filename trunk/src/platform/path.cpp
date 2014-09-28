@@ -24,6 +24,8 @@
 
 static const size_t min_file_size = 65536;
 
+namespace platform {
+
 std::string clean_path(const std::string &path)
 {
     std::string result;
@@ -43,10 +45,16 @@ std::string clean_path(const std::string &path)
     return result;
 }
 
+} // End of namespace
+
 #if defined(__unix__)
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <pwd.h>
+#include <unistd.h>
+
+namespace platform {
 
 std::vector<std::string> list_root_directories()
 {
@@ -126,7 +134,7 @@ std::vector<std::string> list_files(
     while (!cpath.empty() && (cpath[cpath.length() - 1] == '/')) cpath.pop_back();
     cpath.push_back('/');
 
-    auto &hidden_dirs = ::hidden_dirs();
+    auto &hidden_dirs = platform::hidden_dirs();
     for (auto &i : hidden_dirs)
         if (starts_with(cpath, i + '/'))
             return std::vector<std::string>();
@@ -136,8 +144,8 @@ std::vector<std::string> list_files(
     auto dir = ::opendir(cpath.c_str());
     if (dir)
     {
-        auto &hidden_names = ::hidden_names();
-        auto &hidden_suffixes = ::hidden_suffixes();
+        auto &hidden_names = platform::hidden_names();
+        auto &hidden_suffixes = platform::hidden_suffixes();
 
         for (auto dirent = ::readdir(dir);
              dirent && (result.size() < max_count);
@@ -167,9 +175,41 @@ std::vector<std::string> list_files(
 
     return result;
 }
+
+std::string home_dir()
+{
+    const char *home = getenv("HOME");
+    if (home)
+        return clean_path(home);
+
+    struct passwd *pw = getpwuid(getuid());
+    if (pw && pw->pw_dir)
+        return clean_path(pw->pw_dir);
+
+    return std::string();
+}
+
+std::string config_dir()
+{
+    const std::string home = home_dir();
+    if (!home.empty())
+    {
+        const std::string result = home + "/.config/lximediaserver/";
+        mkdir(result.c_str(), S_IRWXU);
+
+        return result;
+    }
+
+    return std::string();
+}
+
+} // End of namespace
+
 #elif defined(WIN32)
 #include <windows.h>
 #include <iostream>
+
+namespace platform {
 
 std::vector<std::string> list_root_directories()
 {
@@ -303,7 +343,7 @@ std::vector<std::string> list_files(
 {
     const std::wstring wpath = clean_path(to_windows_path(to_lower(path))) + L'\\';
 
-    auto &hidden_dirs = ::hidden_dirs();
+    auto &hidden_dirs = platform::hidden_dirs();
     for (auto &i : hidden_dirs)
         if (starts_with(wpath, i + L'\\'))
             return std::vector<std::string>();
@@ -314,8 +354,8 @@ std::vector<std::string> list_files(
     HANDLE handle = FindFirstFile((wpath + L'*').c_str(), &find_data);
     if (handle != INVALID_HANDLE_VALUE)
     {
-        auto &hidden_names = ::hidden_names();
-        auto &hidden_suffixes = ::hidden_suffixes();
+        auto &hidden_names = platform::hidden_names();
+        auto &hidden_suffixes = platform::hidden_suffixes();
 
         do
         {
@@ -344,6 +384,28 @@ std::vector<std::string> list_files(
     return result;
 }
 
+std::string home_dir()
+{
+    const wchar_t * const appdata = _wgetenv(L"APPDATA");
+    if (appdata)
+        return from_windows_path(appdata);
+
+    return std::string();
+}
+
+std::string config_dir()
+{
+    const std::string home = home_dir();
+    if (!home.empty())
+    {
+        const std::string result = home + "/LXiMediaServer/";
+        _wmkdir(to_windows_path(result).c_str());
+        return result;
+    }
+
+    return std::string();
+}
+
 std::wstring to_windows_path(const std::string &src)
 {
     std::wstring dst = to_utf16(src);
@@ -359,4 +421,7 @@ std::string from_windows_path(const std::wstring &src)
 
     return dst;
 }
+
+} // End of namespace
+
 #endif

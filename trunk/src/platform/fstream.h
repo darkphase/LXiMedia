@@ -27,6 +27,8 @@
 #include <string>
 #include <streambuf>
 
+namespace platform {
+
 template <class _type, class _traits = std::char_traits<_type>>
 class basic_utf8filebuf : public std::basic_streambuf<_type, _traits>
 {
@@ -70,11 +72,18 @@ public:
 typedef basic_ifstream<char> ifstream;
 typedef basic_ofstream<char> ofstream;
 
+} // End of namespace
+
 #else
 # include <fstream>
 
+namespace platform {
+
 using std::ifstream;
 using std::ofstream;
+
+} // End of namespace
+
 #endif
 
 #endif

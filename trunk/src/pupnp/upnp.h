@@ -67,7 +67,7 @@ public:
 public:
     static std::string hostname();
 
-    explicit upnp(class messageloop &);
+    explicit upnp(class platform::messageloop &);
     ~upnp();
 
     const std::string &http_basedir() const;
@@ -131,7 +131,7 @@ public:
 private:
     static upnp * me;
 
-    class messageloop &messageloop;
+    class platform::messageloop &messageloop;
     const std::string basedir;
 
     std::set<child *> children;
@@ -140,7 +140,7 @@ private:
     bool bind_public;
 
     std::set<std::string> available_addresses;
-    timer update_interfaces_timer;
+    platform::timer update_interfaces_timer;
     const std::chrono::seconds update_interfaces_interval;
 
     bool initialized, webserver_enabled;
@@ -149,7 +149,7 @@ private:
     std::mutex responses_mutex;
     struct response { std::string type; std::shared_ptr<std::istream> stream; };
     std::map<std::string, response> responses;
-    timer clear_responses_timer;
+    platform::timer clear_responses_timer;
     const std::chrono::seconds clear_responses_interval;
 
     std::map<void *, std::shared_ptr<std::istream>> handles;

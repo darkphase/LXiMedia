@@ -40,7 +40,7 @@ static const struct media_cache_test
         test_assert(static_cast< ::libvlc_media_t *>(media) != nullptr);
         test_assert(!media.mrl().empty());
 
-        class messageloop messageloop;
+        class platform::messageloop messageloop;
         class media_cache media_cache(messageloop);
         const auto tracks = media_cache.tracks(media);
         test_assert(tracks.size() == 1);
@@ -73,7 +73,7 @@ static const struct media_cache_test
         test_assert(static_cast< ::libvlc_media_t *>(media) != nullptr);
         test_assert(!media.mrl().empty());
 
-        class messageloop messageloop;
+        class platform::messageloop messageloop;
         class media_cache media_cache(messageloop);
         const auto tracks = media_cache.tracks(media);
         test_assert(tracks.size() == 3);
@@ -133,7 +133,7 @@ static std::string write_file(const char *file, const uint8_t *data, size_t size
 {
     const std::string filename = ::filename(file);
 
-    ofstream str(filename, std::ios::binary);
+    platform::ofstream str(filename, std::ios::binary);
     test_assert(str.is_open());
     str.write(reinterpret_cast<const char *>(data), size);
 

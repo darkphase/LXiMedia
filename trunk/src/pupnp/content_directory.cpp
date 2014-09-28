@@ -28,7 +28,7 @@ namespace pupnp {
 const char content_directory::service_id[]   = "urn:upnp-org:serviceId:ContentDirectory";
 const char content_directory::service_type[] = "urn:schemas-upnp-org:service:ContentDirectory:1";
 
-content_directory::content_directory(class messageloop &messageloop, class upnp &upnp, class rootdevice &rootdevice, class connection_manager &connection_manager)
+content_directory::content_directory(class platform::messageloop &messageloop, class upnp &upnp, class rootdevice &rootdevice, class connection_manager &connection_manager)
     : messageloop(messageloop),
       upnp(upnp),
       rootdevice(rootdevice),

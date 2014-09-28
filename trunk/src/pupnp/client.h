@@ -37,7 +37,7 @@ public:
   };
 
 public:
-  client(class messageloop &, class upnp &);
+  client(class platform::messageloop &, class upnp &);
   virtual ~client();
 
   virtual bool initialize(void);
@@ -55,7 +55,7 @@ private:
   bool enable_client(void);
 
 private:
-  class messageloop &messageloop;
+  class platform::messageloop &messageloop;
   class upnp &upnp;
   bool client_enabled;
   int client_handle;

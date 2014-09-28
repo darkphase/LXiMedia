@@ -26,6 +26,8 @@
 #include <queue>
 #include <set>
 
+namespace platform {
+
 class timer;
 
 class messageloop
@@ -87,5 +89,7 @@ void timer::start(std::chrono::duration<rep, period> interval, bool once)
 {
     return start(std::chrono::duration_cast<std::chrono::nanoseconds>(interval), once);
 }
+
+} // End of namespace
 
 #endif

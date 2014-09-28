@@ -30,7 +30,7 @@
 
 struct libvlc_media_t;
 
-class messageloop;
+namespace platform { class messageloop; }
 
 namespace vlc {
 
@@ -57,7 +57,7 @@ public:
     };
 
 public:
-    explicit media_cache(class messageloop &);
+    explicit media_cache(class platform::messageloop &);
     ~media_cache();
 
     void async_parse_items(const std::vector<class media> &items);
@@ -81,7 +81,7 @@ private:
     void finish();
 
 private:
-    class messageloop &messageloop;
+    class platform::messageloop &messageloop;
 
     std::mutex mutex;
     std::condition_variable condition;

@@ -25,7 +25,7 @@
 class watchlist
 {
 public:
-    explicit watchlist(class messageloop &);
+    explicit watchlist(class platform::messageloop &);
     ~watchlist();
 
     bool has_entry(const std::string &mrl);
@@ -35,9 +35,9 @@ public:
     void set_last_seen(const std::string &mrl);
 
 private:
-    class messageloop &messageloop;
-    class inifile inifile;
-    class timer timer;
+    class platform::messageloop &messageloop;
+    class platform::inifile inifile;
+    class platform::timer timer;
     const std::chrono::milliseconds save_delay;
 };
 

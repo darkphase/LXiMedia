@@ -36,7 +36,7 @@ class mediaplayer : private pupnp::content_directory::item_source
 {
 public:
     mediaplayer(
-            class messageloop &,
+            class platform::messageloop &,
             class vlc::instance &,
             pupnp::connection_manager &,
             pupnp::content_directory &,
@@ -58,7 +58,7 @@ private:
     void sever_pending_streams();
 
 private:
-    class messageloop &messageloop;
+    class platform::messageloop &messageloop;
     class vlc::instance &vlc_instance;
     mutable class vlc::media_cache media_cache;
     class pupnp::connection_manager &connection_manager;
@@ -68,7 +68,7 @@ private:
     const std::string basedir;
 
     std::map<std::string, std::pair<int, std::shared_ptr<vlc::transcode_stream>>> pending_streams;
-    timer pending_streams_sever_timer;
+    platform::timer pending_streams_sever_timer;
 
     std::map<std::string, std::vector<std::string>> files_cache;
 };

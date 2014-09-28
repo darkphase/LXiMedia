@@ -15,7 +15,7 @@ static const struct messageloop_test
     struct test post_test;
     static void post()
     {
-        class messageloop messageloop;
+        class platform::messageloop messageloop;
         messageloop.post([&messageloop] { messageloop.stop(123); });
         test_assert(messageloop.run() == 123);
     }
@@ -23,7 +23,7 @@ static const struct messageloop_test
     struct test send_test;
     static void send()
     {
-        class messageloop messageloop;
+        class platform::messageloop messageloop;
 
         int exitcode = -1;
         std::thread looper([&messageloop, &exitcode] { exitcode = messageloop.run(); });
@@ -40,7 +40,7 @@ static const struct messageloop_test
     struct test process_events_test;
     static void process_events()
     {
-        class messageloop messageloop;
+        class platform::messageloop messageloop;
 
         int test = 0;
         messageloop.post([&test] { test = 456; });
@@ -58,12 +58,12 @@ static const struct messageloop_test
         static const int granularity = 32;
 #endif
 
-        class messageloop messageloop;
+        class platform::messageloop messageloop;
 
         int test = 0;
-        class timer timer_1(messageloop, [&test] { test++; });
-        class timer timer_2(messageloop, [&test, &timer_1] { test++; timer_1.stop(); });
-        class timer timer_3(messageloop, [&messageloop] { messageloop.stop(123); });
+        class platform::timer timer_1(messageloop, [&test] { test++; });
+        class platform::timer timer_2(messageloop, [&test, &timer_1] { test++; timer_1.stop(); });
+        class platform::timer timer_3(messageloop, [&messageloop] { messageloop.stop(123); });
 
         timer_1.start(std::chrono::milliseconds(granularity * 2));
         timer_2.start(std::chrono::milliseconds(granularity * 5), true);

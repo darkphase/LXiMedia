@@ -19,12 +19,10 @@
 #include "platform/path.h"
 #include "platform/string.h"
 
-static std::string filename();
-
-watchlist::watchlist(class messageloop &messageloop)
+watchlist::watchlist(class platform::messageloop &messageloop)
     : messageloop(messageloop),
-      inifile(filename()),
-      timer(messageloop, std::bind(&inifile::save, &inifile)),
+      inifile(platform::config_dir() + "watchlist"),
+      timer(messageloop, std::bind(&platform::inifile::save, &inifile)),
       save_delay(250)
 {
     inifile.on_touched = [this] { timer.start(save_delay, true); };
@@ -68,57 +66,3 @@ void watchlist::set_last_seen(const std::string &mrl)
     auto now = std::chrono::system_clock::now().time_since_epoch();
     section.write("last_seen", std::chrono::duration_cast<std::chrono::minutes>(now).count());
 }
-
-#if defined(__unix__)
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <pwd.h>
-
-static std::string home_dir()
-{
-    const char *home = getenv("HOME");
-    if (home)
-        return clean_path(home);
-
-    struct passwd *pw = getpwuid(getuid());
-    if (pw && pw->pw_dir)
-        return clean_path(pw->pw_dir);
-
-    return std::string();
-}
-
-static std::string filename()
-{
-    const char dir[] = "/.config/lximediaserver/";
-    const char file[] = "watchlist";
-
-    const std::string home = home_dir();
-    if (!home.empty())
-    {
-        mkdir((home + dir).c_str(), S_IRWXU);
-        return home + dir + file;
-    }
-
-    return std::string();
-}
-
-#elif defined(WIN32)
-#include <cstdlib>
-#include <direct.h>
-
-static std::string filename()
-{
-    static const wchar_t dir[] = L"\\LXiMediaServer\\";
-    static const wchar_t file[] = L"watchlist";
-
-    const wchar_t * const appdata = _wgetenv(L"APPDATA");
-    if (appdata)
-    {
-        _wmkdir((std::wstring(appdata) + dir).c_str());
-        return from_windows_path(std::wstring(appdata) + dir + file);
-    }
-
-    return std::string();
-}
-#endif

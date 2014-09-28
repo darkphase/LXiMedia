@@ -68,7 +68,7 @@ public:
     };
 
 public:
-    rootdevice(class messageloop &, class upnp &, const std::string &uuid, const std::string &devicetype);
+    rootdevice(class platform::messageloop &, class upnp &, const std::string &uuid, const std::string &devicetype);
     virtual ~rootdevice();
 
     const std::string &http_basedir() const;
@@ -100,7 +100,7 @@ private:
     static const char servicecontrolfile[];
     static const char serviceeventfile[];
 
-    class messageloop &messageloop;
+    class platform::messageloop &messageloop;
     class upnp &upnp;
     const std::string uuid;
     const std::string devicetype;
