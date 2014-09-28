@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef INIFILE_H
-#define INIFILE_H
+#ifndef PLATFORM_INIFILE_H
+#define PLATFORM_INIFILE_H
 
 #include <string>
 #include <functional>

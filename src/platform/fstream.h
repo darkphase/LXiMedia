@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef FSTREAM_H
-#define FSTREAM_H
+#ifndef PLATFORM_FSTREAM_H
+#define PLATFORM_FSTREAM_H
 
 #if defined(_GLIBCXX_FSTREAM)
 # error Do not use <fstream> on Windows; it does not handle UTF-8 properly.

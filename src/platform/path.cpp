@@ -176,6 +176,24 @@ std::vector<std::string> list_files(
     return result;
 }
 
+std::vector<std::string> list_removable_media()
+{
+    struct passwd *pw = getpwuid(getuid());
+    if (pw && pw->pw_dir)
+    {
+        const std::string media_dir = "/media/" + std::string(pw->pw_name) + '/';
+
+        std::vector<std::string> result;
+        for (auto &i : list_files(media_dir, true))
+            if (!list_files(media_dir + i, false, 1).empty())
+                result.emplace_back(media_dir + i);
+
+        return result;
+    }
+
+    return std::vector<std::string>();
+}
+
 std::string home_dir()
 {
     const char *home = getenv("HOME");
@@ -341,7 +359,7 @@ std::vector<std::string> list_files(
         bool directories_only,
         size_t max_count)
 {
-    const std::wstring wpath = clean_path(to_windows_path(to_lower(path))) + L'\\';
+    const std::wstring wpath = clean_path(platform::to_windows_path(::to_lower(path))) + L'\\';
 
     auto &hidden_dirs = platform::hidden_dirs();
     for (auto &i : hidden_dirs)
@@ -379,6 +397,61 @@ std::vector<std::string> list_files(
         } while((result.size() < max_count) && (FindNextFile(handle, &find_data) != 0));
 
         CloseHandle(handle);
+    }
+
+    return result;
+}
+
+std::vector<std::string> list_removable_media()
+{
+    std::vector<std::string> result;
+    for (auto &i : list_root_directories())
+    {
+        switch (GetDriveType(to_windows_path(i).c_str()))
+        {
+        case DRIVE_REMOVABLE:
+        case DRIVE_CDROM:
+            if (!list_files(i, false, 1).empty())
+                result.emplace_back(i);
+
+            break;
+
+        // Detect USB hard drives
+        case DRIVE_FIXED:
+            if (!i.empty())
+            {
+                HANDLE deviceHandle = CreateFile(
+                            (L"\\\\.\\" + to_windows_path(i.substr(0, i.find_first_of('/')))).c_str(),
+                            0, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                            NULL, OPEN_EXISTING, 0, NULL);
+                if (deviceHandle != INVALID_HANDLE_VALUE)
+                {
+                    STORAGE_PROPERTY_QUERY query;
+                    memset(&query, 0, sizeof(query));
+                    query.PropertyId = StorageDeviceProperty;
+                    query.QueryType = PropertyStandardQuery;
+
+                    DWORD bytes;
+                    STORAGE_DEVICE_DESCRIPTOR devd;
+                    if (DeviceIoControl(
+                                deviceHandle,
+                                IOCTL_STORAGE_QUERY_PROPERTY,
+                                &query, sizeof(query),
+                                &devd, sizeof(devd),
+                                &bytes, NULL))
+                    {
+                        if ((devd.BusType == BusTypeUsb) && !list_files(i, false, 1).empty())
+                            result.emplace_back(i);
+                    }
+
+                    CloseHandle(deviceHandle);
+                }
+            }
+            break;
+
+        default:
+            break;
+        }
     }
 
     return result;

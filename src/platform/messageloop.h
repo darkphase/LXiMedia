@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef MESSAGELOOP_H
-#define MESSAGELOOP_H
+#ifndef PLATFORM_MESSAGELOOP_H
+#define PLATFORM_MESSAGELOOP_H
 
 #include <chrono>
 #include <condition_variable>

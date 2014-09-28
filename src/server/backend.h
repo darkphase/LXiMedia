@@ -31,7 +31,7 @@
 #include "pupnp/rootdevice.h"
 #include "pupnp/upnp.h"
 #include "vlc/instance.h"
-#include "mediaplayer.h"
+#include "files.h"
 #include "settings.h"
 #include "setup.h"
 #include "watchlist.h"
@@ -72,7 +72,7 @@ private:
     class html::helppage helppage;
 
     std::unique_ptr<class vlc::instance> vlc_instance;
-    std::unique_ptr<class mediaplayer> mediaplayer;
+    std::unique_ptr<class files> files;
     std::unique_ptr<class setup> setup;
 
     platform::timer republish_timer;

@@ -305,6 +305,21 @@ void settings::set_surround_mode(enum surround_mode surround_mode)
         return general.erase(surround_mode_name);
 }
 
+static const char share_removable_media_name[] = "share_removable_media";
+
+bool settings::share_removable_media() const
+{
+    return general.read(share_removable_media_name, true);
+}
+
+void settings::set_share_removable_media(bool on)
+{
+    if (!on)
+        return general.write(share_removable_media_name, false);
+    else
+        return general.erase(share_removable_media_name);
+}
+
 static const char verbose_logging_name[] = "verbose_logging";
 
 bool settings::verbose_logging_enabled() const
@@ -555,28 +570,28 @@ static struct user_dirs user_dirs()
 
             if (SHGetKnownFolderPath(FOLDERID_Downloads, 0, NULL, &path) == S_OK)
             {
-                user_dirs.download = clean_path(from_windows_path(path)) + '/';
+                user_dirs.download = platform::clean_path(platform::from_windows_path(path)) + '/';
                 CoTaskMemFree(path);
                 path = NULL;
             }
 
             if (SHGetKnownFolderPath(FOLDERID_Music, 0, NULL, &path) == S_OK)
             {
-                user_dirs.music = clean_path(from_windows_path(path)) + '/';
+                user_dirs.music = platform::clean_path(platform::from_windows_path(path)) + '/';
                 CoTaskMemFree(path);
                 path = NULL;
             }
 
             if (SHGetKnownFolderPath(FOLDERID_Pictures, 0, NULL, &path) == S_OK)
             {
-                user_dirs.pictures = clean_path(from_windows_path(path)) + '/';
+                user_dirs.pictures = platform::clean_path(platform::from_windows_path(path)) + '/';
                 CoTaskMemFree(path);
                 path = NULL;
             }
 
             if (SHGetKnownFolderPath(FOLDERID_Videos, 0, NULL, &path) == S_OK)
             {
-                user_dirs.videos = clean_path(from_windows_path(path)) + '/';
+                user_dirs.videos = platform::clean_path(platform::from_windows_path(path)) + '/';
                 CoTaskMemFree(path);
                 path = NULL;
             }
@@ -590,13 +605,13 @@ static struct user_dirs user_dirs()
                 wchar_t path[MAX_PATH];
 
                 if (SHGetFolderPath(NULL, CSIDL_MYMUSIC, NULL, SHGFP_TYPE_CURRENT, path) == S_OK)
-                    user_dirs.music = clean_path(from_windows_path(path)) + '/';
+                    user_dirs.music = platform::clean_path(platform::from_windows_path(path)) + '/';
 
                 if (SHGetFolderPath(NULL, CSIDL_MYPICTURES, NULL, SHGFP_TYPE_CURRENT, path) == S_OK)
-                    user_dirs.pictures = clean_path(from_windows_path(path)) + '/';
+                    user_dirs.pictures = platform::clean_path(platform::from_windows_path(path)) + '/';
 
                 if (SHGetFolderPath(NULL, CSIDL_MYVIDEO, NULL, SHGFP_TYPE_CURRENT, path) == S_OK)
-                    user_dirs.videos = clean_path(from_windows_path(path)) + '/';
+                    user_dirs.videos = platform::clean_path(platform::from_windows_path(path)) + '/';
             }
         }
 
