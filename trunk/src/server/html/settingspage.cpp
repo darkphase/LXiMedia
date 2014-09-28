@@ -260,7 +260,7 @@ static void render_path_box(const std::string &full_path, const std::string &cur
 #ifdef WIN32
             if (full_path.empty())
             {
-                const std::string name = volume_name(i);
+                const std::string name = platform::volume_name(i);
                 if (!name.empty())
                     out << escape_xml(name) << " (" << escape_xml(format_path(i)) << ")";
                 else
@@ -299,6 +299,8 @@ static void render_path_settings(const std::map<std::string, std::string> &query
            << "</p>"
            "<form name=\"pathsettings\" action=\"/settings\" method=\"get\">"
            "<input type=\"hidden\" name=\"save_settings\" value=\"path\" />"
+           "<p><input type=\"checkbox\" name=\"share_removable_media\" value=\"on\"" << is_checked(settings.share_removable_media()) << " />"
+           << tr("Share removable media.") << "</p>"
            "<table>";
 
     const auto paths = settings.root_paths();
@@ -351,6 +353,8 @@ static void render_path_settings(const std::map<std::string, std::string> &query
 
 static void save_path_settings(class settings &settings, const std::map<std::string, std::string> &query)
 {
+    settings.set_share_removable_media(query.find("share_removable_media") != query.end());
+
     auto paths = settings.root_paths();
     bool dirty = false;
 

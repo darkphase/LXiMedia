@@ -15,7 +15,7 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#include "mediaplayer.h"
+#include "files.h"
 #include "platform/path.h"
 #include "platform/string.h"
 #include "platform/translator.h"
@@ -28,7 +28,7 @@
 #include <map>
 #include <sstream>
 
-mediaplayer::mediaplayer(
+files::files(
         class platform::messageloop &messageloop,
         class vlc::instance &vlc_instance,
         pupnp::connection_manager &connection_manager,
@@ -42,13 +42,13 @@ mediaplayer::mediaplayer(
       content_directory(content_directory),
       settings(settings),
       watchlist(watchlist),
-      basedir('/' + tr("Media Player") + '/'),
-      pending_streams_sever_timer(messageloop, std::bind(&mediaplayer::sever_pending_streams, this))
+      basedir('/' + tr("Files") + '/'),
+      pending_streams_sever_timer(messageloop, std::bind(&files::sever_pending_streams, this))
 {
     content_directory.item_source_register(basedir, *this);
 }
 
-mediaplayer::~mediaplayer()
+files::~files()
 {
     content_directory.item_source_unregister(basedir);
 }
@@ -139,7 +139,7 @@ static std::string root_path_name(const std::string &path)
 #ifdef WIN32
     else if (lsl != path.npos)
     {
-        const std::string name = volume_name(path);
+        const std::string name = platform::volume_name(path);
         if (!name.empty())
             return name + " (" + path.substr(0, lsl) + "\\)";
         else
@@ -162,7 +162,7 @@ static void split_path(const std::string &path, std::string &file_path, std::str
         file_path = path;
 }
 
-std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(
+std::vector<pupnp::content_directory::item> files::list_contentdir_items(
         const std::string &client,
         const std::string &path,
         size_t start, size_t &count)
@@ -183,6 +183,13 @@ std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(
                 const auto name = root_path_name(i.path) + '/';
                 files.emplace(dir_prefix + to_lower(name), name);
             }
+
+            if (settings.share_removable_media())
+                for (auto &i : platform::list_removable_media())
+                {
+                    const auto name = root_path_name(i) + '/';
+                    files.emplace(dir_prefix + to_lower(name), name);
+                }
         }
         else if (starts_with(path, basedir))
         {
@@ -217,7 +224,7 @@ std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(
         for (auto &i : files)
             sorted_files.emplace_back(std::move(i.second));
 
-        files_cache.emplace(path, std::move(sorted_files));
+        files_cache[path] = std::move(sorted_files);
         files_cache_item = files_cache.find(path);
     }
 
@@ -271,7 +278,7 @@ std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(
     return result;
 }
 
-pupnp::content_directory::item mediaplayer::get_contentdir_item(const std::string &client, const std::string &path)
+pupnp::content_directory::item files::get_contentdir_item(const std::string &client, const std::string &path)
 {
     return make_item(client, path);
 }
@@ -318,7 +325,7 @@ static void max_scale(const std::string &codec, unsigned srcw, unsigned srch, un
     }
 }
 
-void mediaplayer::correct_protocol(const pupnp::content_directory::item &item, pupnp::connection_manager::protocol &protocol)
+void files::correct_protocol(const pupnp::content_directory::item &item, pupnp::connection_manager::protocol &protocol)
 {
     switch (settings.canvas_mode())
     {
@@ -336,7 +343,7 @@ void mediaplayer::correct_protocol(const pupnp::content_directory::item &item, p
     }
 }
 
-int mediaplayer::play_item(
+int files::play_item(
         const std::string &source_address,
         const pupnp::content_directory::item &item,
         const std::string &profile,
@@ -605,7 +612,7 @@ static void fill_item(
     }
 }
 
-pupnp::content_directory::item mediaplayer::make_item(const std::string &/*client*/, const std::string &path) const
+pupnp::content_directory::item files::make_item(const std::string &/*client*/, const std::string &path) const
 {
     std::string file_path, track_name;
     split_path(path, file_path, track_name);
@@ -665,30 +672,41 @@ pupnp::content_directory::item mediaplayer::make_item(const std::string &/*clien
     return item;
 }
 
-root_path mediaplayer::to_system_path(const std::string &virtual_path) const
+root_path files::to_system_path(const std::string &virtual_path) const
 {
     if (starts_with(virtual_path, basedir))
     {
         const std::string path = virtual_path.substr(basedir.length());
         const std::string root = path.substr(0, path.find_first_of('/'));
+
         for (auto &i : settings.root_paths())
             if (root == root_path_name(i.path))
                 return root_path { i.type, i.path + path.substr(root.length() + 1) };
+
+        if (settings.share_removable_media())
+            for (auto &i : platform::list_removable_media())
+                if (root == root_path_name(i))
+                    return root_path { path_type::auto_, i + path.substr(root.length() + 1) };
     }
 
     return root_path { path_type::auto_, std::string() };
 }
 
-std::string mediaplayer::to_virtual_path(const std::string &system_path) const
+std::string files::to_virtual_path(const std::string &system_path) const
 {
     for (auto &i : settings.root_paths())
         if (starts_with(system_path, i.path))
             return basedir + '/' + root_path_name(i.path) + '/' + system_path.substr(i.path.length());
 
+    if (settings.share_removable_media())
+        for (auto &i : platform::list_removable_media())
+            if (starts_with(system_path, i))
+                return basedir + '/' + root_path_name(i) + '/' + system_path.substr(i.length());
+
     return std::string();
 }
 
-void mediaplayer::sever_pending_streams()
+void files::sever_pending_streams()
 {
     for (auto i = pending_streams.begin(); i != pending_streams.end(); )
         if (++(i->second.first) >= 10)

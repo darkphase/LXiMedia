@@ -128,7 +128,7 @@ static std::string filename(const char *file)
 {
     const wchar_t * const temp = _wgetenv(L"TEMP");
     if (temp)
-        return from_windows_path(std::wstring(temp) + L'\\' + std::to_wstring(_getpid()) + L'.' + to_windows_path(file));
+        return platform::from_windows_path(std::wstring(temp) + L'\\' + std::to_wstring(_getpid()) + L'.' + platform::to_windows_path(file));
 
     throw std::runtime_error("failed to get TEMP directory");
 }

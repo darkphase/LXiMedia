@@ -34,7 +34,7 @@ backend::backend(class platform::messageloop &messageloop, const std::string &lo
       logpage(mainpage, logfilename),
       helppage(mainpage),
       vlc_instance(nullptr),
-      mediaplayer(nullptr),
+      files(nullptr),
       republish_timer(messageloop, std::bind(&backend::republish_rootdevice, this)),
       republish_timeout(15),
       republish_required(false),
@@ -63,13 +63,13 @@ bool backend::initialize()
         vlc_instance.reset(new class vlc::instance(
                                settings.verbose_logging_enabled()));
 
-        mediaplayer.reset(new class mediaplayer(
-                              messageloop,
-                              *vlc_instance,
-                              connection_manager,
-                              content_directory,
-                              settings,
-                              watchlist));
+        files.reset(new class files(
+                        messageloop,
+                        *vlc_instance,
+                        connection_manager,
+                        content_directory,
+                        settings,
+                        watchlist));
 
         setup.reset(new class setup(
                         messageloop,

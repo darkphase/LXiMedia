@@ -58,6 +58,12 @@ public:
     enum surround_mode surround_mode() const;
     void set_surround_mode(enum surround_mode);
 
+    bool share_removable_media() const;
+    void set_share_removable_media(bool);
+
+    bool verbose_logging_enabled() const;
+    void set_verbose_logging_enabled(bool);
+
     bool mpeg2_enabled() const;
     void set_mpeg2_enabled(bool);
     bool mpeg4_enabled() const;
@@ -68,9 +74,6 @@ public:
     void set_video_mpegts_enabled(bool);
     bool video_mpeg_enabled() const;
     void set_video_mpeg_enabled(bool);
-
-    bool verbose_logging_enabled() const;
-    void set_verbose_logging_enabled(bool);
 
     std::vector<root_path> root_paths() const;
     void set_root_paths(const std::vector<root_path> &);

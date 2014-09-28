@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef MEDIAPLAYER_H
-#define MEDIAPLAYER_H
+#ifndef FILES_H
+#define FILES_H
 
 #include "platform/messageloop.h"
 #include "pupnp/connection_manager.h"
@@ -32,10 +32,10 @@ namespace vlc { class instance; class transcode_stream; }
 
 class watchlist;
 
-class mediaplayer : private pupnp::content_directory::item_source
+class files : private pupnp::content_directory::item_source
 {
 public:
-    mediaplayer(
+    files(
             class platform::messageloop &,
             class vlc::instance &,
             pupnp::connection_manager &,
@@ -43,7 +43,7 @@ public:
             const class settings &,
             class watchlist &);
 
-    virtual ~mediaplayer();
+    virtual ~files();
 
 private: // From content_directory::item_source
     std::vector<pupnp::content_directory::item> list_contentdir_items(const std::string &client, const std::string &path, size_t start, size_t &count) override;

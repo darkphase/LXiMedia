@@ -299,7 +299,7 @@ static void WINAPI service_main(DWORD argc, WCHAR *argv[])
             std::wstring filename = std::wstring(temp) + L"\\lximcbackend.log";
             logfile = _wfreopen(filename.c_str(), L"w", stderr);
             if (logfile)
-                logfilename = from_windows_path(filename);
+                logfilename = platform::from_windows_path(filename);
         }
 
         const int result = run(*messageloop, logfilename);

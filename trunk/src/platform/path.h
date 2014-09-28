@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef PATH_H
-#define PATH_H
+#ifndef PLATFORM_PATH_H
+#define PLATFORM_PATH_H
 
 #include <string>
 #include <vector>
@@ -30,6 +30,8 @@ std::vector<std::string> list_files(
         const std::string &path,
         bool directories_only = false,
         size_t max_count = size_t(-1));
+
+std::vector<std::string> list_removable_media();
 
 std::string home_dir();
 std::string config_dir();
