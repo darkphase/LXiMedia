@@ -1,8 +1,0 @@
-<RCC>
-    <qresource prefix="/">
-        <file>img/drive.png</file>
-        <file>img/media-optical.png</file>
-        <file>img/media-tape.png</file>
-        <file>img/played.png</file>
-    </qresource>
-</RCC>

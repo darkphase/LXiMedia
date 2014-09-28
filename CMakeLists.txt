@@ -55,98 +55,73 @@ target_include_directories(
     ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/upnp/src/inc)
 
 #######################################
-# lximediacenter
-aux_source_directory(src/lximcbackend/platform/ LXIMCBACKEND_PLATFORM_SRC_LIST)
-aux_source_directory(src/lximcbackend/pupnp/ LXIMCBACKEND_PUPNP_SRC_LIST)
-aux_source_directory(src/lximcbackend/vlc/ LXIMCBACKEND_VLC_SRC_LIST)
+# lximediaserver
+aux_source_directory(src/platform/ PLATFORM_SRC_LIST)
+aux_source_directory(src/pupnp/ PUPNP_SRC_LIST)
+aux_source_directory(src/vlc/ VLC_SRC_LIST)
 
 set_source_files_properties(
-    ${LXIMCBACKEND_PLATFORM_SRC_LIST} ${LXIMCBACKEND_PUPNP_SRC_LIST} ${LXIMCBACKEND_VLC_SRC_LIST}
+    ${PLATFORM_SRC_LIST} ${PUPNP_SRC_LIST} ${VLC_SRC_LIST}
     PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -DUPNP_STATIC_LIB")
 
-add_library(lximediacenter STATIC ${LXIMCBACKEND_PLATFORM_SRC_LIST} ${LXIMCBACKEND_PUPNP_SRC_LIST} ${LXIMCBACKEND_VLC_SRC_LIST})
-
-target_include_directories(
-    lximediacenter PRIVATE
-    ${CMAKE_SOURCE_DIR}/src/lximcbackend)
-
-#######################################
-# lximcbackend
-aux_source_directory(src/lximcbackend/backend/ LXIMCBACKEND_SRC_LIST)
-aux_source_directory(src/lximcbackend/backend/html/ LXIMCBACKEND_HTML_SRC_LIST)
+aux_source_directory(src/server/ SERVER_SRC_LIST)
+aux_source_directory(src/server/html/ SERVER_HTML_SRC_LIST)
 
 set_source_files_properties(
-    ${LXIMCBACKEND_SRC_LIST} ${LXIMCBACKEND_HTML_SRC_LIST}
+    ${SERVER_SRC_LIST} ${SERVER_HTML_SRC_LIST}
     PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -DVERSION=\\\"${VERSION}\\\"")
 
-add_executable(lximcbackend ${LXIMCBACKEND_SRC_LIST} ${LXIMCBACKEND_HTML_SRC_LIST})
+add_executable(
+    lximediaserver
+    ${PLATFORM_SRC_LIST} ${PUPNP_SRC_LIST} ${VLC_SRC_LIST}
+    ${SERVER_SRC_LIST} ${SERVER_HTML_SRC_LIST})
 
 target_include_directories(
-    lximcbackend PRIVATE
-    ${CMAKE_SOURCE_DIR}/src/lximcbackend
-    ${CMAKE_SOURCE_DIR}/src/lximcbackend/backend)
+    lximediaserver PRIVATE
+    ${CMAKE_SOURCE_DIR}/src)
 
-target_link_libraries(lximcbackend lximediacenter pupnp)
+target_link_libraries(lximediaserver pupnp)
 if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
-    target_link_libraries(lximcbackend ws2_32 iphlpapi rpcrt4)
-    set_target_properties(lximcbackend PROPERTIES LINK_FLAGS "${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlc.dll")
+    target_link_libraries(lximediaserver ws2_32 iphlpapi rpcrt4)
+    set_target_properties(lximediaserver PROPERTIES LINK_FLAGS "${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlc.dll")
 else()
-    target_link_libraries(lximcbackend uuid vlc pthread)
+    target_link_libraries(lximediaserver uuid vlc pthread)
 endif()
 
-# lximcbackend_test
-aux_source_directory(test/lximcbackend/ LXIMCBACKEND_TEST_SRC_LIST)
-aux_source_directory(test/lximcbackend/vlc/ LXIMCBACKEND_VLC_TEST_SRC_LIST)
+#######################################
+# test
+if(${CMAKE_BUILD_TYPE} STREQUAL Debug)
+    aux_source_directory(test/platform/ TEST_PLATFORM_SRC_LIST)
+    aux_source_directory(test/vlc/ TEST_VLC_SRC_LIST)
+    aux_source_directory(test/ TEST_SRC_LIST)
 
-set_source_files_properties(
-    ${LXIMCBACKEND_TEST_SRC_LIST} ${LXIMCBACKEND_VLC_TEST_SRC_LIST}
-    PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall")
+    set_source_files_properties(
+        ${TEST_PLATFORM_SRC_LIST} ${TEST_VLC_SRC_LIST} ${TEST_SRC_LIST}
+        PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall")
 
-add_executable(lximcbackend_test ${LXIMCBACKEND_TEST_SRC_LIST} ${LXIMCBACKEND_VLC_TEST_SRC_LIST})
+    add_executable(lximediaserver_test ${TEST_PLATFORM_SRC_LIST} ${TEST_VLC_SRC_LIST} ${TEST_SRC_LIST})
 
-target_include_directories(
-    lximcbackend_test PRIVATE
-    ${CMAKE_SOURCE_DIR}/src/lximcbackend
-    ${CMAKE_SOURCE_DIR}/src/lximcbackend/backend
-    ${CMAKE_SOURCE_DIR}/test/lximcbackend)
+    target_include_directories(
+        lximediaserver_test PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/test)
 
-target_link_libraries(lximcbackend_test pupnp)
-if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
-    target_link_libraries(lximcbackend_test ws2_32 iphlpapi rpcrt4)
-    set_target_properties(lximcbackend_test PROPERTIES LINK_FLAGS "${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlc.dll")
-else()
-    target_link_libraries(lximcbackend_test uuid vlc pthread)
-endif()
+    target_link_libraries(lximediaserver_test pupnp)
+    if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+        target_link_libraries(lximediaserver_test ws2_32 iphlpapi rpcrt4)
+        set_target_properties(lximediaserver_test PROPERTIES LINK_FLAGS "${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlc.dll")
+    else()
+        target_link_libraries(lximediaserver_test uuid vlc pthread)
+    endif()
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
-else()
-    if(${CMAKE_BUILD_TYPE} STREQUAL Debug)
-        add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/testreport.txt COMMAND lximcbackend_test > testreport.txt DEPENDS lximcbackend_test VERBATIM)
+    if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+    else()
+        add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/testreport.txt COMMAND ${CMAKE_BINARY_DIR}/lximediaserver_test > testreport.txt DEPENDS lximediaserver_test VERBATIM)
         add_custom_target(testreport ALL DEPENDS testreport.txt VERBATIM)
     endif()
 endif()
 
 #######################################
-# lximclauncher
-aux_source_directory(src/lximcbackend/launcher/ LXIMCLAUNCHER_SRC_LIST)
-
-set_source_files_properties(
-    ${LXIMCLAUNCHER_SRC_LIST}
-    PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -DVERSION=\\\"${VERSION}\\\"")
-
-add_executable(lximclauncher ${LXIMCLAUNCHER_SRC_LIST})
-
-target_include_directories(
-    lximclauncher PRIVATE
-    ${CMAKE_SOURCE_DIR}/src/lximcbackend)
-
-target_link_libraries(lximclauncher lximediacenter pupnp)
-if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
-    target_link_libraries(lximclauncher ws2_32 iphlpapi)
-else()
-    target_link_libraries(lximclauncher pthread)
-endif()
-
-#######################################
 # install
-install(TARGETS lximcbackend lximclauncher RUNTIME DESTINATION bin)
+install(TARGETS lximediaserver RUNTIME DESTINATION bin)
+

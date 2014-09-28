@@ -1,0 +1,36 @@
+#!/bin/sh -e
+
+# This script is called twice during the removal of the package; once
+# after the removal of the package's files from the system, and as
+# the final step in the removal of this package, after the package's
+# conffiles have been removed.
+
+USER=lximediacenter
+NAME=lximediaserver
+HOME=/var/lib/$USER
+
+case "$1" in
+	remove|disappear|upgrade|failed-upgrade|abort-install|abort-upgrade)
+		;;
+
+	purge)
+		killall $NAME 2> /dev/null || echo "No backends killed"
+		if getent passwd $USER > /dev/null ; then
+			deluser --system --quiet --remove-home $USER
+		fi
+		if getent group $USER > /dev/null ; then
+			delgroup --system --quiet $USER
+		fi
+		if [ -d $HOME ]; then
+			rm -rf $HOME
+		fi
+		rm -f /etc/sudoers.d/$USER
+		;;
+
+	*)
+		echo "$0: didn't understand being called with \`$1'" 1>&2
+		exit 1
+		;;
+esac
+
+#DEBHELPER#
