@@ -39,8 +39,8 @@ static int run(class platform::messageloop &messageloop, const std::string &logf
 #include <unistd.h>
 #include <fstream>
 
-static const char pidfilename[] = "/var/run/lximcbackend.pid";
-static const char logfilename[] = "/var/log/lximcbackend.log";
+static const char pidfilename[] = "/var/run/lximediaserver.pid";
+static const char logfilename[] = "/tmp/lximediaserver.log";
 
 static int stop_daemon()
 {
@@ -296,7 +296,7 @@ static void WINAPI service_main(DWORD argc, WCHAR *argv[])
         std::string logfilename;
         if (temp)
         {
-            std::wstring filename = std::wstring(temp) + L"\\lximcbackend.log";
+            std::wstring filename = std::wstring(temp) + L"lximediaserver.log";
             logfile = _wfreopen(filename.c_str(), L"w", stderr);
             if (logfile)
                 logfilename = platform::from_windows_path(filename);

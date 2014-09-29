@@ -280,23 +280,6 @@ static void render_path_settings(const std::map<std::string, std::string> &query
 {
     out << "<fieldset>"
            "<legend>" << tr("Folders") << "</legend>"
-           "<p>"
-           << tr("By default, the LXiMediaServer backend (lximcbackend) runs as a restricted user.") << ' '
-#if defined(__unix__)
-           << tr("The user and group \"lximediacenter\" were created during installation for this purpose.") << ' '
-#elif defined(WIN32)
-           << tr("The \"Local Service\" user is used for this purpose.") << ' '
-#endif
-           << tr("This means that all files that need to be accessed by LXiMediaServer, need to be accessible by this user.") << ' '
-#if defined(__unix__)
-           << tr("This can be done by setting the read permission for \"other\" users on the files and directories "
-                 "that need to be accessed by the LXiMediaServer backend.") << ' '
-#elif defined(WIN32)
-           << tr("This can be done by adding \"Everyone\" with the read permission set to the files and directories "
-                 "that need to be accessed by the LXiMediaServer backend.") << ' '
-#endif
-           << tr("Furthermore, certain system directories can not be selected to prevent security issues.")
-           << "</p>"
            "<form name=\"pathsettings\" action=\"/settings\" method=\"get\">"
            "<input type=\"hidden\" name=\"save_settings\" value=\"path\" />"
            "<p><input type=\"checkbox\" name=\"share_removable_media\" value=\"on\"" << is_checked(settings.share_removable_media()) << " />"

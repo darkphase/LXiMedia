@@ -12,6 +12,8 @@ install: build
 	dh_prep
 	dh_installdirs -ptmp usr/bin
 	$(MAKE) install
+	mkdir -p debian/tmp/etc/xdg/autostart
+	cp deploy/debian/lximediaserver.desktop debian/tmp/etc/xdg/autostart/
 	dh_install --fail-missing --sourcedir=debian/tmp
 
 binary: install

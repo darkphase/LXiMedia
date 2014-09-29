@@ -5,22 +5,13 @@ HOME=/var/lib/$USER
 
 case "$1" in
 	configure)
-		if ! getent group $USER > /dev/null ; then
-			addgroup --system --quiet $USER
-		fi
-		if ! getent passwd $USER > /dev/null ; then
-			adduser --system --quiet --ingroup $USER --home "$HOME" $USER
-		fi
-		adduser $USER audio
-		adduser $USER video
-		echo $USER ALL = NOPASSWD: /sbin/shutdown > /etc/sudoers.d/$USER
-		chmod 0440 /etc/sudoers.d/$USER
+		lximediaserver --daemon `who -m | grep -Eo '^[^ ]+'`
 		;;
 
-		abort-upgrade|abort-remove|abort-deconfigure)
+	abort-upgrade|abort-remove|abort-deconfigure)
 		;;
 
-		*)
+	*)
 		echo "postinst called with unknown argument \`$1'" >&2
 		exit 1
 		;;
