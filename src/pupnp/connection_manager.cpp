@@ -225,6 +225,9 @@ void connection_manager::write_eventable_statevariables(rootdevice::eventable_pr
     for (auto &protocol : source_audio_protocol_list)
         sp += "," + protocol.to_string(true);
 
+    for (auto &protocol : source_video_protocol_list)
+        sp += "," + protocol.to_string(true);
+
     propset.add_property("SourceProtocolInfo", sp.empty() ? sp : sp.substr(1));
 
     sp.clear();
@@ -233,7 +236,11 @@ void connection_manager::write_eventable_statevariables(rootdevice::eventable_pr
 
     propset.add_property("SinkProtocolInfo", sp.empty() ? sp : sp.substr(1));
 
-    propset.add_property("CurrentConnectionIDs", "");
+    sp.clear();
+    for (auto &connection : connections)
+        sp += "," + std::to_string(connection.first);
+
+    propset.add_property("CurrentConnectionIDs", sp.empty() ? sp : sp.substr(1));
 }
 
 int32_t connection_manager::output_connection_add(const struct protocol &protocol)
@@ -314,6 +321,9 @@ void connection_manager::handle_action(const upnp::request &, action_get_protoco
 {
     std::string source_protocols;
     for (auto &protocol : source_audio_protocol_list)
+        source_protocols += "," + protocol.to_string(true);
+
+    for (auto &protocol : source_video_protocol_list)
         source_protocols += "," + protocol.to_string(true);
 
     source_protocols = source_protocols.empty() ? source_protocols : source_protocols.substr(1);
