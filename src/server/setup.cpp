@@ -110,12 +110,11 @@ int setup::play_item(
 
 static bool shutdown()
 {
-    // This only works if "your_username ALL = NOPASSWD: /sbin/shutdown" is added to sudoers.
-    const int exitcode = system("sudo shutdown -h now");
+    const int exitcode = system("/usr/bin/dbus-send --system --print-reply --dest=\"org.freedesktop.ConsoleKit\" /org/freedesktop/ConsoleKit/Manager org.freedesktop.ConsoleKit.Manager.Stop");
     if (exitcode == 0)
         return true;
 
-    std::clog << "\"sudo shutdown -h now\" failed with exit code " << exitcode << '.' << std::endl;
+    std::clog << "\"/usr/bin/dbus-send\" failed with exit code " << exitcode << '.' << std::endl;
     return false;
 }
 #elif defined(WIN32)
