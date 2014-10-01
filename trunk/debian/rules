@@ -13,14 +13,17 @@ install: build
 	dh_installdirs -ptmp usr/bin
 	$(MAKE) install
 	mkdir -p debian/tmp/etc/xdg/autostart
-	cp deploy/debian/lximediaserver.desktop debian/tmp/etc/xdg/autostart/
+	cp deploy/debian/lximediaserver-autostart.desktop debian/tmp/etc/xdg/autostart/lximediaserver.desktop
+	mkdir -p debian/tmp/usr/share/applications
+	cp deploy/debian/lximediaserver-app.desktop debian/tmp/usr/share/applications/lximediaserver.desktop
+	mkdir -p debian/tmp/usr/share/icons/hicolor/scalable/apps
+	cp deploy/debian/lximediaserver.svg debian/tmp/usr/share/icons/hicolor/scalable/apps/lximediaserver.svg
 	dh_install --fail-missing --sourcedir=debian/tmp
 
 binary: install
 	dh_testdir
 	dh_testroot
 	dh_lintian
-	dh_installinit --init-script=lximcbackend -- start 41 1 2 3 4 5 . stop 80 0 6 .
 	dh_link
 	dh_compress
 	dh_fixperms

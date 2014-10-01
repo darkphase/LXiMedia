@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=LXiMediaServer
+Comment=Share your media files using DLNA
+Exec=lximediaserver
+Terminal=false
+Type=Application
+Icon=lximediaserver

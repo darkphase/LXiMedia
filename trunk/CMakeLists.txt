@@ -71,10 +71,16 @@ set_source_files_properties(
     ${SERVER_SRC_LIST} ${SERVER_HTML_SRC_LIST}
     PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -DVERSION=\\\"${VERSION}\\\"")
 
+if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+    SET(SERVER_RESOURCES ${CMAKE_SOURCE_DIR}/deploy/win32/lximediaserver.rc)
+else()
+    SET(SERVER_RESOURCES)
+endif()
+
 add_executable(
     lximediaserver
     ${PLATFORM_SRC_LIST} ${PUPNP_SRC_LIST} ${VLC_SRC_LIST}
-    ${SERVER_SRC_LIST} ${SERVER_HTML_SRC_LIST})
+    ${SERVER_SRC_LIST} ${SERVER_HTML_SRC_LIST} ${SERVER_RESOURCES})
 
 target_include_directories(
     lximediaserver PRIVATE
@@ -83,7 +89,8 @@ target_include_directories(
 target_link_libraries(lximediaserver pupnp)
 if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
     target_link_libraries(lximediaserver ws2_32 iphlpapi rpcrt4)
-    set_target_properties(lximediaserver PROPERTIES LINK_FLAGS "${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlc.dll")
+    set_target_properties(lximediaserver PROPERTIES COMPILE_FLAGS "-mwindows")
+    set_target_properties(lximediaserver PROPERTIES LINK_FLAGS "-mwindows ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlc.dll")
 else()
     target_link_libraries(lximediaserver uuid vlc pthread)
 endif()
@@ -109,7 +116,8 @@ if(${CMAKE_BUILD_TYPE} STREQUAL Debug)
     target_link_libraries(lximediaserver_test pupnp)
     if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
         target_link_libraries(lximediaserver_test ws2_32 iphlpapi rpcrt4)
-        set_target_properties(lximediaserver_test PROPERTIES LINK_FLAGS "${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlc.dll")
+        set_target_properties(lximediaserver PROPERTIES COMPILE_FLAGS "-mconsole")
+        set_target_properties(lximediaserver_test PROPERTIES LINK_FLAGS "-mconsole ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlc.dll")
     else()
         target_link_libraries(lximediaserver_test uuid vlc pthread)
     endif()
