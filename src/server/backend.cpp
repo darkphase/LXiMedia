@@ -108,6 +108,16 @@ bool backend::initialize()
     return false;
 }
 
+const std::set<std::string> & backend::bound_addresses() const
+{
+    return upnp.bound_addresses();
+}
+
+uint16_t backend::bound_port() const
+{
+    return upnp.bound_port();
+}
+
 void backend::republish_rootdevice()
 {
     assert(republish_required);
