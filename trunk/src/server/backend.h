@@ -49,6 +49,9 @@ public:
 
     bool initialize();
 
+    const std::set<std::string> & bound_addresses() const;
+    uint16_t bound_port() const;
+
 private:
     void republish_rootdevice();
     bool apply_settings();
