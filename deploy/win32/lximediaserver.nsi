@@ -33,9 +33,8 @@ Section "-Files" SecFiles
 
   nsisFirewall::AddAuthorizedApplication "$INSTDIR\lximediaserver.exe" "LeX-Interactive MediaServer"
 
-  ExecWait '"$INSTDIR\lximediaserver.exe" --install'
   CreateShortCut "$SMPROGRAMS\LXiMediaServer.lnk" "$INSTDIR\lximediaserver.exe" "" "$INSTDIR\lximediaserver.exe" 0
-  Exec '"$INSTDIR\lximediaserver.exe"'
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "LXiMediaServer" '"$INSTDIR\lximediaserver.exe" --run'
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\LXiMediaServer" "DisplayName" "LeX-Interactive MediaServer"
@@ -45,8 +44,8 @@ SectionEnd
 Section "Uninstall"
   Delete "$INSTDIR\Uninstall.exe"
 
-  ExecWait '"$INSTDIR\lximediaserver.exe" --uninstall'
   ExecWait 'cmd /C "taskkill /F /IM lximediaserver.exe || tskill lximediaserver.exe /A"'
+  DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "LXiMediaServer"
 
   nsisFirewall::RemoveAuthorizedApplication "$INSTDIR\lximediaserver.exe"
 
