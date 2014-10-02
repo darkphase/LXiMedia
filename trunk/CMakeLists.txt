@@ -88,7 +88,7 @@ target_include_directories(
 
 target_link_libraries(lximediaserver pupnp)
 if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
-    target_link_libraries(lximediaserver ws2_32 iphlpapi rpcrt4)
+    target_link_libraries(lximediaserver ws2_32 iphlpapi rpcrt4 shell32)
     set_target_properties(lximediaserver PROPERTIES COMPILE_FLAGS "-mwindows")
     set_target_properties(lximediaserver PROPERTIES LINK_FLAGS "-mwindows ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlc.dll")
 else()

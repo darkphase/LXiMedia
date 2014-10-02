@@ -130,14 +130,22 @@ static bool open_url(const std::string &location)
 }
 
 #elif defined(WIN32)
+#include <windows.h>
+#include <shellapi.h>
 
 static bool is_root()
 {
+    wchar_t buffer[64];
+    DWORD bufferSize = sizeof(buffer) / sizeof(*buffer);
+
+    if (GetUserName(buffer, &bufferSize))
+        return _wcsicmp(buffer, L"SYSTEM") == 0;
+
     return false;
 }
 
 static bool open_url(const std::string &location)
 {
-    return system(("start " + location).c_str()) == 0;
+    return int(ShellExecute(NULL, L"open", to_utf16(location).c_str(), NULL, NULL, SW_SHOWNORMAL)) > 32;
 }
 #endif
