@@ -64,7 +64,7 @@ void connection_manager::add_source_video_protocol(
         const char *name,
         const char *mime, const char *suffix,
         unsigned sample_rate, unsigned channels,
-        unsigned width, unsigned height,
+        unsigned width, unsigned height, float aspect,
         unsigned frame_rate_num, unsigned frame_rate_den,
         const char *acodec, const char *vcodec, const char *mux,
         const char *fast_encode_options, const char *slow_encode_options)
@@ -79,7 +79,7 @@ void connection_manager::add_source_video_protocol(
                                                 true, false, false,
                                                 name, suffix,
                                                 sample_rate, channels,
-                                                width, height,
+                                                width, height, aspect,
                                                 frame_rate_num, frame_rate_den));
 
     auto &protocol = source_video_protocol_list.back();
@@ -123,11 +123,13 @@ std::vector<connection_manager::protocol> connection_manager::get_protocols(unsi
     {
         int score = 0;
         score += ((protocol.channels > 2) == (channels > 2)) ? -2 : 0;
-        score += ((protocol.width > 1280) == (width > 1280)) ? -1 : 0;
-        score += ((protocol.width >  876) == (width >  876)) ? -1 : 0;
-        score += ((protocol.width >  640) == (width >  640)) ? -1 : 0;
-        score += ((protocol.width >  352) == (width >  352)) ? -1 : 0;
-        score += ((protocol.width <= 352) == (width <= 352)) ? -1 : 0;
+
+        const unsigned pwidth = unsigned((protocol.width * protocol.aspect) + 0.5f);
+        score += ((pwidth > 1280) == (width > 1280)) ? -1 : 0;
+        score += ((pwidth >  876) == (width >  876)) ? -1 : 0;
+        score += ((pwidth >  640) == (width >  640)) ? -1 : 0;
+        score += ((pwidth >  352) == (width >  352)) ? -1 : 0;
+        score += ((pwidth <= 352) == (width <= 352)) ? -1 : 0;
 
         const float rate = float(protocol.frame_rate_num) / float(protocol.frame_rate_den);
         score += (std::fabs(rate - frame_rate) > 0.01f) ? 2 : 0;
@@ -345,8 +347,7 @@ connection_manager::protocol::protocol()
 {
 }
 
-connection_manager::protocol::protocol(
-        const std::string &network_protocol,
+connection_manager::protocol::protocol(const std::string &network_protocol,
         const std::string &content_format,
         bool conversion_indicator,
         bool operations_range,
@@ -354,14 +355,14 @@ connection_manager::protocol::protocol(
         const std::string &profile,
         const std::string &suffix,
         unsigned sample_rate, unsigned channels,
-        unsigned width, unsigned height,
+        unsigned width, unsigned height, float aspect,
         unsigned frame_rate_num, unsigned frame_rate_den)
     : network_protocol(network_protocol), network("*"), content_format(content_format),
       profile(profile), play_speed(true), conversion_indicator(conversion_indicator),
       operations_range(operations_range), operations_timeseek(operations_timeseek),
       flags(starts_with(content_format, "image/") ? "00100000" : "01700000"),
       suffix(suffix), sample_rate(sample_rate), channels(channels),
-      width(width), height(height),
+      width(width), height(height), aspect(aspect),
       frame_rate_num(frame_rate_num), frame_rate_den(frame_rate_den)
 {
 }

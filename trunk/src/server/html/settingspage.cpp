@@ -139,17 +139,11 @@ static void render_dlna_settings(const class settings &settings, std::ostream &o
            "<option value=\"dvd\""                  << is_selected(settings.video_mode() == video_mode::dvd         ) << ">" << tr("DVD; 576p") << "</option>"
            "<option value=\"hdtv_720\""             << is_selected(settings.video_mode() == video_mode::hdtv_720    ) << ">" << tr("HDTV; 720p") << "</option>"
            "<option value=\"hdtv_1080\""            << is_selected(settings.video_mode() == video_mode::hdtv_1080   ) << ">" << tr("HDTV; 1080p") << "</option>"
-           "</select><select name=\"canvas_mode\""  << is_enabled(settings.canvas_mode_enabled()) << ">"
+           "</select><select name=\"canvas_mode\">"
            "<option value=\"none\""                 << is_selected(settings.canvas_mode() == canvas_mode::none      ) << ">" << tr("None") << "</option>"
            "<option value=\"pad\""                  << is_selected(settings.canvas_mode() == canvas_mode::pad       ) << ">" << tr("Add black bars") << "</option>"
            "<option value=\"crop\""                 << is_selected(settings.canvas_mode() == canvas_mode::crop      ) << ">" << tr("Crop video") << "</option>"
            "</select></p>";
-
-    if (!settings.canvas_mode_enabled())
-    {
-        out << "<p class=\"bug\">Adding black bars or cropping video is disabled due to a "
-               "<a href=\"https://trac.videolan.org/vlc/ticket/10148\">bug</a> in the current VLC version.</p>";
-    }
 
     out << "<p>" << tr("Audio settings") << ":</p>"
            "<p><select name=\"surround_mode\"" << is_enabled(settings.surround_mode_enabled()) << ">"

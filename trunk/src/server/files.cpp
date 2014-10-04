@@ -19,6 +19,7 @@
 #include "platform/path.h"
 #include "platform/string.h"
 #include "platform/translator.h"
+#include "vlc/instance.h"
 #include "vlc/media.h"
 #include "vlc/transcode_stream.h"
 #include "watchlist.h"
@@ -332,7 +333,7 @@ void files::correct_protocol(const pupnp::content_directory::item &item, pupnp::
     case canvas_mode::none:
         min_scale(
                     protocol.vcodec,
-                    item.width, item.height,
+                    item.width / protocol.aspect, item.height,
                     protocol.width, protocol.height,
                     protocol.width, protocol.height);
         break;
@@ -356,11 +357,12 @@ int files::play_item(
         correct_protocol(item, protocol);
 
         float rate = 1.0f;
+        std::string transcode_plugin = "#transcode";
         std::ostringstream transcode;
         if (!protocol.acodec.empty() || !protocol.vcodec.empty())
         {
             // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
-            transcode << "#transcode{";
+            transcode << "{";
 
             if (!protocol.vcodec.empty())
             {
@@ -385,7 +387,7 @@ int files::play_item(
                 case canvas_mode::pad:
                     min_scale(
                                 protocol.vcodec,
-                                item.width, item.height,
+                                unsigned((item.width / protocol.aspect) + 0.5f), item.height,
                                 protocol.width, protocol.height,
                                 width, height);
                     break;
@@ -393,32 +395,31 @@ int files::play_item(
                 case canvas_mode::crop:
                     max_scale(
                                 protocol.vcodec,
-                                item.width, item.height,
+                                unsigned((item.width / protocol.aspect) + 0.5f), item.height,
                                 protocol.width, protocol.height,
                                 width, height);
                     break;
                 }
 
                 transcode << ",width=" << protocol.width << ",height=" << protocol.height;
-                if (width < protocol.width)
+
+                if ((width != protocol.width) || (height != protocol.height))
                 {
-                    const unsigned pad = ((protocol.width - width) / 2);
-                    transcode << ",vfilter=croppadd{paddleft=" << pad << ",paddright=" << pad << '}';
-                }
-                else if (width > protocol.width)
-                {
-                    const unsigned crop = ((width - protocol.width) / 2);
-                    transcode << ",vfilter=croppadd{cropleft=" << crop << ",cropright=" << crop << '}';
-                }
-                else if (height < protocol.height)
-                {
-                    const unsigned pad = ((protocol.height - height) / 2);
-                    transcode << ",vfilter=croppadd{paddtop=" << pad << ",paddbottom=" << pad << '}';
-                }
-                else if (height > protocol.height)
-                {
-                    const unsigned crop = ((height - protocol.height) / 2);
-                    transcode << ",vfilter=croppadd{croptop=" << crop << ",cropbottom=" << crop << '}';
+                    // Workaround for ticket https://trac.videolan.org/vlc/ticket/10148
+                    if (vlc::instance::compare_version(2, 1) == 0)
+                        transcode_plugin = "#lximedia_transcode";
+
+                    transcode
+                            << ",vfilter=canvas{width=" << protocol.width
+                            << ",height=" << protocol.height;
+
+                    const float aspect = float(protocol.width * protocol.aspect) / float(protocol.height);
+                    if (std::abs(aspect - 1.33333f) < 0.1f)
+                        transcode << ",aspect=4:3";
+                    else if (std::abs(aspect - 1.77778f) < 0.1f)
+                        transcode << ",aspect=16:9";
+
+                    transcode << ",padd=true}";
                 }
 
                 switch (settings.encode_mode())
@@ -520,8 +521,8 @@ int files::play_item(
         });
 
         if ((item.chapter > 0)
-                ? stream->open(item.mrl, item.chapter, track_ids, transcode.str(), protocol.mux, rate)
-                : stream->open(item.mrl, item.position, track_ids, transcode.str(), protocol.mux, rate))
+                ? stream->open(item.mrl, item.chapter, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate)
+                : stream->open(item.mrl, item.position, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate))
         {
             if (pending_streams.empty())
                 pending_streams_sever_timer.start(std::chrono::seconds(1));
