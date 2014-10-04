@@ -29,7 +29,7 @@ backend::backend(class platform::messageloop &messageloop, const std::string &lo
       connection_manager(messageloop, rootdevice),
       content_directory(messageloop, upnp, rootdevice, connection_manager),
       mediareceiver_registrar(messageloop, rootdevice),
-      mainpage(upnp, connection_manager),
+      mainpage(messageloop, upnp, connection_manager),
       settingspage(mainpage, settings, std::bind(&backend::apply_settings, this)),
       logpage(mainpage, logfilename),
       helppage(mainpage),

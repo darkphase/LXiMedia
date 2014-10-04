@@ -36,8 +36,9 @@ static const char base_css[] = {
 
 namespace html {
 
-mainpage::mainpage(class pupnp::upnp &upnp, class pupnp::connection_manager &connection_manager)
-    : upnp(upnp),
+mainpage::mainpage(class platform::messageloop &messageloop, class pupnp::upnp &upnp, class pupnp::connection_manager &connection_manager)
+    : messageloop(messageloop),
+      upnp(upnp),
       connection_manager(connection_manager)
 {
     using namespace std::placeholders;
@@ -120,6 +121,13 @@ int mainpage::handle_http_request(const struct pupnp::upnp::request &request, st
         content_type = file->second.content_type;
         response = std::make_shared<std::stringstream>(std::string(file->second.data, file->second.size));
         return pupnp::upnp::http_ok;
+    }
+
+    if (request.url.path == "/quit")
+    {
+        messageloop.stop(0);
+
+        return pupnp::upnp::http_no_content;
     }
 
     return pupnp::upnp::http_not_found;
