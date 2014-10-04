@@ -64,7 +64,7 @@ std::string client::get(const std::string &location)
     char content_type[LINE_SIZE];
     if (::UpnpDownloadUrlItem(location.c_str(), &buffer, content_type) == UPNP_E_SUCCESS)
     {
-        std::string result(buffer);
+        std::string result(buffer ? std::string(buffer) : std::string());
         ::free(buffer);
         return result;
     }

@@ -303,7 +303,7 @@ void upnp::enable_webserver()
 
             std::string content_type;
             std::shared_ptr<std::istream> response;
-            if (me->get_response(request, content_type, response, false) == http_ok)
+            if (me->get_response(request, content_type, response, false) != http_not_found)
             {
                 info->file_length = -1;
                 if (response)
@@ -449,7 +449,7 @@ int upnp::get_response(const struct request &request, std::string &content_type,
             result = http_internal_server_error;
     });
 
-    if (!erase && (result == http_ok))
+    if (!erase && (result != http_not_found))
     {
         std::lock_guard<std::mutex> _(responses_mutex);
         responses[request.url.path] = response { content_type, stream };

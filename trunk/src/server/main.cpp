@@ -9,6 +9,7 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <set>
 
 static std::unique_ptr<class backend> backend_ptr;
 
@@ -38,30 +39,26 @@ static int run_server(class platform::messageloop &messageloop)
 
 static bool open_url(const std::string &location);
 
-static bool find_server(class platform::messageloop &messageloop, std::chrono::milliseconds duration)
+static std::set<std::string> find_server(class platform::messageloop &messageloop, std::chrono::milliseconds duration)
 {
     class pupnp::upnp upnp(messageloop);
     class pupnp::client client(messageloop, upnp);
 
-    bool found = false;
+    std::set<std::string> result;
     if (upnp.initialize(0))
     {
         const std::string my_id = "uuid:" + settings(messageloop).uuid();
 
-        client.device_discovered = [&messageloop, &upnp, &client, &found, &my_id](const std::string &device_id, const std::string &location)
+        client.device_discovered = [&messageloop, &upnp, &client, &result, &my_id](const std::string &device_id, const std::string &location)
         {
-            if (!found && (device_id == my_id) && starts_with(location, "http://"))
+            if ((device_id == my_id) && starts_with(location, "http://"))
             {
                 const size_t sl = location.find_first_of(":/", 7);
                 if ((sl != location.npos) && upnp.is_my_address(location.substr(7, sl - 7)))
                 {
                     struct pupnp::client::device_description device_description;
                     if (client.read_device_description(location, device_description))
-                    {
-                        open_url(device_description.presentation_url);
-                        found = true;
-                        messageloop.stop(0);
-                    }
+                        result.insert(device_description.presentation_url);
                 }
             }
         };
@@ -71,7 +68,19 @@ static bool find_server(class platform::messageloop &messageloop, std::chrono::m
         messageloop.process_events(duration);
     }
 
-    return found;
+    return result;
+}
+
+static std::string get_url(const std::set<std::string> &urls)
+{
+    for (auto &i : urls)
+        if (i.find("127.0.0.1") != i.npos)
+            return i;
+
+    if (!urls.empty())
+        return *urls.begin();
+
+    return std::string();
 }
 
 static bool is_root();
@@ -87,33 +96,55 @@ int main(int argc, const char *argv[])
     setlocale(LC_ALL, "");
 
     class platform::messageloop messageloop;
+    const auto urls = find_server(messageloop, std::chrono::milliseconds(500));
 
     for (int i = 1; i < argc; i++)
         if (strcmp(argv[i], "--run") == 0)
-            return run_server(messageloop);
-
-    if (!find_server(messageloop, std::chrono::milliseconds(500)))
-    {
-        messageloop.post([]
         {
-            if (backend_ptr)
+            if (urls.empty())
+                return run_server(messageloop);
+            else
+                std::cerr << "LXiMediaServer already running." << std::endl;
+
+            return 0;
+        }
+        else if (strcmp(argv[i], "--quit") == 0)
+        {
+            if (!urls.empty())
             {
-                auto addresses = backend_ptr->bound_addresses();
-                auto port = backend_ptr->bound_port();
+                class pupnp::upnp upnp(messageloop);
+                class pupnp::client client(messageloop, upnp);
 
-                auto address = addresses.find("127.0.0.1");
-                if (address == addresses.end())
-                    address = addresses.begin();
-
-                if (port && (address != addresses.end()))
-                    open_url("http://" + *address + ":" + std::to_string(port) + "/");
+                client.get(get_url(urls) + "quit");
             }
-        });
+            else
+                std::cerr << "LXiMediaServer not running." << std::endl;
 
-        return run_server(messageloop);
-    }
+            return 0;
+        }
 
-    return 0;
+    // If one found, open in browser.
+    if (!urls.empty())
+        return open_url(get_url(urls)) ? 0 : 1;
+
+    // Otherwise start and open this one in browser.
+    messageloop.post([]
+    {
+        if (backend_ptr)
+        {
+            auto addresses = backend_ptr->bound_addresses();
+            auto port = backend_ptr->bound_port();
+
+            auto address = addresses.find("127.0.0.1");
+            if (address == addresses.end())
+                address = addresses.begin();
+
+            if (port && (address != addresses.end()))
+                open_url("http://" + *address + ":" + std::to_string(port) + "/");
+        }
+    });
+
+    return run_server(messageloop);
 }
 
 #if defined(__unix__)
