@@ -1,4 +1,6 @@
 etc/xdg/autostart
 usr/bin
+usr/lib/vlc/plugins/stream_out
 usr/share/applications
 usr/share/icons/hicolor/scalable/apps
+
