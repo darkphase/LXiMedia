@@ -1,54 +1,34 @@
 #include "server.h"
 #include "settings.h"
 #include "platform/messageloop.h"
+#include "platform/path.h"
 #include "platform/string.h"
 #include "pupnp/client.h"
 #include "pupnp/upnp.h"
 #include <clocale>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <memory>
 #include <set>
 
+static FILE * logfile_open(const std::string &location);
+static bool open_url(const std::string &location);
+static bool is_root();
 static std::unique_ptr<class server> server_ptr;
 
-static int run_server(class platform::messageloop &messageloop)
+static std::set<std::string> find_server(
+        class platform::messageloop &messageloop,
+        class settings &settings,
+        class pupnp::upnp &upnp)
 {
-    std::clog << "Starting LXiMediaServer version " << VERSION << std::endl;
-
-    server::recreate_server = [&messageloop]
-    {
-        server_ptr = nullptr;
-        server_ptr.reset(new class server(messageloop, std::string()));
-        if (!server_ptr->initialize())
-        {
-            std::clog << "[" << server_ptr.get() << "] failed to initialize server; stopping." << std::endl;
-            messageloop.stop(1);
-        }
-    };
-
-    server::recreate_server();
-    const int result = messageloop.run();
-    server::recreate_server = nullptr;
-
-    server_ptr = nullptr;
-
-    return result;
-}
-
-static bool open_url(const std::string &location);
-
-static std::set<std::string> find_server(class platform::messageloop &messageloop, std::chrono::milliseconds duration)
-{
-    class pupnp::upnp upnp(messageloop);
+    const std::string my_id = "uuid:" + settings.uuid();
     class pupnp::client client(messageloop, upnp);
 
     std::set<std::string> result;
-    if (upnp.initialize(0))
+    if (client.initialize())
     {
-        const std::string my_id = "uuid:" + settings(messageloop).uuid();
-
         client.device_discovered = [&messageloop, &upnp, &client, &result, &my_id](const std::string &device_id, const std::string &location)
         {
             if ((device_id == my_id) && starts_with(location, "http://"))
@@ -64,10 +44,54 @@ static std::set<std::string> find_server(class platform::messageloop &messageloo
         };
 
         client.start_search("urn:schemas-upnp-org:device:MediaServer:1");
-
-        messageloop.process_events(duration);
+        messageloop.process_events(std::chrono::milliseconds(500));
+        client.close();
     }
 
+    return result;
+}
+
+static int run_server(
+        class platform::messageloop &messageloop,
+        class settings &settings,
+        class pupnp::upnp &upnp,
+        bool open_browser)
+{
+    const std::string logfile = platform::config_dir() + "/lximediaserver.log";
+    FILE * logfilehandle = logfile_open(logfile);
+
+    std::clog << "Starting LXiMediaServer version " << VERSION << std::endl;
+
+    server::recreate_server = [&messageloop, &upnp, &settings, &logfile]
+    {
+        server_ptr = nullptr;
+        server_ptr.reset(new class server(messageloop, settings, upnp, logfile));
+        if (!server_ptr->initialize())
+        {
+            std::clog << "[" << server_ptr.get() << "] failed to initialize server; stopping." << std::endl;
+            messageloop.stop(1);
+        }
+    };
+
+    server::recreate_server();
+    if (open_browser)
+    {
+        auto addresses = server_ptr->bound_addresses();
+        auto port = server_ptr->bound_port();
+
+        auto address = addresses.find("127.0.0.1");
+        if (address == addresses.end())
+            address = addresses.begin();
+
+        if (port && (address != addresses.end()))
+            open_url("http://" + *address + ":" + std::to_string(port) + "/");
+    }
+
+    const int result = messageloop.run();
+
+    server::recreate_server = nullptr;
+    server_ptr = nullptr;
+    fclose(logfilehandle);
     return result;
 }
 
@@ -83,8 +107,6 @@ static std::string get_url(const std::set<std::string> &urls)
     return std::string();
 }
 
-static bool is_root();
-
 int main(int argc, const char *argv[])
 {
     if (is_root())
@@ -96,59 +118,65 @@ int main(int argc, const char *argv[])
     setlocale(LC_ALL, "");
 
     class platform::messageloop messageloop;
-    const auto urls = find_server(messageloop, std::chrono::milliseconds(500));
+    class settings settings(messageloop);
 
-    for (int i = 1; i < argc; i++)
-        if (strcmp(argv[i], "--run") == 0)
-        {
-            if (urls.empty())
-                return run_server(messageloop);
-            else
-                std::cerr << "LXiMediaServer already running." << std::endl;
-
-            return 0;
-        }
-        else if (strcmp(argv[i], "--quit") == 0)
-        {
-            if (!urls.empty())
-            {
-                class pupnp::upnp upnp(messageloop);
-                class pupnp::client client(messageloop, upnp);
-
-                client.get(get_url(urls) + "quit");
-            }
-            else
-                std::cerr << "LXiMediaServer not running." << std::endl;
-
-            return 0;
-        }
-
-    // If one found, open in browser.
-    if (!urls.empty())
-        return open_url(get_url(urls)) ? 0 : 1;
-
-    // Otherwise start and open this one in browser.
-    messageloop.post([]
+    class pupnp::upnp upnp(messageloop);
+    if (upnp.initialize(settings.http_port(), false))
     {
-        if (server_ptr)
-        {
-            auto addresses = server_ptr->bound_addresses();
-            auto port = server_ptr->bound_port();
+        const auto urls = find_server(messageloop, settings, upnp);
 
-            auto address = addresses.find("127.0.0.1");
-            if (address == addresses.end())
-                address = addresses.begin();
+        for (int i = 1; i < argc; i++)
+            if (strcmp(argv[i], "--run") == 0)
+            {
+                if (urls.empty())
+                    return run_server(messageloop, settings, upnp, false);
+                else
+                    std::cerr << "LXiMediaServer already running." << std::endl;
 
-            if (port && (address != addresses.end()))
-                open_url("http://" + *address + ":" + std::to_string(port) + "/");
-        }
-    });
+                return 0;
+            }
+            else if (strcmp(argv[i], "--quit") == 0)
+            {
+                if (!urls.empty())
+                {
+                    class pupnp::client client(messageloop, upnp);
 
-    return run_server(messageloop);
+                    client.get(get_url(urls) + "quit");
+                }
+                else
+                    std::cerr << "LXiMediaServer not running." << std::endl;
+
+                return 0;
+            }
+
+        // If one found, open in browser.
+        if (!urls.empty())
+            return open_url(get_url(urls)) ? 0 : 1;
+
+        // Otherwise start and open this one in browser.
+        return run_server(messageloop, settings, upnp, true);
+    }
+
+    return 1;
 }
 
 #if defined(__unix__)
 #include <unistd.h>
+
+static std::string log_location(const std::string &location, int i)
+{
+    return (i == 0) ? location : (location + '.' + std::to_string(i));
+}
+
+static FILE * logfile_open(const std::string &location)
+{
+    // Rotate logs
+    std::remove(log_location(location, 5).c_str());
+    for (int i = 5; i > 0; i--)
+        std::rename(log_location(location, i - 1).c_str(), log_location(location, i).c_str());
+
+    return freopen(location.c_str(), "w", stderr);
+}
 
 static bool is_root()
 {
@@ -163,6 +191,21 @@ static bool open_url(const std::string &location)
 #elif defined(WIN32)
 #include <windows.h>
 #include <shellapi.h>
+
+static std::wstring log_location(const std::string &location, int i)
+{
+    return platform::to_windows_path((i == 0) ? location : (location + '.' + std::to_string(i)));
+}
+
+static FILE * logfile_open(const std::string &location)
+{
+    // Rotate logs
+    _wremove(log_location(location, 5).c_str());
+    for (int i = 5; i > 0; i--)
+        _wrename(log_location(location, i - 1).c_str(), log_location(location, i).c_str());
+
+    return _wfreopen(platform::to_windows_path(location).c_str(), L"w", stderr);
+}
 
 static bool is_root()
 {

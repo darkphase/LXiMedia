@@ -36,6 +36,8 @@ public:
     explicit settings(class platform::messageloop &);
     ~settings();
 
+    void save();
+
     std::string uuid();
     std::string upnp_devicename() const;
     void set_upnp_devicename(const std::string &);

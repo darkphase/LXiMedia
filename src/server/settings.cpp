@@ -31,12 +31,12 @@ static std::string make_uuid();
 
 settings::settings(class platform::messageloop &messageloop)
     : messageloop(messageloop),
-      inifile(platform::config_dir() + "settings"),
+      inifile(platform::config_dir() + "/settings"),
       general(inifile.open_section()),
       codecs(inifile.open_section("codecs")),
       formats(inifile.open_section("formats")),
       paths(inifile.open_section("paths")),
-      timer(messageloop, std::bind(&platform::inifile::save, &inifile)),
+      timer(messageloop, std::bind(&settings::save, this)),
       save_delay(250)
 {
     inifile.on_touched = [this] { timer.start(save_delay, true); };
@@ -44,6 +44,12 @@ settings::settings(class platform::messageloop &messageloop)
 
 settings::~settings()
 {
+}
+
+void settings::save()
+{
+    timer.stop();
+    inifile.save();
 }
 
 static const char uuid_name[] = "uuid";

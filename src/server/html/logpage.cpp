@@ -17,6 +17,7 @@
 
 #include "logpage.h"
 #include "platform/fstream.h"
+#include "platform/path.h"
 #include "platform/string.h"
 #include "platform/translator.h"
 
@@ -41,7 +42,7 @@ logpage::logpage(class mainpage &mainpage, const std::string &logfilename)
 
         mainpage.add_page("/log", mainpage::page
         {
-            tr("Log"),
+            tr("Logs"),
             "/img/log.svg",
             std::bind(&logpage::render_headers, this, _1, _2),
             std::bind(&logpage::render_page, this, _1, _2)
@@ -59,19 +60,54 @@ void logpage::render_headers(const struct pupnp::upnp::request &, std::ostream &
     out << "<link rel=\"stylesheet\" href=\"/css/log.css\" type=\"text/css\" media=\"screen, handheld, projection\" />";
 }
 
-int logpage::render_page(const struct pupnp::upnp::request &, std::ostream &out)
+int logpage::render_page(const struct pupnp::upnp::request &request, std::ostream &out)
 {
-    platform::ifstream logfile(logfilename);
-    if (logfile.is_open())
+    int page = 0;
     {
-        out << "<p class=\"filename\">" << escape_xml(logfilename) << ":</p>";
+        auto i = request.url.query.find("page");
+        if (i != request.url.query.end())
+        {
+            try { page = std::stoi(i->second); }
+            catch (const std::invalid_argument &) { page = 0; }
+            catch (const std::out_of_range &) { page = 0; }
+        }
+    }
+
+    out << "<table><tr><td class=\"files\">";
+    for (int i = 0; i <= 5; i++)
+    {
+        const std::string file = (i == 0) ? logfilename : (logfilename + '.' + std::to_string(i));
+        if (platform::ifstream(file).is_open())
+        {
+            out << "<p>";
+            if (i != page)
+            {
+                if (i > 0)
+                    out << "<a href=\"/log?page=" << i << "\">";
+                else
+                    out << "<a href=\"/log\">";
+            }
+
+            if (i > 0)
+                out << platform::file_date(file);
+            else
+                out << "Current";
+
+            if (i != page) out << "</a>";
+            out << "</p>";
+        }
+    }
+
+    out << "</td><td class=\"log\">";
+
+    platform::ifstream logfile((page == 0) ? logfilename : (logfilename + '.' + std::to_string(page)));
+    if (logfile.is_open())
         for (std::string line; std::getline(logfile, line); )
             out << "<p>" << escape_xml(line) << "</p>";
 
-        return pupnp::upnp::http_ok;
-    }
+    out << "</td></tr></table>";
 
-    return pupnp::upnp::http_not_found;
+    return pupnp::upnp::http_ok;
 }
 
 }

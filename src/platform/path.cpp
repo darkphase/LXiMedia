@@ -194,6 +194,23 @@ std::vector<std::string> list_removable_media()
     return std::vector<std::string>();
 }
 
+std::string file_date(const std::string &path)
+{
+    struct stat stat;
+    if (::stat(path.c_str(), &stat) == 0)
+    {
+        struct tm tm;
+        if (localtime_r(&(stat.st_mtim.tv_sec), &tm))
+        {
+            char buffer[64];
+            if (strftime(buffer, sizeof(buffer), "%F %H:%M", &tm) > 0)
+                return buffer;
+        }
+    }
+
+    return std::string();
+}
+
 std::string home_dir()
 {
     const char *home = getenv("HOME");
@@ -212,7 +229,7 @@ std::string config_dir()
     const std::string home = home_dir();
     if (!home.empty())
     {
-        const std::string result = home + "/.config/lximediaserver/";
+        const std::string result = home + "/.config/lximediaserver";
         mkdir(result.c_str(), S_IRWXU);
 
         return result;
@@ -457,6 +474,23 @@ std::vector<std::string> list_removable_media()
     return result;
 }
 
+std::string file_date(const std::string &path)
+{
+    struct _stat stat;
+    if (::_wstat(to_windows_path(path).c_str(), &stat) == 0)
+    {
+        struct tm tm;
+        if (localtime_r(&(stat.st_mtime), &tm))
+        {
+            wchar_t buffer[64];
+            if (wcsftime(buffer, sizeof(buffer) / sizeof(*buffer), L"%Y-%m-%d %H:%M", &tm) > 0)
+                return from_utf16(buffer);
+        }
+    }
+
+    return std::string();
+}
+
 std::string home_dir()
 {
     const wchar_t * const appdata = _wgetenv(L"APPDATA");
@@ -471,7 +505,7 @@ std::string config_dir()
     const std::string home = home_dir();
     if (!home.empty())
     {
-        const std::string result = home + "/LXiMediaServer/";
+        const std::string result = home + "/LXiMediaServer";
         _wmkdir(to_windows_path(result).c_str());
         return result;
     }

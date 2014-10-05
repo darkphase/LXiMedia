@@ -143,42 +143,45 @@ void upnp::http_callback_unregister(const std::string &path)
 
 bool upnp::initialize(uint16_t port, bool bind_public)
 {
-    this->port = port;
-    this->bind_public = bind_public;
-
-    std::vector<const char *> addresses;
-    for (char **i = ::UpnpGetAvailableIpAddresses(); i && *i; i++)
+    if (!initialized || ((this->port != port) && (port != 0)) || (this->bind_public != bind_public))
     {
-        available_addresses.insert(*i);
-        if (bind_public || is_local_address(*i))
-            addresses.push_back(*i);
+        if (initialized)
+            close();
+
+        this->port = port;
+        this->bind_public = bind_public;
+
+        std::vector<const char *> addresses;
+        for (char **i = ::UpnpGetAvailableIpAddresses(); i && *i; i++)
+        {
+            available_addresses.insert(*i);
+            if (bind_public || is_local_address(*i))
+                addresses.push_back(*i);
+        }
+
+        addresses.push_back(nullptr);
+        int result = ::UpnpInit3(&(addresses[0]), port);
+        initialized = result == UPNP_E_SUCCESS;
+        if (!initialized)
+            initialized = (result = ::UpnpInit3(&(addresses[0]), 0)) == UPNP_E_SUCCESS;
+
+        if (initialized)
+        {
+            if (!http_callbacks.empty())
+                enable_webserver();
+
+            for (auto i = http_callbacks.begin(); i != http_callbacks.end(); i++)
+                ::UpnpAddVirtualDir(i->first.c_str());
+        }
+        else
+            std::cerr << "Failed to initialize libupnp:" << result << std::endl;
+
+        update_interfaces_timer.start(update_interfaces_interval);
+
+        if (initialized)
+            for (auto *child : children)
+                initialized &= child->initialize();
     }
-
-    addresses.push_back(nullptr);
-    int result = ::UpnpInit3(&(addresses[0]), port);
-    initialized = result == UPNP_E_SUCCESS;
-    if (!initialized)
-        initialized = (result = ::UpnpInit3(&(addresses[0]), 0)) == UPNP_E_SUCCESS;
-
-    if (initialized)
-    {
-        for (char **i = ::UpnpGetServerIpAddresses(); i && *i; i++)
-            std::clog << "[" << this << "] pupnp::upnp: Bound " << *i << ":" << ::UpnpGetServerPort() << std::endl;
-
-        if (!http_callbacks.empty())
-            enable_webserver();
-
-        for (auto i = http_callbacks.begin(); i != http_callbacks.end(); i++)
-            ::UpnpAddVirtualDir(i->first.c_str());
-    }
-    else
-        std::clog << "[" << this << "] pupnp::upnp: Failed to initialize libupnp:" << result << std::endl;
-
-    update_interfaces_timer.start(update_interfaces_interval);
-
-    if (initialized)
-        for (auto *child : children)
-            initialized &= child->initialize();
 
     return initialized;
 }
@@ -413,10 +416,10 @@ void upnp::enable_webserver()
         if (rc == UPNP_E_SUCCESS)
             webserver_enabled = true;
         else
-            std::clog << "[" << this << "] pupnp::upnp: UpnpSetVirtualDirCallbacks failed:" << rc << std::endl;
+            std::cerr << "UpnpSetVirtualDirCallbacks failed:" << rc << std::endl;
     }
     else
-        std::clog << "[" << this << "] pupnp::upnp: UpnpEnableWebserver() failed:" << rc << std::endl;
+        std::cerr << "UpnpEnableWebserver() failed:" << rc << std::endl;
 }
 
 int upnp::get_response(const struct request &request, std::string &content_type, std::shared_ptr<std::istream> &stream, bool erase)

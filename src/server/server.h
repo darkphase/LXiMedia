@@ -44,7 +44,12 @@ public:
     static std::function<void()> recreate_server;
 
 public:
-    server(class platform::messageloop &, const std::string &);
+    server(
+            class platform::messageloop &,
+            class settings &,
+            class pupnp::upnp &,
+            const std::string &);
+
     ~server();
 
     bool initialize();
@@ -60,10 +65,10 @@ private:
 
 private:
     class platform::messageloop &messageloop;
-    class settings settings;
+    class settings &settings;
     class watchlist watchlist;
 
-    class pupnp::upnp upnp;
+    class pupnp::upnp &upnp;
     class pupnp::rootdevice rootdevice;
     class pupnp::connection_manager connection_manager;
     class pupnp::content_directory content_directory;
