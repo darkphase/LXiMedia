@@ -15,10 +15,10 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#include "backend.h"
+#include "server.h"
 #include "pupnp/upnp.h"
 
-void backend::add_audio_protocols()
+void server::add_audio_protocols()
 {
     const auto surround_mode = settings.surround_mode();
     const bool has_surround51 = surround_mode == ::surround_mode::surround51;

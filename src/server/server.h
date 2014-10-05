@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef BACKEND_H
-#define BACKEND_H
+#ifndef SERVER_H
+#define SERVER_H
 
 #include <cstdint>
 #include <functional>
@@ -38,14 +38,14 @@
 
 class messageloop;
 
-class backend
+class server
 {
 public:
-    static std::function<void()> recreate_backend;
+    static std::function<void()> recreate_server;
 
 public:
-    backend(class platform::messageloop &, const std::string &);
-    ~backend();
+    server(class platform::messageloop &, const std::string &);
+    ~server();
 
     bool initialize();
 
@@ -82,8 +82,8 @@ private:
     const std::chrono::seconds republish_timeout;
     bool republish_required;
 
-    platform::timer recreate_backend_timer;
-    const std::chrono::milliseconds recreate_backend_timeout;
+    platform::timer recreate_server_timer;
+    const std::chrono::milliseconds recreate_server_timeout;
 };
 
 #endif
