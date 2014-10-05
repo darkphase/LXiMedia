@@ -21,7 +21,7 @@
 void server::add_audio_protocols()
 {
     const auto surround_mode = settings.surround_mode();
-    const bool has_surround51 = surround_mode == ::surround_mode::surround51;
+    const bool has_surround51 = (surround_mode == ::surround_mode::surround51);
 
     // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
 

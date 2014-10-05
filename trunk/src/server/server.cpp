@@ -16,9 +16,13 @@
  ******************************************************************************/
 
 #include "server.h"
+#include "files.h"
+#include "setup.h"
+#include "test.h"
 #include <cassert>
 
 std::function<void()> server::recreate_server;
+enum setup_mode server::setup_mode = ::setup_mode::disabled;
 
 server::server(
         class platform::messageloop &messageloop,
@@ -33,12 +37,15 @@ server::server(
       connection_manager(messageloop, rootdevice),
       content_directory(messageloop, upnp, rootdevice, connection_manager),
       mediareceiver_registrar(messageloop, rootdevice),
+      vlc_instance(nullptr),
+      files(nullptr),
+      setup(nullptr),
+      test(nullptr),
       mainpage(messageloop, upnp, connection_manager),
       settingspage(mainpage, settings, std::bind(&server::apply_settings, this)),
       logpage(mainpage, logfilename),
       helppage(mainpage),
-      vlc_instance(nullptr),
-      files(nullptr),
+      welcomepage(mainpage, upnp, settings, test, std::bind(&server::force_apply_settings, this)),
       republish_timer(messageloop, std::bind(&server::republish_rootdevice, this)),
       republish_timeout(15),
       republish_required(false),
@@ -67,18 +74,30 @@ bool server::initialize()
         vlc_instance.reset(new class vlc::instance(
                                settings.verbose_logging_enabled()));
 
-        files.reset(new class files(
-                        messageloop,
-                        *vlc_instance,
-                        connection_manager,
-                        content_directory,
-                        settings,
-                        watchlist));
+        if (setup_mode == ::setup_mode::disabled)
+        {
+            files.reset(new class files(
+                            messageloop,
+                            *vlc_instance,
+                            connection_manager,
+                            content_directory,
+                            settings,
+                            watchlist));
 
-        setup.reset(new class setup(
-                        messageloop,
-                        content_directory,
-                        settings));
+            setup.reset(new class setup(
+                            messageloop,
+                            content_directory,
+                            settings));
+        }
+        else
+        {
+            test.reset(new class test(
+                           messageloop,
+                           *vlc_instance,
+                           connection_manager,
+                           content_directory,
+                           settings));
+        }
 
         republish_required = settings.republish_rootdevice();
         if (republish_required)
@@ -136,13 +155,17 @@ bool server::apply_settings()
 {
     if (connection_manager.output_connections().empty())
     {
-        settings.save();
-
-        // Wait a bit before restarting to handle pending requests from the webbrowser.
-        recreate_server_timer.start(recreate_server_timeout, true);
-
+        force_apply_settings();
         return true;
     }
 
     return false;
+}
+
+void server::force_apply_settings()
+{
+    settings.save();
+
+    // Wait a bit before restarting to handle pending requests from the webbrowser.
+    recreate_server_timer.start(recreate_server_timeout, true);
 }

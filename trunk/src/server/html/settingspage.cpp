@@ -90,7 +90,7 @@ static void render_http_settings(const class settings &settings, std::ostream &o
            "<input type=\"text\" size=\"6\" name=\"http_port\" value=\"" << settings.http_port() << "\" />"
            "<input type=\"checkbox\" name=\"bind_all_networks\" value=\"on\"" << is_checked(settings.bind_all_networks()) << " />"
            << tr("Bind all networks") << "</p>"
-           "<p>" << tr("Device name") << ": "
+           "<p>" << tr("Server name") << ": "
            "<input type=\"text\" size=\"40\" name=\"upnp_devicename\" value=\"" << escape_xml(settings.upnp_devicename()) << "\" /></p>"
            "<p><input type=\"checkbox\" name=\"republish_rootdevice\" value=\"on\"" << is_checked(settings.republish_rootdevice()) << " />"
            << tr("Regularly reinitialize the server while inactive to force all clients "

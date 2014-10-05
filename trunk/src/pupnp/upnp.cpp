@@ -106,6 +106,14 @@ const std::string &upnp::http_basedir() const
 void upnp::child_add(struct child &child)
 {
     children.insert(&child);
+    if (initialized)
+    {
+        messageloop.post([this, &child]
+        {
+            if (children.find(&child) != children.end())
+                child.initialize();
+        });
+    }
 }
 
 void upnp::child_remove(struct child &child)
@@ -155,7 +163,7 @@ bool upnp::initialize(uint16_t port, bool bind_public)
         for (char **i = ::UpnpGetAvailableIpAddresses(); i && *i; i++)
         {
             available_addresses.insert(*i);
-            if (bind_public || is_local_address(*i))
+            if (bind_public || !is_public_address(*i))
                 addresses.push_back(*i);
         }
 
@@ -213,12 +221,10 @@ void upnp::close(void)
     }
 }
 
-bool upnp::is_local_address(const char *address)
+bool upnp::is_private_address(const char *address)
 {
     return
             (strncmp(address, "10.", 3) == 0) ||
-            (strncmp(address, "127.", 4) == 0) ||
-            (strncmp(address, "169.254.", 8) == 0) ||
             (strncmp(address, "172.16.", 7) == 0) ||
             (strncmp(address, "172.17.", 7) == 0) ||
             (strncmp(address, "172.18.", 7) == 0) ||
@@ -236,6 +242,21 @@ bool upnp::is_local_address(const char *address)
             (strncmp(address, "172.30.", 7) == 0) ||
             (strncmp(address, "172.31.", 7) == 0) ||
             (strncmp(address, "192.168.", 8) == 0);
+}
+
+bool upnp::is_loopback_address(const char *address)
+{
+    return (strncmp(address, "127.", 4) == 0);
+}
+
+bool upnp::is_auto_address(const char *address)
+{
+    return (strncmp(address, "169.254.", 8) == 0);
+}
+
+bool upnp::is_public_address(const char *address)
+{
+    return !is_private_address(address) && !is_loopback_address(address) && !is_auto_address(address);
 }
 
 bool upnp::is_my_address(const std::string &address) const
@@ -285,7 +306,7 @@ void upnp::update_interfaces()
     if (me->handles.empty())
         for (char **i = ::UpnpGetAvailableIpAddresses(); i && *i; i++)
             if (available_addresses.find(*i) == available_addresses.end())
-                if (bind_public || is_local_address(*i))
+                if (bind_public || !is_public_address(*i))
                 {
                     close();
                     initialize(port, bind_public);

@@ -83,8 +83,9 @@ pupnp::content_directory::item setup::get_contentdir_item(const std::string &, c
     return item;
 }
 
-void setup::correct_protocol(const pupnp::content_directory::item &, pupnp::connection_manager::protocol &)
+bool setup::correct_protocol(const pupnp::content_directory::item &, pupnp::connection_manager::protocol &)
 {
+    return true;
 }
 
 int setup::play_item(

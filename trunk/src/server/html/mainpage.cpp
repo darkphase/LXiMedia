@@ -156,7 +156,7 @@ int mainpage::render_page(const struct pupnp::upnp::request &request, const std:
     for (const auto &i : page_order)
     {
         auto page = pages.find(i);
-        if (page != pages.end())
+        if ((page != pages.end()) && !page->second.icon.empty())
         {
             out << "<div><a href=\"" << page->first << "\">"
                    "<img src=\"" << page->second.icon << "\" alt=\"" << page->second.title << "\" />"
@@ -187,7 +187,7 @@ int mainpage::render_mainpage(const struct pupnp::upnp::request &, std::ostream 
         if (i != "/")
         {
             auto page = pages.find(i);
-            if (page != pages.end())
+            if ((page != pages.end()) && !page->second.icon.empty() && !page->second.title.empty())
             {
                 out << "<div class=\"button\">"
                        "<p><a href=\"" << page->first << "\"><img src=\"" << page->second.icon << "\" alt=\"" << page->second.title << "\" /></a></p>"
