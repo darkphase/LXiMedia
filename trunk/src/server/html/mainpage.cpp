@@ -59,6 +59,8 @@ mainpage::mainpage(class platform::messageloop &messageloop, class pupnp::upnp &
 
 mainpage::~mainpage()
 {
+    upnp.http_callback_unregister("/img");
+    upnp.http_callback_unregister("/css");
     upnp.http_callback_unregister("/");
 }
 
