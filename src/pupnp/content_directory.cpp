@@ -55,6 +55,8 @@ content_directory::content_directory(class platform::messageloop &messageloop, c
 
 content_directory::~content_directory()
 {
+    content_directory::close();
+
     rootdevice.service_unregister(service_id);
 
     connection_manager.numconnections_changed.erase(this);
