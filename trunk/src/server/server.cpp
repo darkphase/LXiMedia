@@ -15,12 +15,12 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#include "backend.h"
+#include "server.h"
 #include <cassert>
 
-std::function<void()> backend::recreate_backend;
+std::function<void()> server::recreate_server;
 
-backend::backend(class platform::messageloop &messageloop, const std::string &logfilename)
+server::server(class platform::messageloop &messageloop, const std::string &logfilename)
     : messageloop(messageloop),
       settings(messageloop),
       watchlist(messageloop),
@@ -30,26 +30,26 @@ backend::backend(class platform::messageloop &messageloop, const std::string &lo
       content_directory(messageloop, upnp, rootdevice, connection_manager),
       mediareceiver_registrar(messageloop, rootdevice),
       mainpage(messageloop, upnp, connection_manager),
-      settingspage(mainpage, settings, std::bind(&backend::apply_settings, this)),
+      settingspage(mainpage, settings, std::bind(&server::apply_settings, this)),
       logpage(mainpage, logfilename),
       helppage(mainpage),
       vlc_instance(nullptr),
       files(nullptr),
-      republish_timer(messageloop, std::bind(&backend::republish_rootdevice, this)),
+      republish_timer(messageloop, std::bind(&server::republish_rootdevice, this)),
       republish_timeout(15),
       republish_required(false),
-      recreate_backend_timer(messageloop, [this] { if (recreate_backend) this->messageloop.post(recreate_backend); }),
-      recreate_backend_timeout(500)
+      recreate_server_timer(messageloop, [this] { if (recreate_server) this->messageloop.post(recreate_server); }),
+      recreate_server_timeout(500)
 {
 }
 
-backend::~backend()
+server::~server()
 {
     rootdevice.handled_action.erase(this);
     connection_manager.numconnections_changed.erase(this);
 }
 
-bool backend::initialize()
+bool server::initialize()
 {
     const std::string upnp_devicename = settings.upnp_devicename();
     rootdevice.set_devicename(upnp_devicename);
@@ -108,17 +108,17 @@ bool backend::initialize()
     return false;
 }
 
-const std::set<std::string> & backend::bound_addresses() const
+const std::set<std::string> & server::bound_addresses() const
 {
     return upnp.bound_addresses();
 }
 
-uint16_t backend::bound_port() const
+uint16_t server::bound_port() const
 {
     return upnp.bound_port();
 }
 
-void backend::republish_rootdevice()
+void server::republish_rootdevice()
 {
     assert(republish_required);
     if (republish_required)
@@ -128,12 +128,12 @@ void backend::republish_rootdevice()
     }
 }
 
-bool backend::apply_settings()
+bool server::apply_settings()
 {
     if (connection_manager.output_connections().empty())
     {
         // Wait a bit before restarting to handle pending requests from the webbrowser.
-        recreate_backend_timer.start(recreate_backend_timeout, true);
+        recreate_server_timer.start(recreate_server_timeout, true);
 
         return true;
     }

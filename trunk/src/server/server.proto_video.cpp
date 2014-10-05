@@ -15,7 +15,7 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#include "backend.h"
+#include "server.h"
 #include "pupnp/upnp.h"
 
 template <size_t _count>
@@ -157,7 +157,7 @@ static void add_source_video_protocols(
     }
 }
 
-void backend::add_video_protocols()
+void server::add_video_protocols()
 {
     const auto surround_mode = settings.surround_mode();
     const bool has_surround51 = surround_mode == ::surround_mode::surround51;

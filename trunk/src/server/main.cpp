@@ -1,4 +1,4 @@
-#include "backend.h"
+#include "server.h"
 #include "settings.h"
 #include "platform/messageloop.h"
 #include "platform/string.h"
@@ -11,28 +11,28 @@
 #include <memory>
 #include <set>
 
-static std::unique_ptr<class backend> backend_ptr;
+static std::unique_ptr<class server> server_ptr;
 
 static int run_server(class platform::messageloop &messageloop)
 {
     std::clog << "Starting LXiMediaServer version " << VERSION << std::endl;
 
-    backend::recreate_backend = [&messageloop]
+    server::recreate_server = [&messageloop]
     {
-        backend_ptr = nullptr;
-        backend_ptr.reset(new class backend(messageloop, std::string()));
-        if (!backend_ptr->initialize())
+        server_ptr = nullptr;
+        server_ptr.reset(new class server(messageloop, std::string()));
+        if (!server_ptr->initialize())
         {
-            std::clog << "[" << backend_ptr.get() << "] failed to initialize backend; stopping." << std::endl;
+            std::clog << "[" << server_ptr.get() << "] failed to initialize server; stopping." << std::endl;
             messageloop.stop(1);
         }
     };
 
-    backend::recreate_backend();
+    server::recreate_server();
     const int result = messageloop.run();
-    backend::recreate_backend = nullptr;
+    server::recreate_server = nullptr;
 
-    backend_ptr = nullptr;
+    server_ptr = nullptr;
 
     return result;
 }
@@ -130,10 +130,10 @@ int main(int argc, const char *argv[])
     // Otherwise start and open this one in browser.
     messageloop.post([]
     {
-        if (backend_ptr)
+        if (server_ptr)
         {
-            auto addresses = backend_ptr->bound_addresses();
-            auto port = backend_ptr->bound_port();
+            auto addresses = server_ptr->bound_addresses();
+            auto port = server_ptr->bound_port();
 
             auto address = addresses.find("127.0.0.1");
             if (address == addresses.end())
