@@ -21,7 +21,7 @@
 
 watchlist::watchlist(class platform::messageloop &messageloop)
     : messageloop(messageloop),
-      inifile(platform::config_dir() + "watchlist"),
+      inifile(platform::config_dir() + "/watchlist"),
       timer(messageloop, std::bind(&platform::inifile::save, &inifile)),
       save_delay(250)
 {

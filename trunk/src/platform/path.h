@@ -33,6 +33,8 @@ std::vector<std::string> list_files(
 
 std::vector<std::string> list_removable_media();
 
+std::string file_date(const std::string &path);
+
 std::string home_dir();
 std::string config_dir();
 

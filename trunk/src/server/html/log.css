@@ -1,15 +1,29 @@
-p.filename {
- padding-left: 1em;
- padding-right: 1em;
- padding-top: 1em;
- padding-bottom: 0;
+table {
+ padding: 0;
  margin: 0;
- color: #808080;
+ border: none;
+ width: 100%;
 }
+tr {
+ padding: 0;
+ margin: 0;
+}
+td.log {
+ padding: 0;
+ margin: 0;
+ vertical-align: top;
+}
+td.files {
+ padding: 0;
+ margin: 0;
+ vertical-align: top;
+ width: 10em;
+}
+.files a:link      { color: #808080; text-decoration: none; }
+.files a:visited   { color: #808080; text-decoration: none; }
+.files a:active    { color: #000000; text-decoration: none; }
+.files a:hover     { color: #000000; text-decoration: none; }
 p {
- padding-left: 2em;
- padding-right: 1em;
- padding-top: 0.2em;
- padding-bottom: 0;
+ padding: 0;
  margin: 0;
 }
