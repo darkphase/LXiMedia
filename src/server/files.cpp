@@ -32,8 +32,8 @@
 files::files(
         class platform::messageloop &messageloop,
         class vlc::instance &vlc_instance,
-        pupnp::connection_manager &connection_manager,
-        pupnp::content_directory &content_directory,
+        class pupnp::connection_manager &connection_manager,
+        class pupnp::content_directory &content_directory,
         const class settings &settings,
         class watchlist &watchlist)
     : messageloop(messageloop),
@@ -326,7 +326,7 @@ static void max_scale(const std::string &codec, unsigned srcw, unsigned srch, un
     }
 }
 
-void files::correct_protocol(const pupnp::content_directory::item &item, pupnp::connection_manager::protocol &protocol)
+bool files::correct_protocol(const pupnp::content_directory::item &item, pupnp::connection_manager::protocol &protocol)
 {
     switch (settings.canvas_mode())
     {
@@ -342,6 +342,8 @@ void files::correct_protocol(const pupnp::content_directory::item &item, pupnp::
     case canvas_mode::crop:
         break;
     }
+
+    return true;
 }
 
 int files::play_item(
@@ -352,10 +354,8 @@ int files::play_item(
         std::shared_ptr<std::istream> &response)
 {
     auto protocol = connection_manager.get_protocol(profile, item.channels, item.width, item.frame_rate);
-    if (!protocol.profile.empty())
+    if (!protocol.profile.empty() && correct_protocol(item, protocol))
     {
-        correct_protocol(item, protocol);
-
         float rate = 1.0f;
         std::string transcode_plugin = "#transcode";
         std::ostringstream transcode;

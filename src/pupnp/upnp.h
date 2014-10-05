@@ -81,6 +81,10 @@ public:
     bool initialize(uint16_t port, bool bind_public = false);
     void close(void);
 
+    static bool is_private_address(const char *);
+    static bool is_loopback_address(const char *);
+    static bool is_auto_address(const char *);
+    static bool is_public_address(const char *);
     bool is_my_address(const std::string &) const;
     const std::set<std::string> & bound_addresses() const;
     uint16_t bound_port() const;
@@ -88,7 +92,6 @@ public:
     int handle_http_request(const struct request &, std::string &content_type, std::shared_ptr<std::istream> &);
 
 private:
-    static bool is_local_address(const char *);
     void update_interfaces();
     void clear_responses();
     void enable_webserver();

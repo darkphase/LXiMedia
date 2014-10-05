@@ -38,8 +38,8 @@ public:
     files(
             class platform::messageloop &,
             class vlc::instance &,
-            pupnp::connection_manager &,
-            pupnp::content_directory &,
+            class pupnp::connection_manager &,
+            class pupnp::content_directory &,
             const class settings &,
             class watchlist &);
 
@@ -48,7 +48,7 @@ public:
 private: // From content_directory::item_source
     std::vector<pupnp::content_directory::item> list_contentdir_items(const std::string &client, const std::string &path, size_t start, size_t &count) override;
     pupnp::content_directory::item get_contentdir_item(const std::string &client, const std::string &path) override;
-    void correct_protocol(const pupnp::content_directory::item &, pupnp::connection_manager::protocol &) override;
+    bool correct_protocol(const pupnp::content_directory::item &, pupnp::connection_manager::protocol &) override;
     int play_item(const std::string &, const pupnp::content_directory::item &, const std::string &, std::string &, std::shared_ptr<std::istream> &) override;
 
 private:

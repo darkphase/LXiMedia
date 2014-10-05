@@ -25,23 +25,28 @@
 #include "html/helppage.h"
 #include "html/logpage.h"
 #include "html/settingspage.h"
+#include "html/welcomepage.h"
 #include "pupnp/connection_manager.h"
 #include "pupnp/content_directory.h"
 #include "pupnp/mediareceiver_registrar.h"
 #include "pupnp/rootdevice.h"
 #include "pupnp/upnp.h"
 #include "vlc/instance.h"
-#include "files.h"
 #include "settings.h"
-#include "setup.h"
 #include "watchlist.h"
 
+class files;
 class messageloop;
+class setup;
+class test;
+
+enum class setup_mode { disabled, name, network, codecs, high_definition, finished };
 
 class server
 {
 public:
     static std::function<void()> recreate_server;
+    static enum setup_mode setup_mode;
 
 public:
     server(
@@ -60,6 +65,7 @@ public:
 private:
     void republish_rootdevice();
     bool apply_settings();
+    void force_apply_settings();
     void add_audio_protocols();
     void add_video_protocols();
 
@@ -74,14 +80,16 @@ private:
     class pupnp::content_directory content_directory;
     class pupnp::mediareceiver_registrar mediareceiver_registrar;
 
+    std::unique_ptr<class vlc::instance> vlc_instance;
+    std::unique_ptr<class files> files;
+    std::unique_ptr<class setup> setup;
+    std::unique_ptr<class test> test;
+
     class html::mainpage mainpage;
     class html::settingspage settingspage;
     class html::logpage logpage;
     class html::helppage helppage;
-
-    std::unique_ptr<class vlc::instance> vlc_instance;
-    std::unique_ptr<class files> files;
-    std::unique_ptr<class setup> setup;
+    class html::welcomepage welcomepage;
 
     platform::timer republish_timer;
     const std::chrono::seconds republish_timeout;

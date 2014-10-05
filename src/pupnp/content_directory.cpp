@@ -267,8 +267,6 @@ void content_directory::handle_action(const upnp::request &request, action_brows
     if (space != request.user_agent.npos)
         client = client.substr(0, space);
 
-    client += '@' + request.source_address;
-
     const std::string basepath = content_directory::basepath(path);
     auto item_source = item_sources.find(basepath);
     for (std::string i=basepath; !i.empty() && (item_source == item_sources.end()); i = parentpath(i))
@@ -679,14 +677,13 @@ void content_directory::add_file(action_browse &action, const std::string &host,
         if (item.is_video())  protocols = connection_manager.get_protocols(item.channels, item.width, item.frame_rate);
 
         for (auto protocol : protocols)
-        {
-            item_source.correct_protocol(item, protocol);
-
-            upnp::url url;
-            url.host = host;
-            url.path = to_objectpath(path, protocol.profile, protocol.suffix);
-            browse_item.files.push_back(std::make_pair(url, protocol));
-        }
+            if (item_source.correct_protocol(item, protocol))
+            {
+                upnp::url url;
+                url.host = host;
+                url.path = to_objectpath(path, protocol.profile, protocol.suffix);
+                browse_item.files.push_back(std::make_pair(url, protocol));
+            }
     }
 
     action.add_item(browse_item);
@@ -943,8 +940,9 @@ content_directory::item content_directory::root_item_source::get_contentdir_item
     return item;
 }
 
-void content_directory::root_item_source::correct_protocol(const item &, connection_manager::protocol &)
+bool content_directory::root_item_source::correct_protocol(const item &, connection_manager::protocol &)
 {
+    return true;
 }
 
 int content_directory::root_item_source::play_item(const std::string &, const item &, const std::string &, std::string &, std::shared_ptr<std::istream> &)

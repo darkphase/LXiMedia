@@ -82,7 +82,7 @@ public:
     {
         virtual std::vector<item> list_contentdir_items(const std::string &client, const std::string &path, size_t start, size_t &count) = 0;
         virtual item get_contentdir_item(const std::string &client, const std::string &path) = 0;
-        virtual void correct_protocol(const item &, connection_manager::protocol &) = 0;
+        virtual bool correct_protocol(const item &, connection_manager::protocol &) = 0;
         virtual int play_item(const std::string &source_address, const item &, const std::string &profile, std::string &, std::shared_ptr<std::istream> &) = 0;
     };
 
@@ -242,7 +242,7 @@ private:
 
         std::vector<item> list_contentdir_items(const std::string &client, const std::string &path, size_t start, size_t &count) override;
         item get_contentdir_item(const std::string &client, const std::string &path) override;
-        void correct_protocol(const item &, connection_manager::protocol &) override;
+        bool correct_protocol(const item &, connection_manager::protocol &) override;
         int play_item(const std::string &, const item &, const std::string &, std::string &, std::shared_ptr<std::istream> &) override;
     } root_item_source;
 };

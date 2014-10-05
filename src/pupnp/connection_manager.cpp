@@ -142,12 +142,19 @@ std::vector<connection_manager::protocol> connection_manager::get_protocols(unsi
     std::vector<protocol> result;
     for (auto &i : protocols)
         for (auto &protocol : i.second)
-            if (profiles.find(protocol.profile) == profiles.end())
+        {
+            const std::string profile =
+                    protocol.profile + '@' +
+                    std::to_string(protocol.width) + 'x' +
+                    std::to_string(protocol.width);
+
+            if (profiles.find(profile) == profiles.end())
             {
-                profiles.insert(protocol.profile);
+                profiles.insert(profile);
                 result.emplace_back(std::move(protocol));
                 result.back().channels = std::min(result.back().channels, channels);
             }
+        }
 
     return result;
 }

@@ -15,28 +15,33 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef SETUP_H
-#define SETUP_H
+#ifndef TEST_H
+#define TEST_H
 
 #include "platform/messageloop.h"
 #include "pupnp/connection_manager.h"
 #include "pupnp/content_directory.h"
 #include "settings.h"
-#include "vlc/instance.h"
 #include <cstdint>
 #include <cstdlib>
 #include <string>
 #include <vector>
 
-class setup : private pupnp::content_directory::item_source
+namespace vlc { class instance; class transcode_stream; }
+
+class test : private pupnp::content_directory::item_source
 {
 public:
-  setup(
+  test(
           class platform::messageloop &,
-          pupnp::content_directory &,
+          class vlc::instance &,
+          class pupnp::connection_manager &,
+          class pupnp::content_directory &,
           const class settings &);
 
-  virtual ~setup();
+  virtual ~test();
+
+  const std::set<std::string> & detected_clients() const { return clients; }
 
 private: // From content_directory::item_source
   std::vector<pupnp::content_directory::item> list_contentdir_items(const std::string &client, const std::string &path, size_t start, size_t &count) override;
@@ -46,11 +51,13 @@ private: // From content_directory::item_source
 
 private:
   class platform::messageloop &messageloop;
+  class vlc::instance &vlc_instance;
+  class pupnp::connection_manager &connection_manager;
   class pupnp::content_directory &content_directory;
   const class settings &settings;
-  const std::string basedir;
 
-  bool shutdown_pending;
+  std::set<std::string> clients;
+  std::map<std::string, std::pair<int, std::shared_ptr<vlc::transcode_stream>>> pending_streams;
 };
 
 #endif
