@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "welcomepage.h"
+#include "resources/resources.h"
 #include "server/settings.h"
 #include "server/server.h"
 #include "server/test.h"
@@ -28,11 +29,6 @@ static const char welcome_css[] = {
 #include "welcome.css.h"
 }, video_display_svg[] = {
 #include "video-display.svg.h"
-};
-static const unsigned char pm5544_png[] = {
-#include "pm5544.png.h"
-}, pm5544_mp4[] = {
-#include "pm5544.mp4.h"
 };
 
 namespace html {
@@ -57,8 +53,8 @@ welcomepage::welcomepage(
 
     mainpage.add_file("/css/welcome.css", mainpage::file { pupnp::upnp::mime_text_css, welcome_css, sizeof(welcome_css) });
     mainpage.add_file("/img/video-display.svg", mainpage::file { pupnp::upnp::mime_image_svg, video_display_svg, sizeof(video_display_svg) });
-    mainpage.add_file("/img/pm5544.png", mainpage::bin_file { pupnp::upnp::mime_image_png, pm5544_png, sizeof(pm5544_png) });
-    mainpage.add_file("/img/pm5544.mp4", mainpage::bin_file { pupnp::upnp::mime_video_mp4, pm5544_mp4, sizeof(pm5544_mp4) });
+    mainpage.add_file("/img/pm5544.png", mainpage::bin_file { pupnp::upnp::mime_image_png, resources::pm5544_png, sizeof(resources::pm5544_png) });
+    mainpage.add_file("/img/pm5644.png", mainpage::bin_file { pupnp::upnp::mime_image_png, resources::pm5644_png, sizeof(resources::pm5644_png) });
 
     mainpage.add_page("/welcome", mainpage::page
     {
@@ -374,7 +370,7 @@ void welcomepage::render_setup_high_definition(const struct pupnp::upnp::request
 {
     const std::string device_name = tr_device_name(device_type);
 
-    out << "<p><img class=\"logo\" src=\"/img/pm5544.png\" alt=\"PM5544\" /></p>"
+    out << "<p><img class=\"logo\" src=\"/img/pm5644.png\" alt=\"PM5644\" /></p>"
            "<h1>" << tr("Play files") << "</h1>"
            "<p>" << tr("Try to play the available files on your " + device_name + " and select "
                        "the files below that you were able to play.") << "</p><p>"
@@ -394,7 +390,7 @@ void welcomepage::render_setup_finished(const struct pupnp::upnp::request &reque
 {
     const std::string device_name = tr_device_name(device_type);
 
-    out << "<p><img class=\"logo\" src=\"/img/pm5544.png\" alt=\"PM5544\" /></p>"
+    out << "<p><img class=\"logo\" src=\"/img/lximedia.svg\" alt=\"LXiMedia\" /></p>"
            "<h1>" << tr("Finished") << "</h1>"
            "<p>" << tr("Try to play the available files on your " + device_name + " and select "
                        "the files below that you were able to play.") << "</p><p>"

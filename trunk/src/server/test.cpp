@@ -19,6 +19,7 @@
 #include "server/server.h"
 #include "platform/string.h"
 #include "platform/translator.h"
+#include "resources/resources.h"
 #include "vlc/instance.h"
 #include "vlc/transcode_stream.h"
 #include <cmath>
@@ -35,7 +36,13 @@ test::test(
       vlc_instance(instance),
       connection_manager(connection_manager),
       content_directory(content_directory),
-      settings(settings)
+      settings(settings),
+      a440hz_flac(resources::a440hz_flac, ".flac"),
+      a440hz_flac_media(vlc::media::from_file(vlc_instance, a440hz_flac)),
+      pm5544_png(resources::pm5544_png, ".png"),
+      pm5544_png_media(vlc::media::from_file(vlc_instance, pm5544_png)),
+      pm5644_png(resources::pm5644_png, ".png"),
+      pm5644_png_media(vlc::media::from_file(vlc_instance, pm5644_png))
 {
     content_directory.item_source_register("/", *this);
 }
@@ -67,8 +74,8 @@ std::vector<pupnp::content_directory::item> test::list_contentdir_items(
     }
     else if (server::setup_mode == ::setup_mode::high_definition)
     {
-        items.emplace_back(get_contentdir_item(client, "/pm5544_720"));
-        items.emplace_back(get_contentdir_item(client, "/pm5544_1080"));
+        items.emplace_back(get_contentdir_item(client, "/pm5644_720"));
+        items.emplace_back(get_contentdir_item(client, "/pm5644_1080"));
     }
 
     std::vector<pupnp::content_directory::item> result;
@@ -85,24 +92,43 @@ pupnp::content_directory::item test::get_contentdir_item(const std::string &, co
     pupnp::content_directory::item item;
     item.is_dir = false;
     item.path = path;
-    item.mrl = "file:///home/lex/Projects/lximedia/trunk/src/server/html/pm5544.mp4";
     item.type = pupnp::content_directory::item_type::video_broadcast;
 
-    item.frame_rate = 10.0f;
+    item.frame_rate = 25.0f;
     item.duration = std::chrono::seconds(10);
     item.sample_rate = 44100;
     item.channels = 2;
-    item.width = 768;
-    item.height = 576;
 
-    if      (path == "/pm5544_mp2v_mpg")    item.title = "MPEG 2 Program Stream";
-    else if (path == "/pm5544_mp2v_m2ts")   item.title = "MPEG 2 BDAV Transport Stream";
-    else if (path == "/pm5544_mp2v_ts")     item.title = "MPEG 2 Transport Stream";
-    else if (path == "/pm5544_h264_mpg")    item.title = "MPEG 4 AVC Program Stream";
-    else if (path == "/pm5544_h264_m2ts")   item.title = "MPEG 4 AVC BDAV Transport Stream";
-    else if (path == "/pm5544_h264_ts")     item.title = "MPEG 4 AVC Transport Stream";
-    else if (path == "/pm5544_720")         item.title = "High Definition 720p";
-    else if (path == "/pm5544_1080")        item.title = "High Definition 1080p";
+    if (starts_with(path, "/pm5544_"))
+    {
+        item.mrl = pm5544_png_media.mrl();
+        item.width = 768;
+        item.height = 576;
+
+        if      (path == "/pm5544_mp2v_mpg")    item.title = "MPEG 2 Program Stream";
+        else if (path == "/pm5544_mp2v_m2ts")   item.title = "MPEG 2 BDAV Transport Stream";
+        else if (path == "/pm5544_mp2v_ts")     item.title = "MPEG 2 Transport Stream";
+        else if (path == "/pm5544_h264_mpg")    item.title = "MPEG 4 AVC Program Stream";
+        else if (path == "/pm5544_h264_m2ts")   item.title = "MPEG 4 AVC BDAV Transport Stream";
+        else if (path == "/pm5544_h264_ts")     item.title = "MPEG 4 AVC Transport Stream";
+    }
+    else if (starts_with(path, "/pm5644_"))
+    {
+        item.mrl = pm5644_png_media.mrl();
+
+        if (path == "/pm5644_720")
+        {
+            item.width = 1280;
+            item.height = 720;
+            item.title = "High Definition 720p";
+        }
+        else if (path == "/pm5644_1080")
+        {
+            item.width = 1920;
+            item.height = 1080;
+            item.title = "High Definition 1080p";
+        }
+    }
 
     return item;
 }
@@ -133,7 +159,7 @@ bool test::correct_protocol(const pupnp::content_directory::item &item, pupnp::c
     {
         return protocol.profile == "AVC_TS_MP_SD_MPEG1_L3_ISO";
     }
-    else if ((item.path == "/pm5544_720") || (item.path == "/pm5544_1080"))
+    else if (starts_with(item.path, "/pm5644_"))
     {
         if ((protocol.profile == "MPEG_TS_HD_EU") || (protocol.profile == "MPEG_TS_HD_NA") ||
             (protocol.profile == "MPEG_TS_HD_EU_ISO") || (protocol.profile == "MPEG_TS_HD_NA_ISO") ||
@@ -142,9 +168,9 @@ bool test::correct_protocol(const pupnp::content_directory::item &item, pupnp::c
             (protocol.profile == "AVC_TS_MP_HD_MPEG1_L3_ISO") ||
             (protocol.profile == "AVC_PS_MP_HD_MPEG1_L3_NONSTD"))
         {
-            if (item.path == "/pm5544_720")
+            if (item.path == "/pm5644_720")
                 return protocol.height == 720;
-            else if (item.path == "/pm5544_1080")
+            else if (item.path == "/pm5644_1080")
                 return protocol.height == 1080;
         }
     }
@@ -280,6 +306,8 @@ int test::play_item(
 
             return id;
         });
+
+        stream->add_option(":input-slave=" + a440hz_flac_media.mrl());
 
         struct vlc::transcode_stream::track_ids track_ids;
         if ((item.chapter > 0)

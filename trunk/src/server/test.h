@@ -21,6 +21,8 @@
 #include "platform/messageloop.h"
 #include "pupnp/connection_manager.h"
 #include "pupnp/content_directory.h"
+#include "resources/resource_file.h"
+#include "vlc/media.h"
 #include "settings.h"
 #include <cstdint>
 #include <cstdlib>
@@ -58,6 +60,13 @@ private:
 
   std::set<std::string> clients;
   std::map<std::string, std::pair<int, std::shared_ptr<vlc::transcode_stream>>> pending_streams;
+
+  const resources::resource_file a440hz_flac;
+  const vlc::media a440hz_flac_media;
+  const resources::resource_file pm5544_png;
+  const vlc::media pm5544_png_media;
+  const resources::resource_file pm5644_png;
+  const vlc::media pm5644_png_media;
 };
 
 #endif

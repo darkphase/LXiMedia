@@ -23,6 +23,7 @@
 #include <istream>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace platform { class messageloop; }
 
@@ -42,6 +43,8 @@ public:
             const std::function<int32_t(int32_t)> &changed);
 
     ~transcode_stream();
+
+    void add_option(const std::string &);
 
     bool open(
             const std::string &mrl,
@@ -71,6 +74,7 @@ private:
     class platform::messageloop &messageloop;
     class instance &instance;
     const std::function<int32_t(int32_t)> changed;
+    std::vector<std::string> options;
     std::unique_ptr<class streambuf> streambuf;
     std::shared_ptr<class source> source;
 };

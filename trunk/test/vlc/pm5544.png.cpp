@@ -2,5 +2,5 @@
 
 extern const uint8_t pm5544_png[15118] =
 {
-#include "server/html/pm5544.png.h"
+#include "resources/pm5544.png.h"
 };
