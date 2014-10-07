@@ -134,6 +134,7 @@ std::vector<connection_manager::protocol> connection_manager::get_protocols(unsi
         const float rate = float(protocol.frame_rate_num) / float(protocol.frame_rate_den);
         score += (std::fabs(rate - frame_rate) > 0.01f) ? 2 : 0;
         score += (std::fabs(rate - frame_rate) > 0.3f) ? 4 : 0;
+        score += (std::fabs(rate - frame_rate) > 2.0f) ? 8 : 0;
 
         protocols[score].emplace_back(protocol);
     }
@@ -142,19 +143,12 @@ std::vector<connection_manager::protocol> connection_manager::get_protocols(unsi
     std::vector<protocol> result;
     for (auto &i : protocols)
         for (auto &protocol : i.second)
-        {
-            const std::string profile =
-                    protocol.profile + '@' +
-                    std::to_string(protocol.width) + 'x' +
-                    std::to_string(protocol.width);
-
-            if (profiles.find(profile) == profiles.end())
+            if (profiles.find(protocol.profile) == profiles.end())
             {
-                profiles.insert(profile);
+                profiles.insert(protocol.profile);
                 result.emplace_back(std::move(protocol));
                 result.back().channels = std::min(result.back().channels, channels);
             }
-        }
 
     return result;
 }

@@ -69,7 +69,8 @@ public:
             const struct track_ids &,
             const std::string &,
             const std::string &,
-            float);
+            float,
+            const std::vector<std::string> &);
 
     source(
             class platform::messageloop &,
@@ -80,7 +81,8 @@ public:
             const struct track_ids &,
             const std::string &,
             const std::string &,
-            float);
+            float,
+            const std::vector<std::string> &);
 
     ~source();
 
@@ -100,7 +102,8 @@ private:
             const struct track_ids &,
             const std::string &,
             const std::string &,
-            float);
+            float,
+            const std::vector<std::string> &);
 
     size_t m2ts_filter(int, void *, size_t);
     void consume();
@@ -158,6 +161,11 @@ transcode_stream::~transcode_stream()
     close();
 }
 
+void transcode_stream::add_option(const std::string &option)
+{
+    options.emplace_back(option);
+}
+
 bool transcode_stream::open(const std::string &mrl,
         int chapter,
         const struct track_ids &track_ids,
@@ -165,7 +173,7 @@ bool transcode_stream::open(const std::string &mrl,
         const std::string &mux,
         float rate)
 {
-    source = std::make_shared<class source>(messageloop, instance, changed, mrl, chapter, track_ids, transcode, mux, rate);
+    source = std::make_shared<class source>(messageloop, instance, changed, mrl, chapter, track_ids, transcode, mux, rate, options);
     if (source->is_open())
     {
         source->attach(*streambuf);
@@ -186,7 +194,7 @@ bool transcode_stream::open(
         const std::string &mux,
         float rate)
 {
-    source = std::make_shared<class source>(messageloop, instance, changed, mrl, position, track_ids, transcode, mux, rate);
+    source = std::make_shared<class source>(messageloop, instance, changed, mrl, position, track_ids, transcode, mux, rate, options);
     if (source->is_open())
     {
         source->attach(*streambuf);
@@ -231,7 +239,8 @@ transcode_stream::source::source(
         const struct track_ids &track_ids,
         const std::string &transcode,
         const std::string &mux,
-        float rate)
+        float rate,
+        const std::vector<std::string> &options)
     : messageloop(messageloop),
       instance(instance),
       changed(changed),
@@ -265,6 +274,9 @@ transcode_stream::source::source(
     std::lock_guard<std::mutex> _(mutex);
 
     libvlc_media_add_option(media, sout.str().c_str());
+    for (auto &option : options)
+        libvlc_media_add_option(media, option.c_str());
+
     player = libvlc_media_player_new_from_media(media);
     if (player)
     {
@@ -292,8 +304,9 @@ transcode_stream::source::source(
         const struct track_ids &track_ids,
         const std::string &transcode,
         const std::string &mux,
-        float rate)
-      : source(messageloop, instance, changed, mrl, track_ids, transcode, mux, rate)
+        float rate,
+        const std::vector<std::string> &options)
+      : source(messageloop, instance, changed, mrl, track_ids, transcode, mux, rate, options)
 {
     this->chapter = chapter;
 
@@ -314,8 +327,9 @@ transcode_stream::source::source(
         const struct track_ids &track_ids,
         const std::string &transcode,
         const std::string &mux,
-        float rate)
-      : source(messageloop, instance, changed, mrl, track_ids, transcode, mux, rate)
+        float rate,
+        const std::vector<std::string> &options)
+      : source(messageloop, instance, changed, mrl, track_ids, transcode, mux, rate, options)
 {
     this->position = position;
 

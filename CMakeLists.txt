@@ -79,9 +79,10 @@ set_source_files_properties(
 
 aux_source_directory(src/server/ SERVER_SRC_LIST)
 aux_source_directory(src/server/html/ SERVER_HTML_SRC_LIST)
+aux_source_directory(src/resources/ RESOURCES_SRC_LIST)
 
 set_source_files_properties(
-    ${SERVER_SRC_LIST} ${SERVER_HTML_SRC_LIST}
+    ${SERVER_SRC_LIST} ${SERVER_HTML_SRC_LIST} ${RESOURCES_SRC_LIST}
     PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -DVERSION=\\\"${VERSION}\\\"")
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
@@ -93,7 +94,7 @@ endif()
 add_executable(
     lximediaserver
     ${PLATFORM_SRC_LIST} ${PUPNP_SRC_LIST} ${VLC_SRC_LIST}
-    ${SERVER_SRC_LIST} ${SERVER_HTML_SRC_LIST} ${SERVER_RESOURCES})
+    ${SERVER_SRC_LIST} ${SERVER_HTML_SRC_LIST} ${RESOURCES_SRC_LIST} ${SERVER_RESOURCES})
 
 target_include_directories(
     lximediaserver PRIVATE
