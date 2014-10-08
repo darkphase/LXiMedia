@@ -148,7 +148,7 @@ void welcomepage::render_headers(const struct pupnp::upnp::request &request, std
                     settings.set_video_mpegts_enabled(true);
                     settings.set_video_mpegm2ts_enabled(true);
                     settings.set_video_mode(video_mode::dvd);
-                    server::setup_mode = setup_mode::finished;
+                    server::setup_mode = setup_mode::finish;
                 }
             }
             break;
@@ -161,10 +161,11 @@ void welcomepage::render_headers(const struct pupnp::upnp::request &request, std
             else
                 settings.set_video_mode(video_mode::dvd);
 
-            server::setup_mode = setup_mode::finished;
+            server::setup_mode = setup_mode::finish;
             break;
 
-        case setup_mode::finished:
+        case setup_mode::finish:
+            settings.set_configure_required(false);
             server::setup_mode = setup_mode::disabled;
             path = "/";
             break;
@@ -182,8 +183,8 @@ void welcomepage::render_headers(const struct pupnp::upnp::request &request, std
         case setup_mode::name:              server::setup_mode = setup_mode::network;   break;
         case setup_mode::network:           server::setup_mode = setup_mode::codecs;    break;
         case setup_mode::codecs:            server::setup_mode = setup_mode::codecs;    break;
-        case setup_mode::high_definition:   server::setup_mode = setup_mode::finished;  break;
-        case setup_mode::finished:          server::setup_mode = setup_mode::disabled;  break;
+        case setup_mode::high_definition:   server::setup_mode = setup_mode::finish;    break;
+        case setup_mode::finish:            server::setup_mode = setup_mode::disabled;  break;
         }
     }
     else switch (server::setup_mode)
@@ -200,7 +201,7 @@ void welcomepage::render_headers(const struct pupnp::upnp::request &request, std
 
     case setup_mode::codecs:
     case setup_mode::high_definition:
-    case setup_mode::finished:
+    case setup_mode::finish:
         break;
     }
 
@@ -215,12 +216,12 @@ int welcomepage::render_page(const struct pupnp::upnp::request &request, std::os
     {
         switch (server::setup_mode)
         {
-        case setup_mode::disabled:          render_setup_finished(request, out);        break;
+        case setup_mode::disabled:          render_setup_finish(request, out);          break;
         case setup_mode::name:              render_main_page(out);                      break;
         case setup_mode::network:           render_setup_name(request, out);            break;
         case setup_mode::codecs:            render_setup_network(request, out);         break;
         case setup_mode::high_definition:   render_setup_codecs(request, out);          break;
-        case setup_mode::finished:          render_setup_high_definition(request, out); break;
+        case setup_mode::finish:            render_setup_high_definition(request, out); break;
         }
 
         out << "<div class=\"wait\"><div><p>"
@@ -237,7 +238,7 @@ int welcomepage::render_page(const struct pupnp::upnp::request &request, std::os
         case setup_mode::network:           render_setup_network(request, out);         break;
         case setup_mode::codecs:            render_setup_codecs(request, out);          break;
         case setup_mode::high_definition:   render_setup_high_definition(request, out); break;
-        case setup_mode::finished:          render_setup_finished(request, out);        break;
+        case setup_mode::finish:            render_setup_finish(request, out);          break;
         }
     }
 
@@ -292,7 +293,7 @@ void welcomepage::render_main_page(std::ostream &out)
         << tr("Start setup assistant") << " &gt;&gt;&gt;</a></p><p>";
 }
 
-void welcomepage::render_setup_name(const struct pupnp::upnp::request &request, std::ostream &out)
+void welcomepage::render_setup_name(const struct pupnp::upnp::request &, std::ostream &out)
 {
     out << "<p><img class=\"logo\" src=\"/img/settings.svg\" alt=\"Setup assistant\" /></p>"
            "<h1>" << tr("Setup assistant") << "</h1>"
@@ -319,7 +320,7 @@ void welcomepage::render_setup_name(const struct pupnp::upnp::request &request, 
            "</form></fieldset>";
 }
 
-void welcomepage::render_setup_network(const struct pupnp::upnp::request &request, std::ostream &out)
+void welcomepage::render_setup_network(const struct pupnp::upnp::request &, std::ostream &out)
 {
     const std::string device_name = tr_device_name(device_type);
 
@@ -342,7 +343,7 @@ void welcomepage::render_setup_network(const struct pupnp::upnp::request &reques
     out << "</form></fieldset>";
 }
 
-void welcomepage::render_setup_codecs(const struct pupnp::upnp::request &request, std::ostream &out)
+void welcomepage::render_setup_codecs(const struct pupnp::upnp::request &, std::ostream &out)
 {
     const std::string device_name = tr_device_name(device_type);
 
@@ -366,7 +367,7 @@ void welcomepage::render_setup_codecs(const struct pupnp::upnp::request &request
            "</form></fieldset>";
 }
 
-void welcomepage::render_setup_high_definition(const struct pupnp::upnp::request &request, std::ostream &out)
+void welcomepage::render_setup_high_definition(const struct pupnp::upnp::request &, std::ostream &out)
 {
     const std::string device_name = tr_device_name(device_type);
 
@@ -386,7 +387,7 @@ void welcomepage::render_setup_high_definition(const struct pupnp::upnp::request
            "</form></fieldset>";
 }
 
-void welcomepage::render_setup_finished(const struct pupnp::upnp::request &request, std::ostream &out)
+void welcomepage::render_setup_finish(const struct pupnp::upnp::request &, std::ostream &out)
 {
     const std::string device_name = tr_device_name(device_type);
 

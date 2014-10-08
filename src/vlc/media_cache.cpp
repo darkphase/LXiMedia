@@ -18,7 +18,6 @@
 #include "media_cache.h"
 #include "instance.h"
 #include "media.h"
-#include "platform/messageloop.h"
 #include <stdexcept>
 #include <vlc/vlc.h>
 
@@ -33,7 +32,7 @@ struct media_cache::parsed_data
     int chapter_count;
 };
 
-media_cache::media_cache(class platform::messageloop &messageloop)
+media_cache::media_cache(class platform::messageloop_ref &messageloop)
   : messageloop(messageloop),
     pending_items(0)
 {

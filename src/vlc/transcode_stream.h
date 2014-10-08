@@ -18,14 +18,12 @@
 #ifndef VLC_TRANSCODE_STREAM_H
 #define VLC_TRANSCODE_STREAM_H
 
+#include "platform/messageloop.h"
 #include <chrono>
-#include <functional>
 #include <istream>
 #include <memory>
 #include <string>
 #include <vector>
-
-namespace platform { class messageloop; }
 
 namespace vlc {
 
@@ -38,7 +36,7 @@ public:
 
 public:
     transcode_stream(
-            class platform::messageloop &,
+            class platform::messageloop_ref &,
             class instance &,
             const std::function<int32_t(int32_t)> &changed);
 
@@ -71,7 +69,7 @@ private:
 
     static const size_t block_size;
     static const size_t block_count;
-    class platform::messageloop &messageloop;
+    class platform::messageloop_ref messageloop;
     class instance &instance;
     const std::function<int32_t(int32_t)> changed;
     std::vector<std::string> options;

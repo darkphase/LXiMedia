@@ -48,7 +48,7 @@ private:
     void render_setup_network(const struct pupnp::upnp::request &, std::ostream &out);
     void render_setup_codecs(const struct pupnp::upnp::request &, std::ostream &out);
     void render_setup_high_definition(const struct pupnp::upnp::request &, std::ostream &out);
-    void render_setup_finished(const struct pupnp::upnp::request &, std::ostream &out);
+    void render_setup_finish(const struct pupnp::upnp::request &, std::ostream &out);
 
 private:
     static std::string device_type;

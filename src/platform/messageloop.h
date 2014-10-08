@@ -21,17 +21,19 @@
 #include <chrono>
 #include <condition_variable>
 #include <functional>
+#include <list>
 #include <memory>
 #include <mutex>
-#include <queue>
 #include <set>
 
 namespace platform {
 
+class messageloop_ref;
 class timer;
 
 class messageloop
 {
+friend class messageloop_ref;
 friend class timer;
 public:
     messageloop();
@@ -39,13 +41,15 @@ public:
 
     int run();
     void stop(int);
-    void post(const std::function<void()> &);
-    void post(std::function<void()> &&);
     void send(const std::function<void()> &);
 
     void process_events(const std::chrono::milliseconds &duration);
 
 private:
+    void post(class messageloop_ref &, const std::function<void()> &);
+    void post(class messageloop_ref &, std::function<void()> &&);
+    void abort(class messageloop_ref &);
+
     void abort();
     void timer_add(class timer &);
     void timer_remove(class timer &);
@@ -57,10 +61,38 @@ private:
 
     bool stopped;
     int exitcode;
-    std::queue<std::function<void()>> messages;
+
+    struct message
+    {
+        class messageloop_ref *ref;
+        std::function<void()> func;
+    };
+
+    std::list<message> messages;
 
     std::set<timer *> timers;
     std::chrono::steady_clock clock;
+};
+
+class messageloop_ref
+{
+friend class timer;
+public:
+    messageloop_ref(class messageloop &);
+    messageloop_ref(class messageloop_ref &);
+    messageloop_ref(const class messageloop_ref &) = delete;
+    ~messageloop_ref();
+
+    void stop(int);
+
+    void send(const std::function<void()> &);
+    void post(const std::function<void()> &);
+    void post(std::function<void()> &&);
+
+    void process_events(const std::chrono::milliseconds &duration);
+
+private:
+    class messageloop &messageloop;
 };
 
 class timer
@@ -68,6 +100,7 @@ class timer
 friend class messageloop;
 public:
     timer(class messageloop &, const std::function<void()> &timeout);
+    timer(class messageloop_ref &, const std::function<void()> &timeout);
     ~timer();
 
     template<typename rep, typename period>

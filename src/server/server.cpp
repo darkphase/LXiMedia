@@ -25,7 +25,7 @@ std::function<void()> server::recreate_server;
 enum setup_mode server::setup_mode = ::setup_mode::disabled;
 
 server::server(
-        class platform::messageloop &messageloop,
+        class platform::messageloop_ref &messageloop,
         class settings &settings,
         class pupnp::upnp &upnp,
         const std::string &logfilename)
@@ -52,6 +52,8 @@ server::server(
       recreate_server_timer(messageloop, [this] { if (recreate_server) this->messageloop.post(recreate_server); }),
       recreate_server_timeout(500)
 {
+    if ((setup_mode == ::setup_mode::disabled) && settings.is_configure_required())
+        setup_mode = ::setup_mode::name;
 }
 
 server::~server()

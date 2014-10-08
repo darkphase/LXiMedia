@@ -29,7 +29,7 @@ struct user_dirs { std::string download, music, pictures, videos; };
 static struct user_dirs user_dirs();
 static std::string make_uuid();
 
-settings::settings(class platform::messageloop &messageloop)
+settings::settings(class platform::messageloop_ref &messageloop)
     : messageloop(messageloop),
       inifile(platform::config_dir() + "/settings"),
       general(inifile.open_section()),
@@ -50,6 +50,21 @@ void settings::save()
 {
     timer.stop();
     inifile.save();
+}
+
+static const char is_configure_required_name[] = "is_configure_required";
+
+bool settings::is_configure_required() const
+{
+    return general.read(is_configure_required_name, true);
+}
+
+void settings::set_configure_required(bool on)
+{
+    if (on)
+        return general.erase(is_configure_required_name);
+    else
+        return general.write(is_configure_required_name, false);
 }
 
 static const char uuid_name[] = "uuid";

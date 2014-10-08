@@ -23,7 +23,7 @@
 static bool shutdown();
 
 setup::setup(
-        class platform::messageloop &messageloop,
+        class platform::messageloop_ref &messageloop,
         pupnp::content_directory &content_directory,
         const class settings &settings)
     : messageloop(messageloop),

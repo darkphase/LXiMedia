@@ -24,7 +24,8 @@ static std::set<std::string> find_server(
         class pupnp::upnp &upnp)
 {
     const std::string my_id = "uuid:" + settings.uuid();
-    class pupnp::client client(messageloop, upnp);
+    class platform::messageloop_ref messageloop_ref(messageloop);
+    class pupnp::client client(messageloop_ref, upnp);
 
     std::set<std::string> result;
     if (client.initialize())
@@ -62,10 +63,12 @@ static int run_server(
 
     std::clog << "Starting LXiMediaServer version " << VERSION << std::endl;
 
-    server::recreate_server = [&messageloop, &upnp, &settings, &logfile]
+    class platform::messageloop_ref messageloop_ref(messageloop);
+
+    server::recreate_server = [&messageloop, &messageloop_ref, &upnp, &settings, &logfile]
     {
         server_ptr = nullptr;
-        server_ptr.reset(new class server(messageloop, settings, upnp, logfile));
+        server_ptr.reset(new class server(messageloop_ref, settings, upnp, logfile));
         if (!server_ptr->initialize())
         {
             std::clog << "[" << server_ptr.get() << "] failed to initialize server; stopping." << std::endl;
@@ -118,9 +121,10 @@ int main(int argc, const char *argv[])
     setlocale(LC_ALL, "");
 
     class platform::messageloop messageloop;
-    class settings settings(messageloop);
+    class platform::messageloop_ref messageloop_ref(messageloop);
+    class settings settings(messageloop_ref);
 
-    class pupnp::upnp upnp(messageloop);
+    class pupnp::upnp upnp(messageloop_ref);
     if (upnp.initialize(settings.http_port(), false))
     {
         const auto urls = find_server(messageloop, settings, upnp);
@@ -139,7 +143,7 @@ int main(int argc, const char *argv[])
             {
                 if (!urls.empty())
                 {
-                    class pupnp::client client(messageloop, upnp);
+                    class pupnp::client client(messageloop_ref, upnp);
 
                     client.get(get_url(urls) + "quit");
                 }

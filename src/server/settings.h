@@ -22,6 +22,7 @@
 #include "platform/messageloop.h"
 #include <chrono>
 #include <cstdint>
+#include <vector>
 
 enum class encode_mode { slow, fast };
 enum class video_mode { auto_, vcd, dvd, hdtv_720, hdtv_1080 };
@@ -33,10 +34,13 @@ struct root_path { path_type type; std::string path; };
 class settings
 {
 public:
-    explicit settings(class platform::messageloop &);
+    explicit settings(class platform::messageloop_ref &);
     ~settings();
 
     void save();
+
+    bool is_configure_required() const;
+    void set_configure_required(bool);
 
     std::string uuid();
     std::string upnp_devicename() const;
@@ -80,7 +84,7 @@ public:
     void set_root_paths(const std::vector<root_path> &);
 
 private:
-    class platform::messageloop &messageloop;
+    class platform::messageloop_ref messageloop;
     class platform::inifile inifile;
     class platform::inifile::section general;
     class platform::inifile::section codecs;

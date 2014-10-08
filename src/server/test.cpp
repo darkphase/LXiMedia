@@ -27,7 +27,7 @@
 #include <sstream>
 
 test::test(
-        class platform::messageloop &messageloop,
+        class platform::messageloop_ref &messageloop,
         class vlc::instance &instance,
         class pupnp::connection_manager &connection_manager,
         class pupnp::content_directory &content_directory,
@@ -94,7 +94,7 @@ pupnp::content_directory::item test::get_contentdir_item(const std::string &, co
     item.path = path;
     item.type = pupnp::content_directory::item_type::video_broadcast;
 
-    item.frame_rate = 25.0f;
+    item.frame_rate = 10.0f;
     item.duration = std::chrono::seconds(10);
     item.sample_rate = 44100;
     item.channels = 2;

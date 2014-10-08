@@ -30,7 +30,7 @@
 #include <sstream>
 
 files::files(
-        class platform::messageloop &messageloop,
+        class platform::messageloop_ref &messageloop,
         class vlc::instance &vlc_instance,
         class pupnp::connection_manager &connection_manager,
         class pupnp::content_directory &content_directory,

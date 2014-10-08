@@ -54,7 +54,7 @@ public:
     };
 
 public:
-    mainpage(class platform::messageloop &, class pupnp::upnp &, class pupnp::connection_manager &);
+    mainpage(class platform::messageloop_ref &, class pupnp::upnp &, class pupnp::connection_manager &);
     ~mainpage();
 
     void set_devicename(const std::string &);
@@ -72,7 +72,7 @@ private:
     int render_mainpage(const struct pupnp::upnp::request &, std::ostream &);
 
 private:
-    class platform::messageloop &messageloop;
+    class platform::messageloop_ref messageloop;
     class pupnp::upnp &upnp;
     class pupnp::connection_manager &connection_manager;
     std::string devicename;

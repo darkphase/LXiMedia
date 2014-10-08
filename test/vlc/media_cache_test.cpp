@@ -41,7 +41,8 @@ static const struct media_cache_test
         test_assert(!media.mrl().empty());
 
         class platform::messageloop messageloop;
-        class media_cache media_cache(messageloop);
+        class platform::messageloop_ref messageloop_ref(messageloop);
+        class media_cache media_cache(messageloop_ref);
         const auto tracks = media_cache.tracks(media);
         test_assert(tracks.size() == 1);
         for (const auto &track : tracks)
@@ -74,7 +75,8 @@ static const struct media_cache_test
         test_assert(!media.mrl().empty());
 
         class platform::messageloop messageloop;
-        class media_cache media_cache(messageloop);
+        class platform::messageloop_ref messageloop_ref(messageloop);
+        class media_cache media_cache(messageloop_ref);
         const auto tracks = media_cache.tracks(media);
         test_assert(tracks.size() == 3);
         for (const auto &track : tracks)

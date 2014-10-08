@@ -67,7 +67,7 @@ public:
 public:
     static std::string hostname();
 
-    explicit upnp(class platform::messageloop &);
+    explicit upnp(class platform::messageloop_ref &);
     ~upnp();
 
     const std::string &http_basedir() const;
@@ -134,7 +134,7 @@ public:
 private:
     static upnp * me;
 
-    class platform::messageloop &messageloop;
+    class platform::messageloop_ref messageloop;
     const std::string basedir;
 
     std::set<child *> children;

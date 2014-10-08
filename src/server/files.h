@@ -36,7 +36,7 @@ class files : private pupnp::content_directory::item_source
 {
 public:
     files(
-            class platform::messageloop &,
+            class platform::messageloop_ref &,
             class vlc::instance &,
             class pupnp::connection_manager &,
             class pupnp::content_directory &,
@@ -58,7 +58,7 @@ private:
     void sever_pending_streams();
 
 private:
-    class platform::messageloop &messageloop;
+    class platform::messageloop_ref messageloop;
     class vlc::instance &vlc_instance;
     mutable class vlc::media_cache media_cache;
     class pupnp::connection_manager &connection_manager;

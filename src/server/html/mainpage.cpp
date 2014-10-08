@@ -17,6 +17,8 @@
 
 #include "mainpage.h"
 #include "platform/string.h"
+#include "platform/translator.h"
+#include "server/server.h"
 #include <algorithm>
 #include <sstream>
 
@@ -36,7 +38,7 @@ static const char base_css[] = {
 
 namespace html {
 
-mainpage::mainpage(class platform::messageloop &messageloop, class pupnp::upnp &upnp, class pupnp::connection_manager &connection_manager)
+mainpage::mainpage(class platform::messageloop_ref &messageloop, class pupnp::upnp &upnp, class pupnp::connection_manager &connection_manager)
     : messageloop(messageloop),
       upnp(upnp),
       connection_manager(connection_manager)
@@ -137,6 +139,10 @@ int mainpage::handle_http_request(const struct pupnp::upnp::request &request, st
 
 int mainpage::render_page(const struct pupnp::upnp::request &request, const std::string &content_type, std::ostream &out, const struct page &page)
 {
+    const bool require_welcome_page =
+            (server::setup_mode != setup_mode::disabled) &&
+            (request.url.path != "/welcome");
+
     out << "<!DOCTYPE html>\n"
            "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">"
            "<head>"
@@ -148,25 +154,41 @@ int mainpage::render_page(const struct pupnp::upnp::request &request, const std:
     if (page.render_headers)
         page.render_headers(request, out);
 
+    if (require_welcome_page)
+        out << "<meta http-equiv=\"Refresh\" content=\"2; url=http://" << request.url.host << "/welcome\" />";
+
     out << "</head>"
            "<body>"
            "<div class=\"main_navigator\">"
            "<div class=\"root\">" << page.title << "</div>";
 
-    for (const auto &i : page_order)
+    if (server::setup_mode == setup_mode::disabled)
     {
-        auto page = pages.find(i);
-        if ((page != pages.end()) && !page->second.icon.empty())
+        for (const auto &i : page_order)
         {
-            out << "<div><a href=\"" << page->first << "\">"
-                   "<img src=\"" << page->second.icon << "\" alt=\"" << page->second.title << "\" />"
-                   "</a></div>";
+            auto page = pages.find(i);
+            if ((page != pages.end()) && !page->second.icon.empty())
+            {
+                out << "<div><a href=\"" << page->first << "\">"
+                       "<img src=\"" << page->second.icon << "\" alt=\"" << page->second.title << "\" />"
+                       "</a></div>";
+            }
         }
     }
+    else
+        out << "<div><img src=\"/img/lximedia.svg\" alt=\"LXiMedia\" /></div>";
 
     out << "</div>";
 
     const int result = page.render_content(request, out);
+
+    if (require_welcome_page)
+    {
+        out << "<div class=\"wait\"><div><p>"
+               "<img src=\"/img/running.svg\" />"
+               << tr("Loading Welcome page...") <<
+               "</p></div></div>";
+    }
 
     out << "</body></html>";
 
