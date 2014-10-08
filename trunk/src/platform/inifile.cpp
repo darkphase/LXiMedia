@@ -192,6 +192,15 @@ std::set<std::string> inifile::const_section::names() const
     return std::set<std::string>();
 }
 
+bool inifile::const_section::has_value(const std::string &name) const
+{
+    auto i = inifile.values.find(section_name);
+    if (i != inifile.values.end())
+        return i->second.find(name) != i->second.end();
+
+    return false;
+}
+
 std::string inifile::const_section::read(const std::string &name, const std::string &default_) const
 {
     auto i = inifile.values.find(section_name);

@@ -16,7 +16,8 @@ static const struct messageloop_test
     static void post()
     {
         class platform::messageloop messageloop;
-        messageloop.post([&messageloop] { messageloop.stop(123); });
+        class platform::messageloop_ref messageloop_ref(messageloop);
+        messageloop_ref.post([&messageloop] { messageloop.stop(123); });
         test_assert(messageloop.run() == 123);
     }
 
@@ -41,9 +42,10 @@ static const struct messageloop_test
     static void process_events()
     {
         class platform::messageloop messageloop;
+        class platform::messageloop_ref messageloop_ref(messageloop);
 
         int test = 0;
-        messageloop.post([&test] { test = 456; });
+        messageloop_ref.post([&test] { test = 456; });
         test_assert(test == 0);
         messageloop.process_events(std::chrono::seconds(0));
         test_assert(test == 456);

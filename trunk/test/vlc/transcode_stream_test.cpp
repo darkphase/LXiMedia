@@ -33,8 +33,9 @@ static const struct transcode_stream_test
         write_file("pm5544.srt", pm5544_srt, sizeof(pm5544_srt));
 
         class platform::messageloop messageloop;
+        class platform::messageloop_ref messageloop_ref(messageloop);
         class instance instance;
-        class media_cache media_cache(messageloop);
+        class media_cache media_cache(messageloop_ref);
 
         // Transcode file.
         const std::string outfile = filename("output.ts");
@@ -50,7 +51,7 @@ static const struct transcode_stream_test
                 case media_cache::track_type::text:   track_ids.text  = track.id; break;
                 }
 
-            class transcode_stream transcode_stream(messageloop, instance, nullptr);
+            class transcode_stream transcode_stream(messageloop_ref, instance, nullptr);
             if (vlc::instance::compare_version(2, 1) == 0)
             {
                 // Fallback for VLC 2.1

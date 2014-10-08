@@ -26,6 +26,7 @@
 #include "html/logpage.h"
 #include "html/settingspage.h"
 #include "html/welcomepage.h"
+#include "platform/messageloop.h"
 #include "pupnp/connection_manager.h"
 #include "pupnp/content_directory.h"
 #include "pupnp/mediareceiver_registrar.h"
@@ -36,11 +37,10 @@
 #include "watchlist.h"
 
 class files;
-class messageloop;
 class setup;
 class test;
 
-enum class setup_mode { disabled, name, network, codecs, high_definition, finished };
+enum class setup_mode { disabled, name, network, codecs, high_definition, finish };
 
 class server
 {
@@ -50,7 +50,7 @@ public:
 
 public:
     server(
-            class platform::messageloop &,
+            class platform::messageloop_ref &,
             class settings &,
             class pupnp::upnp &,
             const std::string &);
@@ -70,7 +70,7 @@ private:
     void add_video_protocols();
 
 private:
-    class platform::messageloop &messageloop;
+    class platform::messageloop_ref messageloop;
     class settings &settings;
     class watchlist watchlist;
 

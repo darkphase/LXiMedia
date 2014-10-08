@@ -18,6 +18,7 @@
 #ifndef VLC_MEDIA_CACHE_H
 #define VLC_MEDIA_CACHE_H
 
+#include "platform/messageloop.h"
 #include <chrono>
 #include <condition_variable>
 #include <map>
@@ -29,8 +30,6 @@
 #include <vector>
 
 struct libvlc_media_t;
-
-namespace platform { class messageloop; }
 
 namespace vlc {
 
@@ -57,7 +56,7 @@ public:
     };
 
 public:
-    explicit media_cache(class platform::messageloop &);
+    explicit media_cache(class platform::messageloop_ref &);
     ~media_cache();
 
     void async_parse_items(const std::vector<class media> &items);
@@ -81,7 +80,7 @@ private:
     void finish();
 
 private:
-    class platform::messageloop &messageloop;
+    class platform::messageloop_ref messageloop;
 
     std::mutex mutex;
     std::condition_variable condition;

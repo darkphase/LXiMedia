@@ -35,6 +35,7 @@ public:
         const_section(const const_section &);
 
         std::set<std::string> names() const;
+        bool has_value(const std::string &name) const;
 
         std::string read(const std::string &name, const std::string &default_ = std::string()) const;
         std::string read(const std::string &name, const char *default_) const;

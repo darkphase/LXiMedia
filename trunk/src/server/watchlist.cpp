@@ -19,7 +19,7 @@
 #include "platform/path.h"
 #include "platform/string.h"
 
-watchlist::watchlist(class platform::messageloop &messageloop)
+watchlist::watchlist(class platform::messageloop_ref &messageloop)
     : messageloop(messageloop),
       inifile(platform::config_dir() + "/watchlist"),
       timer(messageloop, std::bind(&platform::inifile::save, &inifile)),

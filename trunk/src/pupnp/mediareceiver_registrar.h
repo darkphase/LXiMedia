@@ -48,7 +48,7 @@ public:
   static const char service_id[];
   static const char service_type[];
 
-  explicit mediareceiver_registrar(class platform::messageloop &, class rootdevice &);
+  explicit mediareceiver_registrar(class platform::messageloop_ref &, class rootdevice &);
   virtual ~mediareceiver_registrar();
 
   void handle_action(const upnp::request &, action_is_authorized &);
@@ -65,7 +65,7 @@ private: // From rootdevice::service
   virtual void write_eventable_statevariables(rootdevice::eventable_propertyset &) const override final;
 
 private:
-  class platform::messageloop &messageloop;
+  class platform::messageloop_ref messageloop;
   class rootdevice &rootdevice;
 
   uint32_t authorization_granted_updateid;

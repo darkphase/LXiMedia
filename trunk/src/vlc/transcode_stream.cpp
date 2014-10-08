@@ -17,7 +17,6 @@
 
 #include "transcode_stream.h"
 #include "media.h"
-#include "platform/messageloop.h"
 #include "instance.h"
 #include <vlc/vlc.h>
 #include <cassert>
@@ -61,7 +60,7 @@ class transcode_stream::source
 {
 public:
     source(
-            class platform::messageloop &,
+            class platform::messageloop_ref &,
             class instance &,
             const std::function<int32_t(int32_t)> &,
             const std::string &,
@@ -73,7 +72,7 @@ public:
             const std::vector<std::string> &);
 
     source(
-            class platform::messageloop &,
+            class platform::messageloop_ref &,
             class instance &,
             const std::function<int32_t(int32_t)> &,
             const std::string &,
@@ -95,7 +94,7 @@ public:
 
 private:
     source(
-            class platform::messageloop &,
+            class platform::messageloop_ref &,
             class instance &,
             const std::function<int32_t(int32_t)> &,
             const std::string &,
@@ -112,7 +111,7 @@ private:
     static void callback(const libvlc_event_t *, void *);
 
 private:
-    class platform::messageloop &messageloop;
+    class platform::messageloop_ref messageloop;
     class instance &instance;
     const std::function<int32_t(int32_t)> changed;
     const struct track_ids track_ids;
@@ -146,7 +145,7 @@ private:
 };
 
 transcode_stream::transcode_stream(
-        class platform::messageloop &messageloop,
+        class platform::messageloop_ref &messageloop,
         class instance &instance,
         const std::function<int32_t(int32_t)> &changed)
     : messageloop(messageloop),
@@ -232,7 +231,7 @@ void transcode_stream::close()
 
 
 transcode_stream::source::source(
-        class platform::messageloop &messageloop,
+        class platform::messageloop_ref &messageloop,
         class instance &instance,
         const std::function<int32_t(int32_t)> &changed,
         const std::string &mrl,
@@ -296,7 +295,7 @@ transcode_stream::source::source(
 }
 
 transcode_stream::source::source(
-        class platform::messageloop &messageloop,
+        class platform::messageloop_ref &messageloop,
         class instance &instance,
         const std::function<int32_t(int32_t)> &changed,
         const std::string &mrl,
@@ -319,7 +318,7 @@ transcode_stream::source::source(
 }
 
 transcode_stream::source::source(
-        class platform::messageloop &messageloop,
+        class platform::messageloop_ref &messageloop,
         class instance &instance,
         const std::function<int32_t(int32_t)> &changed,
         const std::string &mrl,

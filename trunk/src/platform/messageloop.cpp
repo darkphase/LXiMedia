@@ -45,7 +45,7 @@ int messageloop::run()
 
     for (;;)
     {
-        std::function<void()> message;
+        struct message message;
         {
             std::unique_lock<std::mutex> lock(mutex);
             if (stopped)
@@ -55,7 +55,7 @@ int messageloop::run()
             else if (!messages.empty())
             {
                 message = messages.front();
-                messages.pop();
+                messages.pop_front();
             }
             else if (!timers.empty())
             {
@@ -64,7 +64,7 @@ int messageloop::run()
                 {
                     if ((*i)->next <= now)
                     {
-                        message = (*i)->timeout;
+                        message = messageloop::message { nullptr, (*i)->timeout };
 
                         if ((*i)->once)
                         {
@@ -82,7 +82,7 @@ int messageloop::run()
                 }
             }
 
-            if (!message)
+            if (!message.func)
             {
                 if (!timers.empty())
                 {
@@ -102,7 +102,7 @@ int messageloop::run()
             }
         }
 
-        if (message) message();
+        if (message.func) message.func();
     }
 
     return exitcode;
@@ -117,35 +117,35 @@ void messageloop::stop(int exitcode)
     message_added.notify_one();
 }
 
-void messageloop::post(const std::function<void()> &message)
+void messageloop::post(class messageloop_ref &ref, const std::function<void()> &func)
 {
     std::lock_guard<std::mutex> _(mutex);
 
-    messages.push(message);
+    messages.push_back(message { &ref, func });
     message_added.notify_one();
 }
 
-void messageloop::post(std::function<void()> &&message)
+void messageloop::post(class messageloop_ref &ref, std::function<void()> &&func)
 {
     std::lock_guard<std::mutex> _(mutex);
 
-    messages.emplace(message);
+    messages.emplace_back(message { &ref, std::move(func) });
     message_added.notify_one();
 }
 
-void messageloop::send(const std::function<void()> &message)
+void messageloop::send(const std::function<void()> &func)
 {
     std::unique_lock<std::mutex> lock(mutex);
 
     bool finished = false;
-    messages.push([this, &message, &finished]
+    messages.push_back(message { nullptr, [this, &func, &finished]
     {
-        if (message) message();
+        if (func) func();
 
         std::lock_guard<std::mutex> _(mutex);
         finished = true;
         send_processed.notify_all();
-    });
+    }});
 
     message_added.notify_one();
     while (!finished) send_processed.wait(lock);
@@ -158,7 +158,7 @@ void messageloop::process_events(const std::chrono::milliseconds &duration)
 
     for (;;)
     {
-        std::function<void()> message;
+        struct message message;
         {
             std::unique_lock<std::mutex> lock(mutex);
             if (!stopped)
@@ -166,7 +166,7 @@ void messageloop::process_events(const std::chrono::milliseconds &duration)
                 if (!messages.empty())
                 {
                     message = messages.front();
-                    messages.pop();
+                    messages.pop_front();
                 }
                 else if (message_added.wait_until(lock, stop) == std::cv_status::no_timeout)
                     continue;
@@ -177,8 +177,19 @@ void messageloop::process_events(const std::chrono::milliseconds &duration)
                 return;
         }
 
-        if (message) message();
+        if (message.func) message.func();
     }
+}
+
+void messageloop::abort(class messageloop_ref &ref)
+{
+    std::lock_guard<std::mutex> _(mutex);
+
+    for (auto i = messages.begin(); i != messages.end(); )
+        if (i->ref == &ref)
+            i = messages.erase(i);
+        else
+            i++;
 }
 
 void messageloop::abort()
@@ -201,11 +212,57 @@ void messageloop::timer_remove(class timer &timer)
 }
 
 
+messageloop_ref::messageloop_ref(class messageloop &messageloop)
+    : messageloop(messageloop)
+{
+}
+
+messageloop_ref::messageloop_ref(class messageloop_ref &messageloop_ref)
+    : messageloop(messageloop_ref.messageloop)
+{
+}
+
+messageloop_ref::~messageloop_ref()
+{
+    messageloop.abort(*this);
+}
+
+void messageloop_ref::stop(int exitcode)
+{
+    return messageloop.stop(exitcode);
+}
+
+void messageloop_ref::send(const std::function<void()> &func)
+{
+    return messageloop.send(func);
+}
+
+void messageloop_ref::post(const std::function<void()> &func)
+{
+    return messageloop.post(*this, func);
+}
+
+void messageloop_ref::post(std::function<void()> &&func)
+{
+    return messageloop.post(*this, std::move(func));
+}
+
+void messageloop_ref::process_events(const std::chrono::milliseconds &duration)
+{
+    return messageloop.process_events(duration);
+}
+
+
 timer::timer(class messageloop &messageloop, const std::function<void()> &timeout)
     : messageloop(messageloop),
       timeout(timeout),
       interval(0),
       once(false)
+{
+}
+
+timer::timer(class messageloop_ref &messageloop, const std::function<void()> &timeout)
+    : timer(messageloop.messageloop, timeout)
 {
 }
 

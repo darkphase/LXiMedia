@@ -168,7 +168,7 @@ public:
     static const char service_id[];
     static const char service_type[];
 
-    content_directory(class platform::messageloop &, class upnp &, class rootdevice &, class connection_manager &);
+    content_directory(class platform::messageloop_ref &, class upnp &, class rootdevice &, class connection_manager &);
     virtual ~content_directory();
 
     void item_source_register(const std::string &path, struct item_source &);
@@ -212,7 +212,7 @@ private:
     void process_pending_updates(void);
 
 private:
-    class platform::messageloop &messageloop;
+    class platform::messageloop_ref messageloop;
     class upnp &upnp;
     class rootdevice &rootdevice;
     class connection_manager &connection_manager;
