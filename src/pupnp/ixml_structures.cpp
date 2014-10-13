@@ -100,25 +100,26 @@ std::string xml_structure::get_textelement(_IXML_Node *from, const std::string &
 
     IXML_NodeList * const children = ixmlNode_getChildNodes(from);
     for (IXML_NodeList *i = children; i; i = i->next)
-    {
-        const char *n = strchr(i->nodeItem->nodeName, ':');
-        if (n == NULL)
-            n = i->nodeItem->nodeName;
-        else
-            n++;
-
-        if (strcmp(n, name.c_str()) == 0)
+        if (i->nodeItem && i->nodeItem->nodeName)
         {
-            IXML_NodeList * const children = ixmlNode_getChildNodes(i->nodeItem);
-            for (IXML_NodeList *i = children; i; i = i->next)
-                if (i->nodeItem->nodeValue)
-                    result += i->nodeItem->nodeValue;
+            const char *n = strchr(i->nodeItem->nodeName, ':');
+            if (n == NULL)
+                n = i->nodeItem->nodeName;
+            else
+                n++;
 
-            ixmlNodeList_free(children);
+            if (strcmp(n, name.c_str()) == 0)
+            {
+                IXML_NodeList * const children = ixmlNode_getChildNodes(i->nodeItem);
+                for (IXML_NodeList *i = children; i; i = i->next)
+                    if (i->nodeItem && i->nodeItem->nodeValue)
+                        result += i->nodeItem->nodeValue;
 
-            break;
+                ixmlNodeList_free(children);
+
+                break;
+            }
         }
-    }
 
     ixmlNodeList_free(children);
 
