@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#include "connection_proxy.h"
-#include "connection_manager.h"
+#include "platform/messageloop.h"
+#include "pupnp/connection_proxy.h"
 #include <cassert>
 #include <cmath>
 #include <condition_variable>
@@ -53,13 +53,7 @@ private:
 class connection_proxy::source
 {
 public:
-    source(
-            class connection_manager &,
-            class connection_manager::protocol &,
-            const std::string &mrl,
-            const std::string &source_address,
-            std::unique_ptr<std::istream> &&input);
-
+    source(std::unique_ptr<std::istream> &&input);
     ~source();
 
     bool attach(class streambuf &);
@@ -67,12 +61,15 @@ public:
 
     bool read(class streambuf &);
 
+    typedef std::vector<std::pair<platform::messageloop_ref *, std::function<void()>>> multicast_event;
+    multicast_event on_close;
+    multicast_event on_detach;
+
 private:
     void consume();
     void recompute_buffer_offset(std::unique_lock<std::mutex> &);
 
 private:
-    class connection_manager &connection_manager;
     const std::unique_ptr<std::istream> input;
     int32_t connection_id;
 
@@ -95,19 +92,9 @@ connection_proxy::connection_proxy()
 {
 }
 
-connection_proxy::connection_proxy(
-        class connection_manager &connection_manager,
-        class connection_manager::protocol &protocol,
-        const std::string &mrl,
-        const std::string &source_address,
-        std::unique_ptr<std::istream> &&input)
+connection_proxy::connection_proxy(std::unique_ptr<std::istream> &&input)
     : streambuf(new class streambuf(*this)),
-      source(new class source(
-                 connection_manager,
-                 protocol,
-                 mrl,
-                 source_address,
-                 std::move(input)))
+      source(new class source(std::move(input)))
 {
     source->attach(*streambuf);
     std::istream::rdbuf(streambuf.get());
@@ -135,15 +122,19 @@ bool connection_proxy::attach(connection_proxy &parent)
     return false;
 }
 
+void connection_proxy::subscribe_close(platform::messageloop_ref &messageloop_ref, const std::function<void()> &func)
+{
+    source->on_close.emplace_back(std::make_pair(&messageloop_ref, func));
+}
 
-connection_proxy::source::source(
-        class connection_manager &connection_manager,
-        class connection_manager::protocol &protocol,
-        const std::string &mrl,
-        const std::string &source_address,
-        std::unique_ptr<std::istream> &&input)
-    : connection_manager(connection_manager),
-      input(std::move(input)),
+void connection_proxy::subscribe_detach(platform::messageloop_ref &messageloop_ref, const std::function<void()> &func)
+{
+    source->on_detach.emplace_back(std::make_pair(&messageloop_ref, func));
+}
+
+
+connection_proxy::source::source(std::unique_ptr<std::istream> &&input)
+    : input(std::move(input)),
       connection_id(0),
       stream_end(false),
       buffer_offset(0),
@@ -152,21 +143,10 @@ connection_proxy::source::source(
     buffer.resize(block_size * block_count);
 
     consume_thread.reset(new std::thread(std::bind(&connection_proxy::source::consume, this)));
-
-    connection_id = connection_manager.output_connection_add(protocol);
-    if (connection_id != 0)
-    {
-        auto connection_info = connection_manager.output_connection(connection_id);
-        connection_info.mrl = mrl;
-        connection_info.endpoint = source_address;
-        connection_manager.output_connection_update(connection_id, connection_info);
-    }
 }
 
 connection_proxy::source::~source()
 {
-    connection_manager.output_connection_remove(connection_id);
-
     {
         std::lock_guard<std::mutex> _(mutex);
 
@@ -175,6 +155,8 @@ connection_proxy::source::~source()
     }
 
     consume_thread->join();
+
+    for (auto &i : on_close) i.first->post(i.second);
 }
 
 bool connection_proxy::source::attach(class streambuf &streambuf)
@@ -262,6 +244,9 @@ bool connection_proxy::source::read(class streambuf &streambuf)
         return true;
     }
 
+    for (auto &i : on_detach) i.first->post(i.second);
+    on_detach.clear();
+
     return false;
 }
 
@@ -272,8 +257,14 @@ void connection_proxy::source::recompute_buffer_offset(std::unique_lock<std::mut
         new_offset = std::min(new_offset, i->buffer_offset);
 
     if ((new_offset != size_t(-1)) && (new_offset >= (buffer_offset + block_size)) &&
-            ((buffer_offset > 0) || (new_offset >= (buffer.size() * 3 / 4))))
+        ((buffer_offset > 0) || (new_offset >= (buffer.size() * 3 / 4))))
     {
+        if (buffer_offset == 0)
+        {
+            for (auto &i : on_detach) i.first->post(i.second);
+            on_detach.clear();
+        }
+
         const size_t proceed = (new_offset - buffer_offset) & ~(block_size - 1);
         buffer_offset += proceed;
         buffer_used -= proceed;

@@ -15,7 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#include "connection_manager.h"
+#include "pupnp/connection_manager.h"
+#include "pupnp/connection_proxy.h"
 #include "platform/string.h"
 #include <cmath>
 #include <cstring>
@@ -246,7 +247,12 @@ void connection_manager::write_eventable_statevariables(rootdevice::eventable_pr
     propset.add_property("CurrentConnectionIDs", sp.empty() ? sp : sp.substr(1));
 }
 
-int32_t connection_manager::output_connection_add(const struct protocol &protocol)
+void connection_manager::add_output_connection(
+        const std::shared_ptr<class connection_proxy> &connection_proxy,
+        const struct protocol &protocol,
+        const std::string &mrl,
+        const std::string &endpoint,
+        const std::string &opt)
 {
     const auto id = ++connection_id_counter;
 
@@ -258,40 +264,70 @@ int32_t connection_manager::output_connection_add(const struct protocol &protoco
     connection.peerconnection_id = -1;
     connection.direction = connection_info::output;
     connection.status = connection_info::ok;
+
+    connection.connection_proxy = connection_proxy;
+    connection.protocol_string = protocol.to_string();
+    connection.mrl = mrl;
+    connection.endpoint = endpoint;
+    connection.opt = opt;
+
     connections[id] = connection;
+    connection_proxies[id] = connection_proxy;
+
+    connection_proxy->subscribe_close(messageloop, [this, id]
+    {
+        remove_output_connection(id);
+    });
+
+    connection_proxy->subscribe_detach(messageloop, [this, id]
+    {
+        connection_proxies.erase(id);
+    });
+
+    platform::timer::single_shot(messageloop, std::chrono::seconds(10), [this, id]
+    {
+        connection_proxies.erase(id);
+    });
 
     messageloop.post([this] { rootdevice.emit_event(service_id); });
     for (auto &i : numconnections_changed) if (i.second) i.second(connections.size());
-
-    return id;
 }
 
-void connection_manager::output_connection_remove(int32_t id)
+void connection_manager::remove_output_connection(int32_t id)
 {
-    auto i = connections.find(id);
-    if (i != connections.end())
+    connection_proxies.erase(id);
+    connections.erase(id);
+
+    messageloop.post([this] { rootdevice.emit_event(service_id); });
+    for (auto &j : numconnections_changed) if (j.second) j.second(connections.size());
+}
+
+std::shared_ptr<class connection_proxy> connection_manager::try_attach_output_connection(
+        const struct protocol &protocol,
+        const std::string &mrl,
+        const std::string &endpoint,
+        const std::string &opt)
+{
+    const auto protocol_string = protocol.to_string();
+
+    for (auto &i : connection_proxies)
     {
-        connections.erase(i);
-
-        messageloop.post([this] { rootdevice.emit_event(service_id); });
-        for (auto &j : numconnections_changed) if (j.second) j.second(connections.size());
+        auto connection = connections.find(i.first);
+        if (connection != connections.end())
+        {
+            if ((connection->second.protocol_string == protocol_string) &&
+                (connection->second.mrl == mrl) &&
+                (connection->second.endpoint == endpoint) &&
+                (connection->second.opt == opt))
+            {
+                auto proxy = std::make_shared<class connection_proxy>();
+                if (proxy->attach(*i.second))
+                    return proxy;
+            }
+        }
     }
-}
 
-connection_manager::connection_info connection_manager::output_connection(int32_t id) const
-{
-    auto i = connections.find(id);
-    if (i != connections.end())
-        return i->second;
-
-    return connection_info();
-}
-
-void connection_manager::output_connection_update(int32_t id, const struct connection_info &connection_info)
-{
-    auto i = connections.find(id);
-    if (i != connections.end())
-        i->second = connection_info;
+    return nullptr;
 }
 
 std::vector<connection_manager::connection_info> connection_manager::output_connections() const

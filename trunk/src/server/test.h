@@ -58,7 +58,6 @@ private:
   const class settings &settings;
 
   std::set<std::string> clients;
-  std::map<std::string, std::pair<int, std::shared_ptr<pupnp::connection_proxy>>> pending_streams;
 
   const resources::resource_file a440hz_flac;
   const vlc::media a440hz_flac_media;

@@ -56,7 +56,6 @@ private:
     pupnp::content_directory::item make_item(const std::string &, const std::string &) const;
     root_path to_system_path(const std::string &) const;
     std::string to_virtual_path(const std::string &) const;
-    void sever_pending_streams();
 
 private:
     class platform::messageloop_ref messageloop;
@@ -67,9 +66,6 @@ private:
     const class settings &settings;
     class watchlist &watchlist;
     const std::string basedir;
-
-    std::map<std::string, std::pair<int, std::shared_ptr<pupnp::connection_proxy>>> pending_streams;
-    platform::timer pending_streams_sever_timer;
 
     std::map<std::string, std::vector<std::string>> files_cache;
 };

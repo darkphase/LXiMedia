@@ -43,8 +43,7 @@ files::files(
       content_directory(content_directory),
       settings(settings),
       watchlist(watchlist),
-      basedir('/' + tr("Files") + '/'),
-      pending_streams_sever_timer(this->messageloop, std::bind(&files::sever_pending_streams, this))
+      basedir('/' + tr("Files") + '/')
 {
     content_directory.item_source_register(basedir, *this);
 }
@@ -453,63 +452,46 @@ int files::play_item(
             transcode << '}';
         }
 
-        std::ostringstream stream_id;
-        stream_id << '[' << item.mrl;
-        if (item.chapter > 0)               stream_id << "][C" << item.chapter;
-        else if (item.position.count() > 0) stream_id << "][" << item.position.count();
-        stream_id << "][" << transcode.str() << "][" << protocol.mux << ']';
+        std::ostringstream opt;
+        if (item.chapter > 0)               opt << "@C" << item.chapter;
+        else if (item.position.count() > 0) opt << "@" << item.position.count();
 
         // First try to attach to an already running stream.
-        auto pending_stream = pending_streams.find(stream_id.str());
-        if (pending_stream != pending_streams.end())
+        response = connection_manager.try_attach_output_connection(protocol, item.mrl, source_address, opt.str());
+        if (!response)
         {
-            auto proxy = std::make_shared<pupnp::connection_proxy>();
-            if (proxy->attach(*pending_stream->second.second))
+            std::clog << '[' << this << "] Creating new stream " << item.mrl << " transcode=" << transcode.str() << " mux=" << protocol.mux << std::endl;
+
+            struct vlc::transcode_stream::track_ids track_ids;
+            std::string file_path, track_name;
+            split_path(item.path, file_path, track_name);
+            const auto system_path = to_system_path(file_path);
+            auto media = vlc::media::from_file(vlc_instance, system_path.path);
+            for (auto &track : list_tracks(media_cache, media))
+                if (track.first == track_name)
+                    for (auto &t : track.second)
+                        switch (t.type)
+                        {
+                        case vlc::media_cache::track_type::unknown: break;
+                        case vlc::media_cache::track_type::audio:  track_ids.audio = t.id; break;
+                        case vlc::media_cache::track_type::video:  track_ids.video = t.id; break;
+                        case vlc::media_cache::track_type::text:   track_ids.text  = t.id; break;
+                        }
+
+            std::unique_ptr<vlc::transcode_stream> stream(new vlc::transcode_stream(vlc_instance));
+            if ((item.chapter > 0)
+                    ? stream->open(item.mrl, item.chapter, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate)
+                    : stream->open(item.mrl, item.position, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate))
             {
-                content_type = protocol.content_format;
+                auto proxy = std::make_shared<pupnp::connection_proxy>(std::move(stream));
+                connection_manager.add_output_connection(proxy, protocol, item.mrl, source_address, opt.str());
                 response = proxy;
-                return pupnp::upnp::http_ok;
             }
         }
 
-        // Get the track IDs.
-        struct vlc::transcode_stream::track_ids track_ids;
-        std::string file_path, track_name;
-        split_path(item.path, file_path, track_name);
-        const auto system_path = to_system_path(file_path);
-        auto media = vlc::media::from_file(vlc_instance, system_path.path);
-        for (auto &track : list_tracks(media_cache, media))
-            if (track.first == track_name)
-                for (auto &t : track.second)
-                    switch (t.type)
-                    {
-                    case vlc::media_cache::track_type::unknown: break;
-                    case vlc::media_cache::track_type::audio:  track_ids.audio = t.id; break;
-                    case vlc::media_cache::track_type::video:  track_ids.video = t.id; break;
-                    case vlc::media_cache::track_type::text:   track_ids.text  = t.id; break;
-                    }
-
-        // Otherwise create a new stream.
-        std::clog << '[' << this << "] Creating new stream " << item.mrl << " transcode=" << transcode.str() << " mux=" << protocol.mux << std::endl;
-
-        media_cache.abort();
-        watchlist.set_last_seen(item.mrl);
-
-        std::unique_ptr<vlc::transcode_stream> stream(new vlc::transcode_stream(vlc_instance));
-        if ((item.chapter > 0)
-                ? stream->open(item.mrl, item.chapter, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate)
-                : stream->open(item.mrl, item.position, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate))
+        if (response)
         {
-            if (pending_streams.empty())
-                pending_streams_sever_timer.start(std::chrono::seconds(1));
-
-            auto proxy = std::make_shared<pupnp::connection_proxy>(
-                        connection_manager, protocol, item.mrl, source_address,
-                        std::move(stream));
-
-            pending_streams[stream_id.str()] = std::make_pair(0, proxy);
             content_type = protocol.content_format;
-            response = proxy;
             return pupnp::upnp::http_ok;
         }
     }
@@ -685,16 +667,4 @@ std::string files::to_virtual_path(const std::string &system_path) const
                 return basedir + '/' + root_path_name(i) + '/' + system_path.substr(i.length());
 
     return std::string();
-}
-
-void files::sever_pending_streams()
-{
-    for (auto i = pending_streams.begin(); i != pending_streams.end(); )
-        if (++(i->second.first) >= 10)
-            i = pending_streams.erase(i);
-        else
-            i++;
-
-    if (pending_streams.empty())
-        pending_streams_sever_timer.stop();
 }

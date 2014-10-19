@@ -30,6 +30,8 @@
 
 namespace pupnp {
 
+class connection_proxy;
+
 class connection_manager : public rootdevice::service
 {
 public:
@@ -105,8 +107,11 @@ public:
         enum { input, output } direction;
         enum { ok, contentformat_mismatch, insufficient_bandwidth, unreliable_channel, unknown } status;
 
+        std::weak_ptr<class connection_proxy> connection_proxy;
+        std::string protocol_string;
         std::string mrl;
         std::string endpoint;
+        std::string opt;
     };
 
     struct action_get_current_connectionids
@@ -152,10 +157,19 @@ public:
     protocol get_protocol(const std::string &profile, unsigned num_channels) const;
     protocol get_protocol(const std::string &profile, unsigned num_channels, unsigned width, float frame_rate) const;
 
-    int32_t output_connection_add(const struct protocol &);
-    void output_connection_remove(int32_t id);
-    connection_info output_connection(int32_t id) const;
-    void output_connection_update(int32_t id, const struct connection_info &);
+    void add_output_connection(
+            const std::shared_ptr<class connection_proxy> &,
+            const struct protocol &protocol,
+            const std::string &mrl,
+            const std::string &endpoint,
+            const std::string &opt);
+
+    std::shared_ptr<class connection_proxy> try_attach_output_connection(
+            const struct protocol &protocol,
+            const std::string &mrl,
+            const std::string &endpoint,
+            const std::string &opt);
+
     std::vector<connection_info> output_connections() const;
 
     void handle_action(const upnp::request &, action_get_current_connectionids &);
@@ -174,6 +188,9 @@ private: // From rootdevice::service
     virtual void write_eventable_statevariables(rootdevice::eventable_propertyset &) const override final;
 
 private:
+    void remove_output_connection(int32_t);
+
+private:
     class platform::messageloop_ref messageloop;
     class rootdevice &rootdevice;
 
@@ -184,6 +201,7 @@ private:
 
     int32_t connection_id_counter;
     std::map<int32_t, connection_info> connections;
+    std::map<int32_t, std::shared_ptr<class connection_proxy>> connection_proxies;
 };
 
 } // End of namespace
