@@ -15,17 +15,12 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#include "platform/messageloop.h"
 #include "pupnp/connection_proxy.h"
 #include <cassert>
-#include <cmath>
 #include <condition_variable>
 #include <cstring>
-#include <iostream>
 #include <memory>
 #include <mutex>
-#include <set>
-#include <sstream>
 #include <streambuf>
 #include <thread>
 #include <vector>

@@ -19,11 +19,9 @@
 #define PUPNP_CONNECTION_PROXY_H
 
 #include "platform/messageloop.h"
-#include <chrono>
 #include <istream>
 #include <memory>
 #include <string>
-#include <vector>
 
 namespace pupnp {
 
