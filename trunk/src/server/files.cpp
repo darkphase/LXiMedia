@@ -38,13 +38,13 @@ files::files(
         class watchlist &watchlist)
     : messageloop(messageloop),
       vlc_instance(vlc_instance),
-      media_cache(messageloop),
+      media_cache(this->messageloop),
       connection_manager(connection_manager),
       content_directory(content_directory),
       settings(settings),
       watchlist(watchlist),
       basedir('/' + tr("Files") + '/'),
-      pending_streams_sever_timer(messageloop, std::bind(&files::sever_pending_streams, this))
+      pending_streams_sever_timer(this->messageloop, std::bind(&files::sever_pending_streams, this))
 {
     content_directory.item_source_register(basedir, *this);
 }
@@ -463,11 +463,11 @@ int files::play_item(
         auto pending_stream = pending_streams.find(stream_id.str());
         if (pending_stream != pending_streams.end())
         {
-            auto stream = std::make_shared<vlc::transcode_stream>(messageloop, vlc_instance, nullptr);
-            if (stream->attach(*pending_stream->second.second))
+            auto proxy = std::make_shared<pupnp::connection_proxy>();
+            if (proxy->attach(*pending_stream->second.second))
             {
                 content_type = protocol.content_format;
-                response = stream;
+                response = proxy;
                 return pupnp::upnp::http_ok;
             }
         }
@@ -495,31 +495,7 @@ int files::play_item(
         media_cache.abort();
         watchlist.set_last_seen(item.mrl);
 
-        auto &connection_manager = this->connection_manager;
-        const auto mrl = item.mrl;
-        auto stream = std::make_shared<vlc::transcode_stream>(messageloop, vlc_instance,
-                                                              [&connection_manager, protocol, mrl, source_address](int32_t id)
-        {
-            if (id == 0)
-            {
-                id = connection_manager.output_connection_add(protocol);
-                if (id != 0)
-                {
-                    auto connection_info = connection_manager.output_connection(id);
-                    connection_info.mrl = mrl;
-                    connection_info.endpoint = source_address;
-                    connection_manager.output_connection_update(id, connection_info);
-                }
-            }
-            else
-            {
-                connection_manager.output_connection_remove(id);
-                id = 0;
-            }
-
-            return id;
-        });
-
+        std::unique_ptr<vlc::transcode_stream> stream(new vlc::transcode_stream(vlc_instance));
         if ((item.chapter > 0)
                 ? stream->open(item.mrl, item.chapter, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate)
                 : stream->open(item.mrl, item.position, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate))
@@ -527,9 +503,13 @@ int files::play_item(
             if (pending_streams.empty())
                 pending_streams_sever_timer.start(std::chrono::seconds(1));
 
-            pending_streams[stream_id.str()] = std::make_pair(0, stream);
+            auto proxy = std::make_shared<pupnp::connection_proxy>(
+                        connection_manager, protocol, item.mrl, source_address,
+                        std::move(stream));
+
+            pending_streams[stream_id.str()] = std::make_pair(0, proxy);
             content_type = protocol.content_format;
-            response = stream;
+            response = proxy;
             return pupnp::upnp::http_ok;
         }
     }

@@ -20,6 +20,7 @@
 
 #include "platform/messageloop.h"
 #include "pupnp/connection_manager.h"
+#include "pupnp/connection_proxy.h"
 #include "pupnp/content_directory.h"
 #include "vlc/media_cache.h"
 #include "settings.h"
@@ -67,7 +68,7 @@ private:
     class watchlist &watchlist;
     const std::string basedir;
 
-    std::map<std::string, std::pair<int, std::shared_ptr<vlc::transcode_stream>>> pending_streams;
+    std::map<std::string, std::pair<int, std::shared_ptr<pupnp::connection_proxy>>> pending_streams;
     platform::timer pending_streams_sever_timer;
 
     std::map<std::string, std::vector<std::string>> files_cache;
