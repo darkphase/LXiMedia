@@ -258,43 +258,33 @@ int test::play_item(
             transcode << '}';
         }
 
-        std::ostringstream stream_id;
-        stream_id << '[' << item.mrl;
-        if (item.chapter > 0)               stream_id << "][C" << item.chapter;
-        else if (item.position.count() > 0) stream_id << "][" << item.position.count();
-        stream_id << "][" << transcode.str() << "][" << protocol.mux << ']';
+        std::ostringstream opt;
+        if (item.chapter > 0)               opt << "@C" << item.chapter;
+        else if (item.position.count() > 0) opt << "@" << item.position.count();
 
         // First try to attach to an already running stream.
-        auto pending_stream = pending_streams.find(stream_id.str());
-        if (pending_stream != pending_streams.end())
+        response = connection_manager.try_attach_output_connection(protocol, item.mrl, source_address, opt.str());
+        if (!response)
         {
-            auto stream = std::make_shared<pupnp::connection_proxy>();
-            if (stream->attach(*pending_stream->second.second))
+            std::clog << '[' << this << "] Creating new stream " << item.mrl << " transcode=" << transcode.str() << " mux=" << protocol.mux << std::endl;
+
+            std::unique_ptr<vlc::transcode_stream> stream(new vlc::transcode_stream(vlc_instance));
+            stream->add_option(":input-slave=" + a440hz_flac_media.mrl());
+
+            struct vlc::transcode_stream::track_ids track_ids;
+            if ((item.chapter > 0)
+                    ? stream->open(item.mrl, item.chapter, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate)
+                    : stream->open(item.mrl, item.position, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate))
             {
-                content_type = protocol.content_format;
-                response = stream;
-                return pupnp::upnp::http_ok;
+                auto proxy = std::make_shared<pupnp::connection_proxy>(std::move(stream));
+                connection_manager.add_output_connection(proxy, protocol, item.mrl, source_address, opt.str());
+                response = proxy;
             }
         }
 
-        // Otherwise create a new stream.
-        std::clog << '[' << this << "] Creating new stream " << item.mrl << " transcode=" << transcode.str() << " mux=" << protocol.mux << std::endl;
-
-        std::unique_ptr<vlc::transcode_stream> stream(new vlc::transcode_stream(vlc_instance));
-        stream->add_option(":input-slave=" + a440hz_flac_media.mrl());
-
-        struct vlc::transcode_stream::track_ids track_ids;
-        if ((item.chapter > 0)
-                ? stream->open(item.mrl, item.chapter, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate)
-                : stream->open(item.mrl, item.position, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate))
+        if (response)
         {
-            auto proxy = std::make_shared<pupnp::connection_proxy>(
-                        connection_manager, protocol, item.mrl, source_address,
-                        std::move(stream));
-
-            pending_streams[stream_id.str()] = std::make_pair(0, proxy);
             content_type = protocol.content_format;
-            response = proxy;
             return pupnp::upnp::http_ok;
         }
     }

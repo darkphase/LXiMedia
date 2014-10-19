@@ -19,7 +19,6 @@
 #define PUPNP_CONNECTION_PROXY_H
 
 #include "platform/messageloop.h"
-#include "pupnp/connection_manager.h"
 #include <chrono>
 #include <istream>
 #include <memory>
@@ -32,17 +31,14 @@ class connection_proxy : public std::istream
 {
 public:
     connection_proxy();
-
-    connection_proxy(
-            class connection_manager &,
-            class connection_manager::protocol &,
-            const std::string &mrl,
-            const std::string &source_address,
-            std::unique_ptr<std::istream> &&input);
+    connection_proxy(std::unique_ptr<std::istream> &&input);
 
     ~connection_proxy();
 
     bool attach(connection_proxy &);
+
+    void subscribe_close(platform::messageloop_ref &, const std::function<void()> &);
+    void subscribe_detach(platform::messageloop_ref &, const std::function<void()> &);
 
 private:
     class streambuf;
