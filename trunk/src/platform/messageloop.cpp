@@ -252,6 +252,25 @@ void messageloop_ref::process_events(const std::chrono::milliseconds &duration)
     return messageloop.process_events(duration);
 }
 
+void timer::single_shot(
+        class messageloop &messageloop,
+        std::chrono::nanoseconds interval,
+        const std::function<void()> &timeout)
+{
+    auto timer = std::make_shared<class timer>(messageloop, nullptr);
+    const_cast<std::function<void()> &>(timer->timeout) = [timer, timeout] { timeout(); };
+    timer->start(interval, true);
+}
+
+void timer::single_shot(
+        class messageloop_ref &messageloop,
+        std::chrono::nanoseconds interval,
+        const std::function<void()> &timeout)
+{
+    auto timer = std::make_shared<class timer>(messageloop, nullptr);
+    const_cast<std::function<void()> &>(timer->timeout) = [timer, timeout] { timeout(); };
+    timer->start(interval, true);
+}
 
 timer::timer(class messageloop &messageloop, const std::function<void()> &timeout)
     : messageloop(messageloop),
