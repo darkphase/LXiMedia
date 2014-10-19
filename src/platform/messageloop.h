@@ -99,12 +99,20 @@ class timer
 {
 friend class messageloop;
 public:
+    template<typename rep, typename period>
+    static void single_shot(class messageloop &, std::chrono::duration<rep, period>, const std::function<void()> &);
+    static void single_shot(class messageloop &, std::chrono::nanoseconds, const std::function<void()> &);
+    template<typename rep, typename period>
+    static void single_shot(class messageloop_ref &, std::chrono::duration<rep, period>, const std::function<void()> &);
+    static void single_shot(class messageloop_ref &, std::chrono::nanoseconds, const std::function<void()> &);
+
+public:
     timer(class messageloop &, const std::function<void()> &timeout);
     timer(class messageloop_ref &, const std::function<void()> &timeout);
     ~timer();
 
     template<typename rep, typename period>
-    void start(std::chrono::duration<rep, period> interval, bool once = false);
+    void start(std::chrono::duration<rep, period>, bool once = false);
     void start(std::chrono::nanoseconds, bool once);
     void stop();
 
@@ -116,6 +124,30 @@ private:
     std::chrono::steady_clock::time_point next;
     bool once;
 };
+
+template<typename rep, typename period>
+void timer::single_shot(
+        class messageloop &messageloop,
+        std::chrono::duration<rep, period> interval,
+        const std::function<void()> &timeout)
+{
+    return single_shot(
+                messageloop,
+                std::chrono::duration_cast<std::chrono::nanoseconds>(interval),
+                timeout);
+}
+
+template<typename rep, typename period>
+void timer::single_shot(
+        class messageloop_ref &messageloop,
+        std::chrono::duration<rep, period> interval,
+        const std::function<void()> &timeout)
+{
+    return single_shot(
+                messageloop,
+                std::chrono::duration_cast<std::chrono::nanoseconds>(interval),
+                timeout);
+}
 
 template<typename rep, typename period>
 void timer::start(std::chrono::duration<rep, period> interval, bool once)
