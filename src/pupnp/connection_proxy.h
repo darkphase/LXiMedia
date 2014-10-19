@@ -15,54 +15,41 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef VLC_TRANSCODE_STREAM_H
-#define VLC_TRANSCODE_STREAM_H
+#ifndef PUPNP_CONNECTION_PROXY_H
+#define PUPNP_CONNECTION_PROXY_H
 
+#include "platform/messageloop.h"
+#include "pupnp/connection_manager.h"
 #include <chrono>
 #include <istream>
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace vlc {
+namespace pupnp {
 
-class instance;
-
-class transcode_stream : public std::istream
+class connection_proxy : public std::istream
 {
 public:
-    struct track_ids { int audio, video, text; track_ids() : audio(-1), video(-1), text(-1) {} };
+    connection_proxy();
 
-public:
-    explicit transcode_stream(class instance &);
-    ~transcode_stream();
-
-    void add_option(const std::string &);
-
-    bool open(
+    connection_proxy(
+            class connection_manager &,
+            class connection_manager::protocol &,
             const std::string &mrl,
-            int chapter,
-            const struct track_ids &track_ids,
-            const std::string &transcode,
-            const std::string &mux,
-            float rate = 1.0f);
+            const std::string &source_address,
+            std::unique_ptr<std::istream> &&input);
 
-    bool open(
-            const std::string &mrl,
-            std::chrono::milliseconds,
-            const struct track_ids &track_ids,
-            const std::string &transcode,
-            const std::string &mux,
-            float rate = 1.0f);
+    ~connection_proxy();
 
-    void close();
+    bool attach(connection_proxy &);
 
 private:
     class streambuf;
+    class source;
 
-    class instance &instance;
-    std::vector<std::string> options;
-    std::unique_ptr<class streambuf> streambuf;
+    const std::unique_ptr<class streambuf> streambuf;
+    std::shared_ptr<class source> source;
 };
 
 } // End of namespace

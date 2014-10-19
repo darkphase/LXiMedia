@@ -20,6 +20,7 @@
 
 #include "platform/messageloop.h"
 #include "pupnp/connection_manager.h"
+#include "pupnp/connection_proxy.h"
 #include "pupnp/content_directory.h"
 #include "resources/resource_file.h"
 #include "vlc/media.h"
@@ -35,7 +36,6 @@ class test : private pupnp::content_directory::item_source
 {
 public:
   test(
-          class platform::messageloop_ref &,
           class vlc::instance &,
           class pupnp::connection_manager &,
           class pupnp::content_directory &,
@@ -52,14 +52,13 @@ private: // From content_directory::item_source
   int play_item(const std::string &, const pupnp::content_directory::item &, const std::string &, std::string &, std::shared_ptr<std::istream> &) override;
 
 private:
-  class platform::messageloop_ref messageloop;
   class vlc::instance &vlc_instance;
   class pupnp::connection_manager &connection_manager;
   class pupnp::content_directory &content_directory;
   const class settings &settings;
 
   std::set<std::string> clients;
-  std::map<std::string, std::pair<int, std::shared_ptr<vlc::transcode_stream>>> pending_streams;
+  std::map<std::string, std::pair<int, std::shared_ptr<pupnp::connection_proxy>>> pending_streams;
 
   const resources::resource_file a440hz_flac;
   const vlc::media a440hz_flac_media;
