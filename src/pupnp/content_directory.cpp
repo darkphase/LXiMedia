@@ -127,12 +127,17 @@ static std::string to_time(std::chrono::duration<rep, period> duration)
     return str.str();
 }
 
+static std::chrono::milliseconds complete_time(std::chrono::milliseconds duration)
+{
+    return duration - std::max(duration / 10, std::chrono::milliseconds(60000));
+}
+
 static std::vector<std::string> playseek_items(const content_directory::item &item)
 {
     std::vector<std::string> result;
 
     if ((item.last_position.count() > 0) &&
-            (item.last_position <= (item.duration - (item.duration / 10))))
+            (item.last_position <= complete_time(item.duration)))
     {
         result.push_back(
                     "p&position=" + std::to_string(item.last_position.count()) +
@@ -291,7 +296,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
                 if (!item.is_dir)
                 {
                     std::string title;
-                    if (item.last_position > (item.duration - (item.duration / 10)))
+                    if (item.last_position > complete_time(item.duration))
                         title = '*' + item.title;
                     else if (item.last_position.count() > 0)
                         title = '+' + item.title;
