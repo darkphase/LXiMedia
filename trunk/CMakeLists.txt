@@ -3,11 +3,11 @@ cmake_minimum_required(VERSION 2.8)
 file(STRINGS "VERSION" VERSION)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -static -DWIN32")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -static -DWIN32 -DUNICODE")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -static -D_FILE_OFFSET_BITS=64 -DWIN32")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -static -D_FILE_OFFSET_BITS=64 -DWIN32 -DUNICODE")
 else()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -D_FILE_OFFSET_BITS=64")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -D_FILE_OFFSET_BITS=64")
 endif()
 
 #######################################

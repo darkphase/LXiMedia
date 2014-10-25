@@ -60,6 +60,7 @@ public:
         item_type type;
         std::string path;
         std::string mrl;
+        platform::uuid uuid;
 
         std::string title;
         std::string artist;

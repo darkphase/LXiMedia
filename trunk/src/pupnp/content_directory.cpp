@@ -293,16 +293,17 @@ void content_directory::handle_action(const upnp::request &request, action_brows
             totalmatches = count;
             for (auto &item : item_source->second->list_contentdir_items(client, path, start, totalmatches))
             {
-                if (!item.is_dir)
+                std::string title = item.title;
+                if (item.duration.count() > 0)
                 {
-                    std::string title;
                     if (item.last_position > complete_time(item.duration))
                         title = '*' + item.title;
                     else if (item.last_position.count() > 0)
                         title = '+' + item.title;
-                    else
-                        title = item.title;
+                }
 
+                if (!item.is_dir)
+                {
                     switch (item.type)
                     {
                     case item_type::none:
@@ -334,7 +335,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
                     }
                 }
                 else
-                    add_directory(action, item.type, client, item.path, item.title);
+                    add_directory(action, item.type, client, item.path, title);
             }
             break;
 

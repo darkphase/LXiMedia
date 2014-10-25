@@ -488,7 +488,6 @@ int files::play_item(
             {
                 auto proxy = std::make_shared<pupnp::connection_proxy>(std::move(stream));
                 connection_manager.add_output_connection(proxy, protocol, item.mrl, source_address, opt.str());
-                watchlist.set_last_seen(item.mrl);
                 response = proxy;
             }
         }
@@ -602,11 +601,13 @@ pupnp::content_directory::item files::make_item(const std::string &/*client*/, c
         const auto system_path = to_system_path(file_path);
         auto media = vlc::media::from_file(vlc_instance, system_path.path);
 
-        const auto mrl = media.mrl();
-        item.last_position = watchlist.last_position(mrl);
-
         if (media_cache.has_data(media))
         {
+            const auto mrl = media.mrl();
+            const auto uuid = media_cache.uuid(media);
+
+            item.last_position = watchlist.last_position(uuid);
+
             auto tracks = list_tracks(media_cache, media);
             if (!track_name.empty())
             {
@@ -614,6 +615,7 @@ pupnp::content_directory::item files::make_item(const std::string &/*client*/, c
                     if (track.first == track_name)
                     {
                         item.mrl = mrl;
+                        item.uuid = uuid;
 
                         fill_item(item, media_cache, media, track.second, system_path.type);
                         break;
@@ -623,10 +625,13 @@ pupnp::content_directory::item files::make_item(const std::string &/*client*/, c
             {
                 item.is_dir = true;
                 item.path = file_path + "//";
+                item.uuid = uuid;
+                item.duration = media_cache.duration(media);
             }
             else if (tracks.size() == 1)
             {
                 item.mrl = mrl;
+                item.uuid = uuid;
                 fill_item(item, media_cache, media, tracks.front().second, system_path.type);
             }
         }
@@ -673,10 +678,15 @@ void files::playback_progress(
         const pupnp::content_directory::item &item,
         std::chrono::milliseconds time)
 {
-    static const int increment = 15000;
-    static const int delay = increment * 2;
+    if (time.count() >= 0)
+    {
+        static const int increment = 15000;
+        static const int delay = increment * 2;
 
-    const auto rounded = ((time.count() / increment) * increment);
-    if (rounded > delay)
-        watchlist.set_last_position(item.mrl, std::chrono::milliseconds(rounded - delay));
+        const auto rounded = ((time.count() / increment) * increment);
+        if (rounded > delay)
+            watchlist.set_last_position(item.uuid, std::chrono::milliseconds(rounded - delay), item.mrl);
+    }
+    else // finished
+        watchlist.set_last_position(item.uuid, item.duration, item.mrl);
 }

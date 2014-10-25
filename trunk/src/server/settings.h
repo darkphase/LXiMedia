@@ -20,6 +20,7 @@
 
 #include "platform/inifile.h"
 #include "platform/messageloop.h"
+#include "platform/uuid.h"
 #include <chrono>
 #include <cstdint>
 #include <vector>
@@ -42,7 +43,7 @@ public:
     bool is_configure_required() const;
     void set_configure_required(bool);
 
-    std::string uuid();
+    platform::uuid uuid();
     std::string upnp_devicename() const;
     void set_upnp_devicename(const std::string &);
     uint16_t http_port() const;

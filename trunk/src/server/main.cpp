@@ -23,7 +23,7 @@ static std::set<std::string> find_server(
         class settings &settings,
         class pupnp::upnp &upnp)
 {
-    const std::string my_id = "uuid:" + settings.uuid();
+    const std::string my_id = "uuid:" + std::string(settings.uuid());
     class platform::messageloop_ref messageloop_ref(messageloop);
     class pupnp::client client(messageloop_ref, upnp);
 

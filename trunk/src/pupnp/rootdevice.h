@@ -19,6 +19,7 @@
 #define PUPNP_ROOTDEVICE_H
 
 #include "upnp.h"
+#include "platform/uuid.h"
 #include <chrono>
 #include <functional>
 #include <map>
@@ -68,7 +69,7 @@ public:
     };
 
 public:
-    rootdevice(class platform::messageloop_ref &, class upnp &, const std::string &uuid, const std::string &devicetype);
+    rootdevice(class platform::messageloop_ref &, class upnp &, const platform::uuid &uuid, const std::string &devicetype);
     virtual ~rootdevice();
 
     const std::string &http_basedir() const;
@@ -102,7 +103,7 @@ private:
 
     class platform::messageloop_ref messageloop;
     class upnp &upnp;
-    const std::string uuid;
+    const platform::uuid uuid;
     const std::string devicetype;
     const std::string basedir;
     std::string devicename;

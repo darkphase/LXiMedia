@@ -15,30 +15,28 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef WATCHLIST_H
-#define WATCHLIST_H
+#ifndef UUID_H
+#define UUID_H
 
-#include "platform/inifile.h"
-#include "platform/messageloop.h"
-#include "platform/uuid.h"
-#include <chrono>
+#include <string>
 
-class watchlist
+namespace platform {
+
+struct uuid
 {
-public:
-    explicit watchlist(class platform::messageloop_ref &);
-    ~watchlist();
+    static uuid generate();
+    uuid();
+    uuid(const std::string &);
 
-    std::chrono::milliseconds last_position(const platform::uuid &);
-    std::chrono::system_clock::time_point last_seen(const platform::uuid &);
-    void set_last_position(const platform::uuid &, std::chrono::milliseconds position, const std::string &);
+    bool operator==(const uuid &) const;
+    bool operator!=(const uuid &from) const { return !operator==(from); }
+    bool operator<(const uuid &) const;
+    operator std::string() const;
+    bool is_null() const;
 
-private:
-    class platform::messageloop_ref messageloop;
-    class platform::inifile inifile;
-    class platform::inifile::section section;
-    class platform::timer timer;
-    const std::chrono::milliseconds save_delay;
+    uint8_t value[16];
 };
+
+}
 
 #endif

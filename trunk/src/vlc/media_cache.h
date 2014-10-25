@@ -19,6 +19,7 @@
 #define VLC_MEDIA_CACHE_H
 
 #include "platform/messageloop.h"
+#include "platform/uuid.h"
 #include <chrono>
 #include <condition_variable>
 #include <map>
@@ -67,6 +68,7 @@ public:
 
     bool has_data(const class media &);
 
+    platform::uuid uuid(class media &);
     const std::vector<track> & tracks(class media &);
     std::chrono::milliseconds duration(class media &);
     int chapter_count(class media &);

@@ -33,7 +33,7 @@ const char  rootdevice::servicedescriptionfile[]  = "service-";
 const char  rootdevice::servicecontrolfile[]      = "control-";
 const char  rootdevice::serviceeventfile[]        = "event-";
 
-rootdevice::rootdevice(class platform::messageloop_ref &messageloop, class upnp &upnp, const std::string &uuid, const std::string &devicetype)
+rootdevice::rootdevice(class platform::messageloop_ref &messageloop, class upnp &upnp, const platform::uuid &uuid, const std::string &devicetype)
     : messageloop(messageloop),
       upnp(upnp),
       uuid(uuid),
@@ -152,7 +152,7 @@ void rootdevice::emit_event(const std::string &service_id)
 
 std::string rootdevice::udn() const
 {
-    return "uuid:" + uuid;
+    return "uuid:" + std::string(uuid);
 }
 
 void rootdevice::handle_event(const std::string &service_id, eventable_propertyset &propset)
