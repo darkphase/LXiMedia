@@ -17,6 +17,7 @@
 
 #include "server.h"
 #include "files.h"
+#include "recommended.h"
 #include "setup.h"
 #include "test.h"
 #include <cassert>
@@ -78,11 +79,15 @@ bool server::initialize()
 
         if (setup_mode == ::setup_mode::disabled)
         {
+            recommended.reset(new class recommended(
+                                  content_directory));
+
             files.reset(new class files(
                             messageloop,
                             *vlc_instance,
                             connection_manager,
                             content_directory,
+                            *recommended,
                             settings,
                             watchlist));
 
