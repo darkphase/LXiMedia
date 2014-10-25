@@ -23,6 +23,7 @@
 #include "vlc/media.h"
 #include "vlc/transcode_stream.h"
 #include "watchlist.h"
+#include <algorithm>
 #include <cmath>
 #include <iomanip>
 #include <iostream>
@@ -241,14 +242,14 @@ std::vector<pupnp::content_directory::item> files::list_recommended_items(
         if (starts_with(i.first, "file://"))
         {
             std::string path = from_percent(i.first.substr(7));
-            const auto ls = path.find_last_of('/');
 #elif defined(WIN32)
         if (starts_with(i.first, "file:"))
         {
             std::string path = from_percent(i.first.substr(5));
-            const auto ls = path.find_last_of("/\\");
+            std::replace(path.begin(), path.end(), '\\', '/');
 #endif
 
+            const auto ls = path.find_last_of('/');
             if (ls != path.npos)
             {
                 const auto virtual_path = to_virtual_path(path.substr(0, ls + 1));
