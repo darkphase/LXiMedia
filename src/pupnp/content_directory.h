@@ -228,6 +228,7 @@ private:
     struct update_id { uint32_t id; size_t totalmatches; };
     std::map<std::string, update_id> container_update_ids;
     std::map<std::string, item_source *> item_sources;
+    std::vector<std::string> item_source_order;
 
     std::vector<std::string> objectid_list;
     std::map<std::string, size_t> objectid_map;

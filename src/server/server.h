@@ -37,6 +37,7 @@
 #include "watchlist.h"
 
 class files;
+class recommended;
 class setup;
 class test;
 
@@ -81,6 +82,7 @@ private:
     class pupnp::mediareceiver_registrar mediareceiver_registrar;
 
     std::unique_ptr<class vlc::instance> vlc_instance;
+    std::unique_ptr<class recommended> recommended;
     std::unique_ptr<class files> files;
     std::unique_ptr<class setup> setup;
     std::unique_ptr<class test> test;

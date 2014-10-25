@@ -34,6 +34,7 @@ files::files(
         class vlc::instance &vlc_instance,
         class pupnp::connection_manager &connection_manager,
         class pupnp::content_directory &content_directory,
+        class recommended &recommended,
         const class settings &settings,
         class watchlist &watchlist)
     : messageloop(messageloop),
@@ -41,15 +42,19 @@ files::files(
       media_cache(this->messageloop),
       connection_manager(connection_manager),
       content_directory(content_directory),
+      recommended(recommended),
       settings(settings),
       watchlist(watchlist),
-      basedir('/' + tr("Files") + '/')
+      basedir('/' + tr("Files") + '/'),
+      max_parse_time(3000)
 {
     content_directory.item_source_register(basedir, *this);
+    recommended.item_source_register(basedir, *this);
 }
 
 files::~files()
 {
+    recommended.item_source_unregister(basedir);
     content_directory.item_source_unregister(basedir);
 }
 
@@ -167,70 +172,14 @@ std::vector<pupnp::content_directory::item> files::list_contentdir_items(
         const std::string &path,
         size_t start, size_t &count)
 {
-    static const char dir_prefix = 'D', file_prefix = 'F';
-
     const size_t chunk_size = count;
     const bool return_all = count == 0;
 
-    auto files_cache_item = (start > 0) ? files_cache.find(path) : files_cache.end();
-    if (files_cache_item == files_cache.end())
-    {
-        std::multimap<std::string, std::string, alphanum_less> files;
-        if (path == basedir)
-        {
-            for (auto &i : settings.root_paths())
-            {
-                const auto name = root_path_name(i.path) + '/';
-                files.emplace(dir_prefix + to_lower(name), name);
-            }
-
-            if (settings.share_removable_media())
-                for (auto &i : platform::list_removable_media())
-                {
-                    const auto name = root_path_name(i) + '/';
-                    files.emplace(dir_prefix + to_lower(name), name);
-                }
-        }
-        else if (starts_with(path, basedir))
-        {
-            if (ends_with(path, "//"))
-            {
-                const auto system_path = to_system_path(path.substr(0, path.length() - 2));
-                auto media = vlc::media::from_file(vlc_instance, system_path.path);
-                if (media_cache.has_data(media))
-                    for (auto &track : list_tracks(media_cache, media))
-                        files.emplace(file_prefix + to_lower(track.first), track.first);
-            }
-            else
-            {
-                const auto system_path = to_system_path(path).path;
-                for (auto &i : platform::list_files(system_path, false))
-                {
-                    if (ends_with(i, "/"))
-                    {
-                        const auto children = platform::list_files(system_path + i, false, 2);
-                        if ((children.size() == 1) && !ends_with(children.front(), "/"))
-                            files.emplace(file_prefix + to_lower(children.front()), i + children.front());
-                        else if (children.size() > 0)
-                            files.emplace(dir_prefix + to_lower(i), i);
-                    }
-                    else
-                        files.emplace(file_prefix + to_lower(i), i);
-                }
-            }
-        }
-
-        std::vector<std::string> sorted_files;
-        for (auto &i : files)
-            sorted_files.emplace_back(std::move(i.second));
-
-        files_cache[path] = std::move(sorted_files);
-        files_cache_item = files_cache.find(path);
-    }
+    const auto &files = list_files(path, start == 0);
 
     std::vector<vlc::media> items, next_items;
     std::vector<std::string> paths;
-    for (auto &file : files_cache_item->second)
+    for (auto &file : files)
         if (return_all || (count > 0))
         {
             if (start == 0)
@@ -258,7 +207,7 @@ std::vector<pupnp::content_directory::item> files::list_contentdir_items(
 
     media_cache.on_finished = nullptr;
     media_cache.async_parse_items(items);
-    if (media_cache.wait_for(std::chrono::milliseconds(3000)) == std::cv_status::timeout)
+    if (media_cache.wait_for(max_parse_time) == std::cv_status::timeout)
     {
         media_cache.on_finished = [this, path, next_items]
         {
@@ -274,7 +223,109 @@ std::vector<pupnp::content_directory::item> files::list_contentdir_items(
     for (auto &path : paths)
         result.emplace_back(make_item(client, path));
 
-    count = files_cache_item->second.size();
+    count = files.size();
+    return result;
+}
+
+std::vector<pupnp::content_directory::item> files::list_recommended_items(
+        const std::string &client,
+        size_t start, size_t &count)
+{
+    const bool return_all = count == 0;
+    const auto watched_items = watchlist.watched_items();
+
+    std::set<std::string> directories;
+    for (auto &i : watched_items)
+    {
+#if defined(__unix__)
+        if (starts_with(i.first, "file://"))
+        {
+            std::string path = from_percent(i.first.substr(7));
+            const auto ls = path.find_last_of('/');
+#elif defined(WIN32)
+        if (starts_with(i.first, "file:"))
+        {
+            std::string path = from_percent(i.first.substr(5));
+            const auto ls = path.find_last_of("/\\");
+#endif
+
+            if (ls != path.npos)
+            {
+                const auto virtual_path = to_virtual_path(path.substr(0, ls + 1));
+                if (directories.find(virtual_path) == directories.end())
+                {
+                    const auto system_path = to_system_path(virtual_path);
+                    if ((system_path.type == path_type::auto_) ||
+                        (system_path.type == path_type::videos))
+                    {
+                        directories.emplace(virtual_path);
+                    }
+                }
+            }
+        }
+    }
+
+    std::vector<vlc::media> recommended_items;
+    std::multimap<double, std::string> recommended_paths;
+    for (auto &i : directories)
+    {
+        std::chrono::minutes last_seen(0);
+        vlc::media last_media;
+        std::string last_path;
+        double last_score = 0.0;
+
+        for (auto &j : list_files(i, false))
+        {
+            std::string full_path = i + j, file_path, track_name;
+            split_path(full_path, file_path, track_name);
+            if (!ends_with(file_path, "/"))
+            {
+                auto media = vlc::media::from_file(vlc_instance, to_system_path(file_path).path);
+                auto watched = watched_items.find(media.mrl());
+                if (watched != watched_items.end())
+                {
+                    last_media = vlc::media();
+                    last_path.clear();
+                    last_score = 0.0;
+                    last_seen = watched->second;
+                }
+                else if (last_seen.count() > 0)
+                {
+                    last_media = std::move(media);
+                    last_path = file_path;
+                    last_score = 1.0 - (1.0 / double(last_seen.count()));
+                    last_seen = std::chrono::minutes(0);
+                }
+            }
+        }
+
+        if (last_media)
+        {
+            recommended_items.emplace_back(std::move(last_media));
+            recommended_paths.emplace(last_score, std::move(last_path));
+        }
+    }
+
+    media_cache.on_finished = nullptr;
+    media_cache.async_parse_items(recommended_items);
+    media_cache.wait_for(max_parse_time);
+
+    std::vector<pupnp::content_directory::item> result;
+    for (auto &path : recommended_paths)
+        if (return_all || (count > 0))
+        {
+            if (start == 0)
+            {
+                result.emplace_back(make_item(client, path.second));
+
+                if (count > 0)
+                    count--;
+            }
+            else
+                start--;
+        }
+
+    count = recommended_paths.size();
     return result;
 }
 
@@ -578,6 +629,69 @@ static void fill_item(
     }
 }
 
+const std::vector<std::string> & files::list_files(const std::string &path, bool flush_cache)
+{
+    static const char dir_prefix = 'D', file_prefix = 'F';
+
+    auto files_cache_item = (!flush_cache) ? files_cache.find(path) : files_cache.end();
+    if (files_cache_item == files_cache.end())
+    {
+        std::multimap<std::string, std::string, alphanum_less> files;
+        if (path == basedir)
+        {
+            for (auto &i : settings.root_paths())
+            {
+                const auto name = root_path_name(i.path) + '/';
+                files.emplace(dir_prefix + to_lower(name), name);
+            }
+
+            if (settings.share_removable_media())
+                for (auto &i : platform::list_removable_media())
+                {
+                    const auto name = root_path_name(i) + '/';
+                    files.emplace(dir_prefix + to_lower(name), name);
+                }
+        }
+        else if (starts_with(path, basedir))
+        {
+            if (ends_with(path, "//"))
+            {
+                const auto system_path = to_system_path(path.substr(0, path.length() - 2));
+                auto media = vlc::media::from_file(vlc_instance, system_path.path);
+                if (media_cache.has_data(media))
+                    for (auto &track : list_tracks(media_cache, media))
+                        files.emplace(file_prefix + to_lower(track.first), track.first);
+            }
+            else
+            {
+                const auto system_path = to_system_path(path).path;
+                for (auto &i : platform::list_files(system_path, false))
+                {
+                    if (ends_with(i, "/"))
+                    {
+                        const auto children = platform::list_files(system_path + i, false, 2);
+                        if ((children.size() == 1) && !ends_with(children.front(), "/"))
+                            files.emplace(file_prefix + to_lower(children.front()), i + children.front());
+                        else if (children.size() > 0)
+                            files.emplace(dir_prefix + to_lower(i), i);
+                    }
+                    else
+                        files.emplace(file_prefix + to_lower(i), i);
+                }
+            }
+        }
+
+        std::vector<std::string> sorted_files;
+        for (auto &i : files)
+            sorted_files.emplace_back(std::move(i.second));
+
+        files_cache[path] = std::move(sorted_files);
+        files_cache_item = files_cache.find(path);
+    }
+
+    return files_cache_item->second;
+}
+
 pupnp::content_directory::item files::make_item(const std::string &/*client*/, const std::string &path) const
 {
     std::string file_path, track_name;
@@ -664,12 +778,12 @@ std::string files::to_virtual_path(const std::string &system_path) const
 {
     for (auto &i : settings.root_paths())
         if (starts_with(system_path, i.path))
-            return basedir + '/' + root_path_name(i.path) + '/' + system_path.substr(i.path.length());
+            return basedir + root_path_name(i.path) + '/' + system_path.substr(i.path.length());
 
     if (settings.share_removable_media())
         for (auto &i : platform::list_removable_media())
             if (starts_with(system_path, i))
-                return basedir + '/' + root_path_name(i) + '/' + system_path.substr(i.length());
+                return basedir + root_path_name(i) + '/' + system_path.substr(i.length());
 
     return std::string();
 }

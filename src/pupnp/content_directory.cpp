@@ -18,6 +18,7 @@
 #include "content_directory.h"
 #include "platform/string.h"
 #include "platform/translator.h"
+#include <algorithm>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
@@ -65,11 +66,16 @@ content_directory::~content_directory()
 void content_directory::item_source_register(const std::string &path, struct item_source &item_source)
 {
     item_sources[path] = &item_source;
+    item_source_order.push_back(path);
 }
 
 void content_directory::item_source_unregister(const std::string &path)
 {
     item_sources.erase(path);
+
+    auto i = std::find(item_source_order.begin(), item_source_order.end(), path);
+    if (i != item_source_order.end())
+        item_source_order.erase(i);
 }
 
 void content_directory::update_system()
@@ -904,14 +910,16 @@ std::vector<content_directory::item> content_directory::root_item_source::list_c
     std::vector<content_directory::item> result;
     std::set<std::string> names;
 
-    for (auto i = parent.item_sources.begin(); i != parent.item_sources.end(); i++)
-        if (starts_with(i->first, path))
+    for (auto &i : parent.item_source_order)
+    {
+        const auto item_source = parent.item_sources.find(i);
+        if ((item_source != parent.item_sources.end()) && starts_with(item_source->first, path))
         {
-            auto item = get_contentdir_item(client, i->first);
+            auto item = get_contentdir_item(client, item_source->first);
             if (!item.title.empty() && (names.find(item.title) == names.end()))
             {
                 size_t total = 1;
-                if (!i->second->list_contentdir_items(client, i->first, 0, total).empty() && (total > 0))
+                if (!item_source->second->list_contentdir_items(client, item_source->first, 0, total).empty() && (total > 0))
                 {
                     names.insert(item.title);
                     if (return_all || (count > 0))
@@ -928,6 +936,7 @@ std::vector<content_directory::item> content_directory::root_item_source::list_c
                 }
             }
         }
+    }
 
     count = names.size();
     return result;

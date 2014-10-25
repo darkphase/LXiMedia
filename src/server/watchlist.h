@@ -29,14 +29,15 @@ public:
     explicit watchlist(class platform::messageloop_ref &);
     ~watchlist();
 
-    std::chrono::milliseconds last_position(const platform::uuid &);
-    std::chrono::system_clock::time_point last_seen(const platform::uuid &);
+    std::map<std::string, std::chrono::minutes> watched_items() const;
+    std::chrono::milliseconds last_position(const platform::uuid &) const;
+    std::chrono::system_clock::time_point last_seen(const platform::uuid &) const;
+    std::string mrl(const platform::uuid &) const;
     void set_last_position(const platform::uuid &, std::chrono::milliseconds position, const std::string &);
 
 private:
     class platform::messageloop_ref messageloop;
     class platform::inifile inifile;
-    class platform::inifile::section section;
     class platform::timer timer;
     const std::chrono::milliseconds save_delay;
 };
