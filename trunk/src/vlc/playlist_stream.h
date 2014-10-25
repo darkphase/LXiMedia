@@ -18,6 +18,7 @@
 #ifndef VLC_PLAYLIST_STREAM_H
 #define VLC_PLAYLIST_STREAM_H
 
+#include "platform/messageloop.h"
 #include <istream>
 #include <memory>
 #include <string>
@@ -29,6 +30,7 @@ class playlist_stream : public std::istream
 {
 public:
     playlist_stream(
+            class platform::messageloop_ref &,
             class instance &,
             const std::string &transcode,
             const std::string &mux);
@@ -40,6 +42,7 @@ public:
 private:
     class streambuf;
 
+    class platform::messageloop_ref messageloop;
     class instance &instance;
     const std::string transcode;
     const std::string mux;

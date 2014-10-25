@@ -44,24 +44,22 @@ class transcode_stream::streambuf : public std::streambuf
 {
 public:
     streambuf(
-            class instance &,
+            class transcode_stream &,
             const std::string &,
             int,
             const struct track_ids &,
             const std::string &,
             const std::string &,
-            float,
-            const std::vector<std::string> &);
+            float);
 
     streambuf(
-            class instance &,
+            class transcode_stream &,
             const std::string &,
             std::chrono::milliseconds,
             const struct track_ids &,
             const std::string &,
             const std::string &,
-            float,
-            const std::vector<std::string> &);
+            float);
 
     ~streambuf();
 
@@ -71,13 +69,12 @@ public:
 
 private:
     streambuf(
-            class instance &,
+            class transcode_stream &,
             const std::string &,
             const struct track_ids &,
             const std::string &,
             const std::string &,
-            float,
-            const std::vector<std::string> &);
+            float);
 
     size_t m2ts_filter(int, void *, size_t);
     void consume();
@@ -85,7 +82,7 @@ private:
     static void callback(const libvlc_event_t *, void *);
 
 private:
-    class instance &instance;
+    class transcode_stream &parent;
     const struct track_ids track_ids;
     class media media;
     libvlc_media_player_t *player;
@@ -113,8 +110,9 @@ private:
     size_t m2ts_filter_buffer_pos;
 };
 
-transcode_stream::transcode_stream(class instance &instance)
-    : instance(instance),
+transcode_stream::transcode_stream(class platform::messageloop_ref &messageloop, class instance &instance)
+    : messageloop(messageloop),
+      instance(instance),
       streambuf(nullptr)
 {
 }
@@ -136,7 +134,7 @@ bool transcode_stream::open(const std::string &mrl,
         const std::string &mux,
         float rate)
 {
-    streambuf.reset(new class streambuf(instance, mrl, chapter, track_ids, transcode, mux, rate, options));
+    streambuf.reset(new class streambuf(*this, mrl, chapter, track_ids, transcode, mux, rate));
     if (streambuf->is_open())
     {
         std::istream::rdbuf(streambuf.get());
@@ -156,7 +154,7 @@ bool transcode_stream::open(
         const std::string &mux,
         float rate)
 {
-    streambuf.reset(new class streambuf(instance, mrl, position, track_ids, transcode, mux, rate, options));
+    streambuf.reset(new class streambuf(*this, mrl, position, track_ids, transcode, mux, rate));
     if (streambuf->is_open())
     {
         std::istream::rdbuf(streambuf.get());
@@ -176,16 +174,15 @@ void transcode_stream::close()
 
 
 transcode_stream::streambuf::streambuf(
-        class instance &instance,
+        class transcode_stream &parent,
         const std::string &mrl,
         const struct track_ids &track_ids,
         const std::string &transcode,
         const std::string &mux,
-        float rate,
-        const std::vector<std::string> &options)
-    : instance(instance),
+        float rate)
+    : parent(parent),
       track_ids(track_ids),
-      media(media::from_mrl(instance, mrl)),
+      media(media::from_mrl(parent.instance, mrl)),
       player(nullptr),
       event_manager(nullptr),
       chapter(-1),
@@ -210,7 +207,7 @@ transcode_stream::streambuf::streambuf(
             << ":std{access=fd,mux=" << vlc_mux << ",dst=" << pipe[1] << "}";
 
     libvlc_media_add_option(media, sout.str().c_str());
-    for (auto &option : options)
+    for (auto &option : parent.options)
         libvlc_media_add_option(media, option.c_str());
 
     player = libvlc_media_player_new_from_media(media);
@@ -223,6 +220,9 @@ transcode_stream::streambuf::streambuf(
         libvlc_event_attach(event_manager, libvlc_MediaPlayerEndReached, &streambuf::callback, this);
         libvlc_event_attach(event_manager, libvlc_MediaPlayerEncounteredError, &streambuf::callback, this);
 
+        if (parent.on_playback_progress)
+            libvlc_event_attach(event_manager, libvlc_MediaPlayerTimeChanged, &streambuf::callback, this);
+
         consume_thread.reset(new std::thread(std::bind(&transcode_stream::streambuf::consume, this)));
 
         std::clog << '[' << ((void *)this) << "] " << sout << std::endl;
@@ -230,15 +230,14 @@ transcode_stream::streambuf::streambuf(
 }
 
 transcode_stream::streambuf::streambuf(
-        class instance &instance,
+        class transcode_stream &parent,
         const std::string &mrl,
         int chapter,
         const struct track_ids &track_ids,
         const std::string &transcode,
         const std::string &mux,
-        float rate,
-        const std::vector<std::string> &options)
-      : streambuf(instance, mrl, track_ids, transcode, mux, rate, options)
+        float rate)
+      : streambuf(parent, mrl, track_ids, transcode, mux, rate)
 {
     this->chapter = chapter;
 
@@ -251,15 +250,14 @@ transcode_stream::streambuf::streambuf(
 }
 
 transcode_stream::streambuf::streambuf(
-        class instance &instance,
+        class transcode_stream &parent,
         const std::string &mrl,
         std::chrono::milliseconds position,
         const struct track_ids &track_ids,
         const std::string &transcode,
         const std::string &mux,
-        float rate,
-        const std::vector<std::string> &options)
-      : streambuf(instance, mrl, track_ids, transcode, mux, rate, options)
+        float rate)
+      : streambuf(parent, mrl, track_ids, transcode, mux, rate)
 {
     this->position = position;
 
@@ -277,9 +275,12 @@ transcode_stream::streambuf::~streambuf()
     {
         std::unique_lock<std::mutex> l(mutex);
 
-        libvlc_event_detach(event_manager, libvlc_MediaPlayerPlaying, &streambuf::callback, this);
+        libvlc_event_detach(event_manager, libvlc_MediaPlayerEncounteredError, &streambuf::callback, this);
         libvlc_event_detach(event_manager, libvlc_MediaPlayerEndReached, &streambuf::callback, this);
         libvlc_event_detach(event_manager, libvlc_MediaPlayerPlaying, &streambuf::callback, this);
+
+        if (parent.on_playback_progress)
+            libvlc_event_detach(event_manager, libvlc_MediaPlayerTimeChanged, &streambuf::callback, this);
 
         if (pipe[1] >= 0)
         {
@@ -449,17 +450,22 @@ void transcode_stream::streambuf::callback(const libvlc_event_t *e, void *opaque
 {
     streambuf * const me = reinterpret_cast<streambuf *>(opaque);
 
-    if ((e->type == libvlc_MediaPlayerEndReached) ||
-        (e->type == libvlc_MediaPlayerEncounteredError))
+    if (e->type == libvlc_MediaPlayerTimeChanged)
     {
-        std::lock_guard<std::mutex> _(me->mutex);
-        me->stream_end_pending = true;
-        me->buffer_condition.notify_all();
+        const std::chrono::milliseconds time(libvlc_media_player_get_time(me->player));
+        me->parent.messageloop.post([me, time] { me->parent.on_playback_progress(time); });
     }
     else if (e->type == libvlc_MediaPlayerPlaying)
     {
         std::lock_guard<std::mutex> _(me->mutex);
         me->stream_start_pending = true;
+        me->buffer_condition.notify_all();
+    }
+    else if ((e->type == libvlc_MediaPlayerEndReached) ||
+             (e->type == libvlc_MediaPlayerEncounteredError))
+    {
+        std::lock_guard<std::mutex> _(me->mutex);
+        me->stream_end_pending = true;
         me->buffer_condition.notify_all();
     }
 }

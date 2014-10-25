@@ -56,6 +56,7 @@ private:
     pupnp::content_directory::item make_item(const std::string &, const std::string &) const;
     root_path to_system_path(const std::string &) const;
     std::string to_virtual_path(const std::string &) const;
+    void playback_progress(const pupnp::content_directory::item &item, std::chrono::milliseconds);
 
 private:
     class platform::messageloop_ref messageloop;

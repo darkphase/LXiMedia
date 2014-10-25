@@ -94,6 +94,7 @@ bool server::initialize()
         else
         {
             test.reset(new class test(
+                           messageloop,
                            *vlc_instance,
                            connection_manager,
                            content_directory,

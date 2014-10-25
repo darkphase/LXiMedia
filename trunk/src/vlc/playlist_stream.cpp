@@ -51,10 +51,12 @@ private:
 };
 
 playlist_stream::playlist_stream(
+        class platform::messageloop_ref &messageloop,
         class instance &instance,
         const std::string &transcode,
         const std::string &mux)
-    : instance(instance),
+    : messageloop(messageloop),
+      instance(instance),
       transcode(transcode),
       mux(mux),
       streambuf(new class streambuf(*this))
@@ -83,7 +85,7 @@ std::unique_ptr<std::istream> playlist_stream::streambuf::open_next()
 {
     while (!parent.items.empty())
     {
-        std::unique_ptr<transcode_stream> stream(new transcode_stream(parent.instance));
+        std::unique_ptr<transcode_stream> stream(new transcode_stream(parent.messageloop, parent.instance));
 
         const std::string mrl = std::move(parent.items.front());
         parent.items.pop();

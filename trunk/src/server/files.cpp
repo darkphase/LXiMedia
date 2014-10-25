@@ -352,6 +352,8 @@ int files::play_item(
         std::string &content_type,
         std::shared_ptr<std::istream> &response)
 {
+    using namespace std::placeholders;
+
     auto protocol = connection_manager.get_protocol(profile, item.channels, item.width, item.frame_rate);
     if (!protocol.profile.empty() && correct_protocol(item, protocol))
     {
@@ -478,13 +480,15 @@ int files::play_item(
                         case vlc::media_cache::track_type::text:   track_ids.text  = t.id; break;
                         }
 
-            std::unique_ptr<vlc::transcode_stream> stream(new vlc::transcode_stream(vlc_instance));
+            std::unique_ptr<vlc::transcode_stream> stream(new vlc::transcode_stream(messageloop, vlc_instance));
+            stream->on_playback_progress = std::bind(&files::playback_progress, this, item, _1);
             if ((item.chapter > 0)
                     ? stream->open(item.mrl, item.chapter, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate)
                     : stream->open(item.mrl, item.position, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate))
             {
                 auto proxy = std::make_shared<pupnp::connection_proxy>(std::move(stream));
                 connection_manager.add_output_connection(proxy, protocol, item.mrl, source_address, opt.str());
+                watchlist.set_last_seen(item.mrl);
                 response = proxy;
             }
         }
@@ -599,6 +603,7 @@ pupnp::content_directory::item files::make_item(const std::string &/*client*/, c
         auto media = vlc::media::from_file(vlc_instance, system_path.path);
 
         const auto mrl = media.mrl();
+        item.last_position = watchlist.last_position(mrl);
 
         if (media_cache.has_data(media))
         {
@@ -618,15 +623,10 @@ pupnp::content_directory::item files::make_item(const std::string &/*client*/, c
             {
                 item.is_dir = true;
                 item.path = file_path + "//";
-                if (watchlist.has_entry(mrl))
-                    item.title = '*' + item.title;
             }
             else if (tracks.size() == 1)
             {
                 item.mrl = mrl;
-                if (watchlist.has_entry(mrl))
-                    item.title = '*' + item.title;
-
                 fill_item(item, media_cache, media, tracks.front().second, system_path.type);
             }
         }
@@ -667,4 +667,16 @@ std::string files::to_virtual_path(const std::string &system_path) const
                 return basedir + '/' + root_path_name(i) + '/' + system_path.substr(i.length());
 
     return std::string();
+}
+
+void files::playback_progress(
+        const pupnp::content_directory::item &item,
+        std::chrono::milliseconds time)
+{
+    static const int increment = 15000;
+    static const int delay = increment * 2;
+
+    const auto rounded = ((time.count() / increment) * increment);
+    if (rounded > delay)
+        watchlist.set_last_position(item.mrl, std::chrono::milliseconds(rounded - delay));
 }

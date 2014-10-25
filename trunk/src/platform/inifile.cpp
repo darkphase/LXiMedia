@@ -164,6 +164,15 @@ class inifile::section inifile::open_section(const std::string &name)
     return inifile::section(*this, name);
 }
 
+void inifile::touch()
+{
+    if (!touched)
+    {
+        touched = true;
+        if (on_touched) on_touched();
+    }
+}
+
 
 inifile::const_section::const_section(const class inifile &inifile, const std::string &section_name)
     : inifile(inifile),
@@ -260,10 +269,29 @@ inifile::section::section(const section &from)
 
 void inifile::section::write(const std::string &name, const std::string &value)
 {
-    inifile.values[section_name][name] = value;
-
-    inifile.touched = true;
-    if (inifile.on_touched) inifile.on_touched();
+    auto i = inifile.values.find(section_name);
+    if (i != inifile.values.end())
+    {
+        auto j = i->second.find(name);
+        if (j != i->second.end())
+        {
+            if (j->second != value)
+            {
+                j->second = value;
+                inifile.touch();
+            }
+        }
+        else
+        {
+            i->second.emplace(name, value);
+            inifile.touch();
+        }
+    }
+    else
+    {
+        inifile.values[section_name].emplace(name, value);
+        inifile.touch();
+    }
 }
 
 void inifile::section::write(const std::string &name, const char *value)
@@ -303,8 +331,7 @@ void inifile::section::erase(const std::string &name)
             if (i->second.empty())
                 inifile.values.erase(i);
 
-            inifile.touched = true;
-            if (inifile.on_touched) inifile.on_touched();
+            inifile.touch();
         }
     }
 }

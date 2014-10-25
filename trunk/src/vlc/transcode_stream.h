@@ -18,6 +18,7 @@
 #ifndef VLC_TRANSCODE_STREAM_H
 #define VLC_TRANSCODE_STREAM_H
 
+#include "platform/messageloop.h"
 #include <chrono>
 #include <istream>
 #include <memory>
@@ -34,7 +35,7 @@ public:
     struct track_ids { int audio, video, text; track_ids() : audio(-1), video(-1), text(-1) {} };
 
 public:
-    explicit transcode_stream(class instance &);
+    transcode_stream(class platform::messageloop_ref &, class instance &);
     ~transcode_stream();
 
     void add_option(const std::string &);
@@ -57,9 +58,12 @@ public:
 
     void close();
 
+    std::function<void(std::chrono::milliseconds)> on_playback_progress;
+
 private:
     class streambuf;
 
+    class platform::messageloop_ref messageloop;
     class instance &instance;
     std::vector<std::string> options;
     std::unique_ptr<class streambuf> streambuf;

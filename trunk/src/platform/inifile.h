@@ -84,6 +84,9 @@ public:
     class section open_section(const std::string &name = std::string());
 
 private:
+    void touch();
+
+private:
     const std::string filename;
     std::map<std::string, std::map<std::string, std::string>> values;
     bool touched;

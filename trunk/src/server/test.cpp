@@ -27,11 +27,13 @@
 #include <sstream>
 
 test::test(
+        class platform::messageloop_ref &messageloop,
         class vlc::instance &instance,
         class pupnp::connection_manager &connection_manager,
         class pupnp::content_directory &content_directory,
         const class settings &settings)
-    : vlc_instance(instance),
+    : messageloop(messageloop),
+      vlc_instance(instance),
       connection_manager(connection_manager),
       content_directory(content_directory),
       settings(settings),
@@ -268,7 +270,7 @@ int test::play_item(
         {
             std::clog << '[' << this << "] Creating new stream " << item.mrl << " transcode=" << transcode.str() << " mux=" << protocol.mux << std::endl;
 
-            std::unique_ptr<vlc::transcode_stream> stream(new vlc::transcode_stream(vlc_instance));
+            std::unique_ptr<vlc::transcode_stream> stream(new vlc::transcode_stream(messageloop, vlc_instance));
             stream->add_option(":input-slave=" + a440hz_flac_media.mrl());
 
             struct vlc::transcode_stream::track_ids track_ids;
