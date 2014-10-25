@@ -27,6 +27,16 @@ uuid::uuid()
     memset(value, 0, sizeof(value));
 }
 
+bool uuid::operator==(const uuid &from) const
+{
+    return memcmp(value, from.value, sizeof(value)) == 0;
+}
+
+bool uuid::operator<(const uuid &from) const
+{
+    return memcmp(value, from.value, sizeof(value)) < 0;
+}
+
 bool uuid::is_null() const
 {
     for (auto i : value)
@@ -55,16 +65,6 @@ uuid::uuid(const std::string &str)
 {
     if (uuid_parse(str.c_str(), value) != 0)
         memset(value, 0, sizeof(value));
-}
-
-bool uuid::operator==(const uuid &from) const
-{
-    return memcmp(value, from.value, sizeof(value)) == 0;
-}
-
-bool uuid::operator<(const uuid &from) const
-{
-    return memcmp(value, from.value, sizeof(value)) < 0;
 }
 
 uuid::operator std::string() const
