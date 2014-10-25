@@ -97,6 +97,7 @@ private:
     bool stream_start_pending;
     bool stream_end_pending;
     bool stream_end;
+    bool end_reached;
     int pipe[2];
 
     std::vector<char> buffer;
@@ -191,6 +192,7 @@ transcode_stream::streambuf::streambuf(
       stream_start_pending(false),
       stream_end_pending(false),
       stream_end(false),
+      end_reached(false),
       buffer_pos(0),
       buffer_used(0),
       buffer_visible(0),
@@ -452,8 +454,18 @@ void transcode_stream::streambuf::callback(const libvlc_event_t *e, void *opaque
 
     if (e->type == libvlc_MediaPlayerTimeChanged)
     {
-        const std::chrono::milliseconds time(libvlc_media_player_get_time(me->player));
-        me->parent.messageloop.post([me, time] { me->parent.on_playback_progress(time); });
+        const auto time = libvlc_media_player_get_time(me->player);
+        if (time >= 0)
+        {
+            me->parent.messageloop.post([me, time]
+            {
+                if (!me->end_reached)
+                {
+                    const std::chrono::milliseconds pos(time);
+                    me->parent.on_playback_progress(pos);
+                }
+            });
+        }
     }
     else if (e->type == libvlc_MediaPlayerPlaying)
     {
@@ -461,8 +473,19 @@ void transcode_stream::streambuf::callback(const libvlc_event_t *e, void *opaque
         me->stream_start_pending = true;
         me->buffer_condition.notify_all();
     }
-    else if ((e->type == libvlc_MediaPlayerEndReached) ||
-             (e->type == libvlc_MediaPlayerEncounteredError))
+    else if (e->type == libvlc_MediaPlayerEndReached)
+    {
+        std::lock_guard<std::mutex> _(me->mutex);
+        me->stream_end_pending = true;
+        me->buffer_condition.notify_all();
+
+        me->parent.messageloop.post([me]
+        {
+            me->end_reached = true;
+            me->parent.on_playback_progress(std::chrono::milliseconds(-1));
+        });
+    }
+    else if (e->type == libvlc_MediaPlayerEncounteredError)
     {
         std::lock_guard<std::mutex> _(me->mutex);
         me->stream_end_pending = true;

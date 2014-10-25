@@ -15,11 +15,15 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#include "media_cache.h"
-#include "instance.h"
-#include "media.h"
+#include "vlc/media_cache.h"
+#include "vlc/instance.h"
+#include "vlc/media.h"
+#include "platform/fstream.h"
+#include "platform/sha1.h"
+#include "platform/string.h"
 #include <stdexcept>
 #include <vlc/vlc.h>
+#include <cstring>
 
 namespace vlc {
 
@@ -27,6 +31,7 @@ struct media_cache::parsed_data
 {
     parsed_data() : chapter_count(-1) { }
 
+    platform::uuid uuid;
     std::vector<track> tracks;
     std::chrono::milliseconds duration;
     int chapter_count;
@@ -107,6 +112,11 @@ bool media_cache::has_data(const class media &media)
     return false;
 }
 
+platform::uuid media_cache::uuid(class media &media)
+{
+    return read_parsed_data(media).uuid;
+}
+
 const std::vector<media_cache::track> & media_cache::tracks(class media &media)
 {
     return read_parsed_data(media).tracks;
@@ -120,6 +130,46 @@ std::chrono::milliseconds media_cache::duration(class media &media)
 int media_cache::chapter_count(class media &media)
 {
     return read_parsed_data(media).chapter_count;
+}
+
+static platform::uuid uuid_from_file(const std::string &path)
+{
+    platform::ifstream file(path, std::ios_base::binary);
+    if (file.is_open())
+    {
+        static const int block_count = 8;
+        static const uint64_t block_size = 65536;
+
+        file.seekg(0, std::ios_base::end);
+        const uint64_t length = file.tellg();
+        const uint64_t chunk = std::max(uint64_t((length / block_count) & ~(block_size - 1)), block_size);
+        file.seekg(0, std::ios_base::beg);
+
+        std::vector<char> buffer;
+        buffer.resize(block_size * block_count);
+        int num_blocks = 0;
+        for (; num_blocks < block_count; num_blocks++)
+        {
+            file.read(&buffer[num_blocks * block_size], block_size);
+            if (file.gcount() == block_size)
+                file.seekg(chunk - block_size, std::ios_base::cur);
+            else
+                break;
+        }
+
+        unsigned char hash[20];
+        memset(hash, 0, sizeof(hash));
+        sha1::calc(buffer.data(), block_size * num_blocks, hash);
+
+        struct platform::uuid uuid;
+        memcpy(uuid.value, hash, std::min(sizeof(uuid.value), sizeof(hash)));
+        uuid.value[6] = (uuid.value[6] & 0x0F) | 0x50;
+        uuid.value[8] = (uuid.value[8] & 0x3F) | 0x80;
+
+        return uuid;
+    }
+
+    return platform::uuid();
 }
 
 const struct media_cache::parsed_data & media_cache::read_parsed_data(class media &media)
@@ -146,6 +196,15 @@ const struct media_cache::parsed_data & media_cache::read_parsed_data(class medi
     }
 
     std::unique_ptr<parsed_data> parsed(new parsed_data());
+
+#if defined(__unix__)
+    if (starts_with(mrl, "file://"))
+        parsed->uuid = uuid_from_file(from_percent(mrl.substr(7)));
+#elif defined(WIN32)
+    if (starts_with(mrl, "file:"))
+        parsed->uuid = uuid_from_file(from_percent(mrl.substr(5)));
+#endif
+
     //libvlc_media_parse(media);
 
     auto player = libvlc_media_player_new_from_media(media);

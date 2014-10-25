@@ -27,7 +27,6 @@
 
 struct user_dirs { std::string download, music, pictures, videos; };
 static struct user_dirs user_dirs();
-static std::string make_uuid();
 
 settings::settings(class platform::messageloop_ref &messageloop)
     : messageloop(messageloop),
@@ -69,12 +68,12 @@ void settings::set_configure_required(bool on)
 
 static const char uuid_name[] = "uuid";
 
-std::string settings::uuid()
+platform::uuid settings::uuid()
 {
     auto value = general.read(uuid_name);
     if (value.empty())
     {
-        value = make_uuid();
+        value = platform::uuid::generate();
         general.write(uuid_name, value);
     }
 
@@ -549,21 +548,6 @@ static struct user_dirs user_dirs()
 }
 
 #include <cstring>
-#include <uuid/uuid.h>
-
-static std::string make_uuid()
-{
-    uuid_t uuid;
-    uuid_generate(uuid);
-
-    std::string result;
-    result.resize(64);
-    uuid_unparse(uuid, &result[0]);
-    result.resize(strlen(&result[0]));
-
-    return result;
-}
-
 static std::string default_upnp_devicename()
 {
     std::string default_devicename = "LXiMediaServer";
@@ -644,30 +628,6 @@ static struct user_dirs user_dirs()
     }
 
     return user_dirs;
-}
-
-#include <rpc.h>
-
-static std::string make_uuid()
-{
-    UUID uuid;
-    if (UuidCreate(&uuid) == RPC_S_UUID_NO_ADDRESS)
-    {
-        uuid.Data1 = (rand() << 16) ^ rand();
-        uuid.Data2 = rand();
-        uuid.Data3 = (rand() & 0x0FFF) | 0x4000;
-        for (auto &i : uuid.Data4) i = rand();
-        uuid.Data4[0] = (uuid.Data4[0] & 0x3F) | 0x80;
-    }
-
-    RPC_CSTR rpc_string;
-    if (UuidToStringA(&uuid, &rpc_string) != RPC_S_OK)
-        throw std::runtime_error("out of memory");
-
-    const std::string result = reinterpret_cast<const char *>(rpc_string);
-    RpcStringFreeA(&rpc_string);
-
-    return result;
 }
 
 static std::string default_upnp_devicename()

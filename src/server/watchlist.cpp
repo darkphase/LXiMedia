@@ -17,11 +17,13 @@
 
 #include "watchlist.h"
 #include "platform/path.h"
-#include "platform/string.h"
+#include <cassert>
+#include <sstream>
 
 watchlist::watchlist(class platform::messageloop_ref &messageloop)
     : messageloop(messageloop),
       inifile(platform::config_dir() + "/watchlist"),
+      section(inifile.open_section()),
       timer(messageloop, std::bind(&platform::inifile::save, &inifile)),
       save_delay(250)
 {
@@ -32,37 +34,52 @@ watchlist::~watchlist()
 {
 }
 
-bool watchlist::has_entry(const std::string &mrl)
+std::chrono::milliseconds watchlist::last_position(const platform::uuid &uuid)
 {
-    return inifile.has_section(from_percent(mrl));
+    const auto value = section.read(uuid);
+    const size_t comma1 = value.find_first_of(',');
+    if (comma1 != value.npos)
+    {
+        const size_t comma2 = value.find_first_of(',', comma1 + 1);
+        if (comma2 != value.npos)
+        {
+            const auto last_position = value.substr(comma1 + 1, comma2 - comma1 - 1);
+            try { return std::chrono::milliseconds(std::stoll(last_position)); }
+            catch (const std::invalid_argument &) { }
+            catch (const std::out_of_range &) { }
+        }
+    }
+
+    return std::chrono::milliseconds(0);
 }
 
-std::chrono::milliseconds watchlist::last_position(const std::string &mrl)
+std::chrono::system_clock::time_point watchlist::last_seen(const platform::uuid &uuid)
 {
-    auto section = inifile.open_section(from_percent(mrl));
+    const auto value = section.read(uuid);
+    const size_t comma = value.find_first_of(',');
+    if (comma != value.npos)
+    {
+        const auto last_seen = value.substr(0, comma);
+        try { return std::chrono::system_clock::time_point(std::chrono::minutes(std::stoi(last_seen))); }
+        catch (const std::invalid_argument &) { }
+        catch (const std::out_of_range &) { }
+    }
 
-    return std::chrono::milliseconds(section.read("last_position", 0));
+    return std::chrono::system_clock::time_point(std::chrono::minutes(0));
 }
 
-void watchlist::set_last_position(const std::string &mrl, std::chrono::milliseconds position)
+void watchlist::set_last_position(const platform::uuid &uuid, std::chrono::milliseconds position, const std::string &mrl)
 {
-    auto section = inifile.open_section(from_percent(mrl));
+    assert(!uuid.is_null());
+    if (!uuid.is_null())
+    {
+        auto now = std::chrono::system_clock::now().time_since_epoch();
 
-    section.write("last_position", position.count());
-}
+        std::ostringstream str;
+        str << std::chrono::duration_cast<std::chrono::minutes>(now).count()
+            << ',' << position.count()
+            << ',' << mrl;
 
-std::chrono::system_clock::time_point watchlist::last_seen(const std::string &mrl)
-{
-    auto section = inifile.open_section(from_percent(mrl));
-
-    const std::chrono::minutes last_seen(section.read("last_seen", 0));
-    return std::chrono::system_clock::time_point(last_seen);
-}
-
-void watchlist::set_last_seen(const std::string &mrl)
-{
-    auto section = inifile.open_section(from_percent(mrl));
-
-    auto now = std::chrono::system_clock::now().time_since_epoch();
-    section.write("last_seen", std::chrono::duration_cast<std::chrono::minutes>(now).count());
+        section.write(uuid, str.str());
+    }
 }
