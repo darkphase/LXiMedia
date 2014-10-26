@@ -29,6 +29,10 @@ static const struct transcode_stream_test
     struct test transcode_test;
     static void transcode()
     {
+        // VLC 2.2.0-pre2 crashes in this test.
+        if (instance::compare_version(2, 2, 0) == 0)
+            return;
+
         const std::string infile = write_file("pm5544.mp4", pm5544_mp4, sizeof(pm5544_mp4));
         write_file("pm5544.srt", pm5544_srt, sizeof(pm5544_srt));
 
