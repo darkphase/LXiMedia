@@ -25,19 +25,6 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
     add_custom_target(vlc ALL DEPENDS ${CMAKE_BINARY_DIR}/libvlc.dll ${CMAKE_BINARY_DIR}/plugins VERBATIM)
 endif()
 
-# VLC transcode plugin; fixes https://forum.videolan.org/viewtopic.php?f=13&t=115390
-aux_source_directory(src/vlc/modules/lximedia_transcode VLC_LXIMEDIA_TRANSCODE_SRC_LIST)
-set_source_files_properties(${VLC_LXIMEDIA_TRANSCODE_SRC_LIST} PROPERTIES COMPILE_FLAGS "-std=gnu99 -D__PLUGIN__ -D_FILE_OFFSET_BITS=64 -D__USE_UNIX98 -D_REENTRANT -D_THREAD_SAFE")
-add_library(stream_out_lximedia_transcode_plugin MODULE ${VLC_LXIMEDIA_TRANSCODE_SRC_LIST})
-if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
-    set_target_properties(stream_out_lximedia_transcode_plugin PROPERTIES LINK_FLAGS "${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlccore.dll")
-    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/plugins/stream_out/libstream_out_lximedia_transcode_plugin.dll COMMAND cp -f ${CMAKE_BINARY_DIR}/libstream_out_lximedia_transcode_plugin.dll ${CMAKE_BINARY_DIR}/plugins/stream_out DEPENDS stream_out_lximedia_transcode_plugin VERBATIM)
-    add_custom_target(libstream_out_lximedia_transcode_plugin ALL DEPENDS ${CMAKE_BINARY_DIR}/plugins/stream_out/libstream_out_lximedia_transcode_plugin.dll vlc VERBATIM)
-else()
-    target_include_directories(stream_out_lximedia_transcode_plugin PRIVATE /usr/include/vlc/plugins)
-    target_link_libraries(stream_out_lximedia_transcode_plugin pthread vlccore)
-endif()
-
 #######################################
 # Extract PUPnP
 set(PUPNP_VERSION "1.6.19")
@@ -146,4 +133,4 @@ endif()
 #######################################
 # install
 install(TARGETS lximediaserver RUNTIME DESTINATION bin)
-install(TARGETS stream_out_lximedia_transcode_plugin LIBRARY DESTINATION lib/vlc/plugins/stream_out)
+
