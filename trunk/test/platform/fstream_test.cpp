@@ -58,6 +58,7 @@ static std::string filename()
 #elif defined(WIN32)
 #include <cstdlib>
 #include <process.h>
+#include <stdexcept>
 #include "platform/path.h"
 
 static std::string filename()
