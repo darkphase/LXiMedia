@@ -604,7 +604,9 @@ void content_directory::add_directory(action_browse &action, item_type type, con
 
 void content_directory::add_container(action_browse &action, item_type type, const std::string &path, const std::string &title)
 {
-    const std::string parentpath = content_directory::parentpath(path);
+    auto parentpath = content_directory::parentpath(path);
+    while ((parentpath.length() > 1) && (objectid_map.find(parentpath) == objectid_map.end()))
+        parentpath = content_directory::parentpath(parentpath);
 
     browse_container container;
     container.id = to_objectid(path);
@@ -641,7 +643,9 @@ void content_directory::add_container(action_browse &action, item_type type, con
 
 void content_directory::add_file(action_browse &action, const std::string &host, struct item_source &item_source, const item &item, const std::string &path, const std::string &title)
 {
-    const std::string parentpath = content_directory::parentpath(path);
+    auto parentpath = content_directory::parentpath(path);
+    while ((parentpath.length() > 1) && (objectid_map.find(parentpath) == objectid_map.end()))
+        parentpath = content_directory::parentpath(parentpath);
 
     struct browse_item browse_item;
     browse_item.id = to_objectid(path);
@@ -712,15 +716,22 @@ std::string content_directory::basepath(const std::string &dir)
 
 std::string content_directory::parentpath(const std::string &dir)
 {
-    if (dir.length() > 1)
+    if (!dir.empty())
     {
-        const size_t ls = dir.find_last_of('/' , dir.length() - 2);
-        if (ls != dir.npos)
+        size_t lp = dir.length() - 1;
+        while ((lp >= 0) && (dir[lp] == '/'))
+            lp--;
+
+        if (lp != dir.npos)
         {
-            if ((ls > 0) && (dir[ls - 1] == '/'))
-                return dir.substr(0, ls - 1);
-            else
-                return dir.substr(0, ls + 1);
+            const size_t ls = dir.find_last_of('/', lp);
+            if (ls != dir.npos)
+            {
+                if ((ls > 1) && (dir[ls - 1] == '/') && (dir[ls - 2] == '/'))
+                    return dir.substr(0, ls - 2);
+                else
+                    return dir.substr(0, ls + 1);
+            }
         }
     }
 
