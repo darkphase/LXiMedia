@@ -254,10 +254,19 @@ static canvas_mode to_canvas_mode(const std::string &e)
     return canvas_mode::none;
 }
 
+bool settings::canvas_mode_enabled() const
+{
+    // Workaround for ticket https://trac.videolan.org/vlc/ticket/10148
+    return vlc::instance::compare_version(2, 1) != 0;
+}
+
 static enum canvas_mode default_canvas_mode = canvas_mode::pad;
 
 enum canvas_mode settings::canvas_mode() const
 {
+    if (!canvas_mode_enabled())
+        return ::canvas_mode::none;
+
     return to_canvas_mode(general.read(canvas_mode_name, to_string(default_canvas_mode)));
 }
 

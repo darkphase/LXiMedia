@@ -57,6 +57,7 @@ public:
     void set_encode_mode(enum encode_mode);
     enum video_mode video_mode() const;
     void set_video_mode(enum video_mode);
+    bool canvas_mode_enabled() const;
     enum canvas_mode canvas_mode() const;
     void set_canvas_mode(enum canvas_mode);
 

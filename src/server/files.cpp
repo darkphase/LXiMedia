@@ -19,7 +19,6 @@
 #include "platform/path.h"
 #include "platform/string.h"
 #include "platform/translator.h"
-#include "vlc/instance.h"
 #include "vlc/media.h"
 #include "vlc/transcode_stream.h"
 #include "watchlist.h"
@@ -392,7 +391,7 @@ bool files::correct_protocol(const pupnp::content_directory::item &item, pupnp::
     case canvas_mode::none:
         min_scale(
                     protocol.vcodec,
-                    item.width / protocol.aspect, item.height,
+                    item.width, item.height,
                     protocol.width, protocol.height,
                     protocol.width, protocol.height);
         break;
@@ -418,12 +417,11 @@ int files::play_item(
     if (!protocol.profile.empty() && correct_protocol(item, protocol))
     {
         float rate = 1.0f;
-        std::string transcode_plugin = "#transcode";
         std::ostringstream transcode;
         if (!protocol.acodec.empty() || !protocol.vcodec.empty())
         {
             // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
-            transcode << "{";
+            transcode << "#transcode{";
 
             if (!protocol.vcodec.empty())
             {
@@ -466,10 +464,6 @@ int files::play_item(
 
                 if ((width != protocol.width) || (height != protocol.height))
                 {
-                    // Workaround for ticket https://trac.videolan.org/vlc/ticket/10148
-                    if (vlc::instance::compare_version(2, 1) == 0)
-                        transcode_plugin = "#lximedia_transcode";
-
                     transcode
                             << ",vfilter=canvas{width=" << protocol.width
                             << ",height=" << protocol.height;
@@ -545,8 +539,8 @@ int files::play_item(
             stream->on_playback_progress = std::bind(&files::playback_progress, this, item, started, _1);
 
             if ((item.chapter > 0)
-                    ? stream->open(item.mrl, item.chapter, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate)
-                    : stream->open(item.mrl, item.position, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate))
+                    ? stream->open(item.mrl, item.chapter, track_ids, transcode.str(), protocol.mux, rate)
+                    : stream->open(item.mrl, item.position, track_ids, transcode.str(), protocol.mux, rate))
             {
                 auto proxy = std::make_shared<pupnp::connection_proxy>(std::move(stream));
                 connection_manager.add_output_connection(proxy, protocol, item.mrl, source_address, opt.str());

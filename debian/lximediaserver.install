@@ -1,5 +1,4 @@
 etc/xdg/autostart/lximediaserver.desktop
 usr/bin/lximediaserver
-usr/lib/vlc/plugins/stream_out/libstream_out_lximedia_transcode_plugin.so
 usr/share/applications/lximediaserver.desktop
 usr/share/icons/hicolor/scalable/apps/lximediaserver.svg
