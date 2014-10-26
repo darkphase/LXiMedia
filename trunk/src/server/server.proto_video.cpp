@@ -78,7 +78,7 @@ static void add_source_video_protocols(
     static const unsigned eu_frame_rate_num[] = { 24000, 25000 }, eu_frame_rate_den[] = { 1000, 1000 };
     static const unsigned na_frame_rate_num[] = { 24000, 30000, 30000 }, na_frame_rate_den[] = { 1001, 1001, 1000 };
 
-    for (int i = 0; i < _count / 2; i++)
+    for (size_t i = 0; i < _count / 2; i++)
     {
         if (has_format[0])
             add_source_video_protocols(
@@ -117,7 +117,7 @@ static void add_source_video_protocols(
                         slow_encode_options);
     }
 
-    for (int i = _count / 2; i < _count; i++)
+    for (size_t i = _count / 2; i < _count; i++)
     {
         if (has_format[0])
             add_source_video_protocols(
