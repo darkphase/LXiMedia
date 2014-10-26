@@ -584,6 +584,9 @@ static std::string get_user_dir(OSType type)
         if (FSRefMakePath(&ref, reinterpret_cast<UInt8 *>(&result[0]), result.size()) == noErr)
         {
             result.resize(strnlen(result.data(), result.size()));
+            if (!result.empty() && (result[result.length() - 1] != '/'))
+                result.push_back('/');
+
             return result;
         }
     }
