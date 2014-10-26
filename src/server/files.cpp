@@ -30,6 +30,8 @@
 #include <map>
 #include <sstream>
 
+using std::chrono::duration_cast;
+
 files::files(
         class platform::messageloop_ref &messageloop,
         class vlc::instance &vlc_instance,
@@ -233,7 +235,13 @@ std::vector<pupnp::content_directory::item> files::list_recommended_items(
         size_t start, size_t &count)
 {
     const bool return_all = count == 0;
-    const auto watched_items = watchlist.watched_items();
+
+    const auto now = std::chrono::system_clock::now();
+    const auto two_weeks_ago = now - std::chrono::hours(336);
+    std::map<std::string, watchlist::entry> watched_items;
+    for (auto &i : watchlist.watched_items())
+        if (i.last_seen > two_weeks_ago)
+            watched_items.emplace(i.mrl, i);
 
     std::set<std::string> directories;
     for (auto &i : watched_items)
@@ -283,12 +291,12 @@ std::vector<pupnp::content_directory::item> files::list_recommended_items(
             {
                 auto media = vlc::media::from_file(vlc_instance, to_system_path(file_path).path);
                 auto watched = watched_items.find(media.mrl());
-                if (watched != watched_items.end())
+                if ((watched != watched_items.end()) && watchlist.watched_till_end(watched->second))
                 {
                     last_media = vlc::media();
                     last_path.clear();
                     last_score = 0.0;
-                    last_seen = watched->second;
+                    last_seen = duration_cast<std::chrono::minutes>(now - watched->second.last_seen);
                 }
                 else if (last_seen.count() > 0)
                 {
@@ -533,7 +541,9 @@ int files::play_item(
                         }
 
             std::unique_ptr<vlc::transcode_stream> stream(new vlc::transcode_stream(messageloop, vlc_instance));
-            stream->on_playback_progress = std::bind(&files::playback_progress, this, item, _1);
+            const auto started = std::chrono::system_clock::now();
+            stream->on_playback_progress = std::bind(&files::playback_progress, this, item, started, _1);
+
             if ((item.chapter > 0)
                     ? stream->open(item.mrl, item.chapter, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate)
                     : stream->open(item.mrl, item.position, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate))
@@ -721,7 +731,7 @@ pupnp::content_directory::item files::make_item(const std::string &/*client*/, c
             const auto mrl = media.mrl();
             const auto uuid = media_cache.uuid(media);
 
-            item.last_position = watchlist.last_position(uuid);
+            item.last_position = watchlist.watched_item(uuid).last_position;
 
             auto tracks = list_tracks(media_cache, media);
             if (!track_name.empty())
@@ -791,6 +801,7 @@ std::string files::to_virtual_path(const std::string &system_path) const
 
 void files::playback_progress(
         const pupnp::content_directory::item &item,
+        std::chrono::system_clock::time_point started,
         std::chrono::milliseconds time)
 {
     if (time.count() >= 0)
@@ -800,8 +811,11 @@ void files::playback_progress(
 
         const auto rounded = ((time.count() / increment) * increment);
         if (rounded > delay)
-            watchlist.set_last_position(item.uuid, std::chrono::milliseconds(rounded - delay), item.mrl);
+        {
+            const std::chrono::milliseconds time(rounded - delay);
+            watchlist.set_watched_item(item.uuid, watchlist::entry { started, time, item.duration, item.mrl });
+        }
     }
     else // finished
-        watchlist.set_last_position(item.uuid, item.duration, item.mrl);
+        watchlist.set_watched_item(item.uuid, watchlist::entry { started, item.duration, item.duration, item.mrl });
 }

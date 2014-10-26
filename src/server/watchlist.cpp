@@ -20,6 +20,8 @@
 #include <cassert>
 #include <sstream>
 
+using std::chrono::duration_cast;
+
 watchlist::watchlist(class platform::messageloop_ref &messageloop)
     : messageloop(messageloop),
       inifile(platform::config_dir() + "/watchlist"),
@@ -33,93 +35,94 @@ watchlist::~watchlist()
 {
 }
 
-std::map<std::string, std::chrono::minutes> watchlist::watched_items() const
+static std::string to_string(const struct watchlist::entry &entry)
 {
-    const auto section = inifile.open_section();
-    const auto now = std::chrono::system_clock::now();
+    std::ostringstream str;
+    str << duration_cast<std::chrono::minutes>(entry.last_seen.time_since_epoch()).count()
+        << ',' << entry.last_position.count()
+        << '/' << entry.duration.count()
+        << ',' << entry.mrl;
 
-    std::map<std::string, std::chrono::minutes> result;
-    for (auto uuid : section.names())
+    return str.str();
+}
+
+static watchlist::entry to_entry(const std::string &str)
+{
+    watchlist::entry result =
     {
-        const auto m = mrl(uuid);
-        if (!m.empty())
+        std::chrono::system_clock::time_point(),
+        std::chrono::milliseconds(0),
+        std::chrono::milliseconds(0),
+        std::string()
+    };
+
+    const size_t comma1 = str.find_first_of(',');
+    if (comma1 != str.npos)
+    {
+        const size_t slash = str.find_first_of('/', comma1 + 1);
+        const size_t comma2 = str.find_first_of(',', comma1 + 1);
+        if (comma2 != str.npos)
         {
-            const auto ls = last_seen(uuid);
-            result.emplace(m, std::chrono::duration_cast<std::chrono::minutes>(now - ls));
+            const auto last_seen = str.substr(0, comma1);
+            try { result.last_seen = std::chrono::system_clock::time_point(std::chrono::minutes(std::stoi(last_seen))); }
+            catch (const std::invalid_argument &) { }
+            catch (const std::out_of_range &) { }
+
+            const auto last_position = str.substr(comma1 + 1, std::min(slash, comma2) - comma1 - 1);
+            try { result.last_position = std::chrono::milliseconds(std::stoll(last_position)); }
+            catch (const std::invalid_argument &) { }
+            catch (const std::out_of_range &) { }
+
+            if (slash < comma2)
+            {
+                const auto duration = str.substr(slash + 1, comma2 - slash - 1);
+                try { result.duration = std::chrono::milliseconds(std::stoll(duration)); }
+                catch (const std::invalid_argument &) { }
+                catch (const std::out_of_range &) { }
+            }
+
+            result.mrl = str.substr(comma2 + 1);
         }
     }
 
     return result;
 }
 
-std::chrono::milliseconds watchlist::last_position(const platform::uuid &uuid) const
+std::vector<struct watchlist::entry> watchlist::watched_items() const
 {
     const auto section = inifile.open_section();
 
-    const auto value = section.read(uuid);
-    const size_t comma1 = value.find_first_of(',');
-    if (comma1 != value.npos)
-    {
-        const size_t comma2 = value.find_first_of(',', comma1 + 1);
-        if (comma2 != value.npos)
-        {
-            const auto last_position = value.substr(comma1 + 1, comma2 - comma1 - 1);
-            try { return std::chrono::milliseconds(std::stoll(last_position)); }
-            catch (const std::invalid_argument &) { }
-            catch (const std::out_of_range &) { }
-        }
-    }
+    std::vector<watchlist::entry> result;
+    for (auto uuid : section.names())
+        result.emplace_back(to_entry(section.read(uuid)));
 
-    return std::chrono::milliseconds(0);
+    return result;
 }
 
-std::chrono::system_clock::time_point watchlist::last_seen(const platform::uuid &uuid) const
+struct watchlist::entry watchlist::watched_item(const platform::uuid &uuid) const
 {
     const auto section = inifile.open_section();
 
-    const auto value = section.read(uuid);
-    const size_t comma = value.find_first_of(',');
-    if (comma != value.npos)
-    {
-        const auto last_seen = value.substr(0, comma);
-        try { return std::chrono::system_clock::time_point(std::chrono::minutes(std::stoi(last_seen))); }
-        catch (const std::invalid_argument &) { }
-        catch (const std::out_of_range &) { }
-    }
-
-    return std::chrono::system_clock::time_point(std::chrono::minutes(0));
+    return to_entry(section.read(uuid));
 }
 
-std::string watchlist::mrl(const platform::uuid &uuid) const
-{
-    const auto section = inifile.open_section();
-
-    const auto value = section.read(uuid);
-    const size_t comma1 = value.find_first_of(',');
-    if (comma1 != value.npos)
-    {
-        const size_t comma2 = value.find_first_of(',', comma1 + 1);
-        if (comma2 != value.npos)
-            return value.substr(comma2 + 1);
-    }
-
-    return std::string();
-}
-
-void watchlist::set_last_position(const platform::uuid &uuid, std::chrono::milliseconds position, const std::string &mrl)
+void watchlist::set_watched_item(const platform::uuid &uuid, const struct entry &entry)
 {
     assert(!uuid.is_null());
     if (!uuid.is_null())
     {
         auto section = inifile.open_section();
 
-        auto now = std::chrono::system_clock::now().time_since_epoch();
-
-        std::ostringstream str;
-        str << std::chrono::duration_cast<std::chrono::minutes>(now).count()
-            << ',' << position.count()
-            << ',' << mrl;
-
-        section.write(uuid, str.str());
+        section.write(uuid, to_string(entry));
     }
+}
+
+bool watchlist::watched_till_end(std::chrono::milliseconds last_position, std::chrono::milliseconds duration)
+{
+    return last_position > (duration - std::max(duration / 10, std::chrono::milliseconds(60000)));
+}
+
+bool watchlist::watched_till_end(const struct entry &entry)
+{
+    return watched_till_end(entry.last_position, entry.duration);
 }
