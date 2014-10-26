@@ -1,7 +1,7 @@
 #!/bin/sh
 
 CURDIR="$( cd "$( dirname "$0" )" && pwd )"
-OUTDIR=${CURDIR}/../../..
+OUTDIR=${CURDIR}/../../../publish
 PKGFILE=lximediaserver_`cat ${CURDIR}/../../VERSION`
 PKGNAME=lximediaserver-`cat ${CURDIR}/../../VERSION`
 

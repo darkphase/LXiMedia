@@ -1,7 +1,7 @@
 #!/bin/sh
 
 CURDIR="$( cd "$( dirname "$0" )" && pwd )"
-OUTDIR=${CURDIR}/../../..
+OUTDIR=${CURDIR}/../../../publish
 PKGNAME=lximediaserver-`cat ${CURDIR}/../../VERSION`
 
 rm -rf /tmp/lximediaserver/${PKGNAME}
@@ -22,6 +22,7 @@ dpkg-buildpackage -rfakeroot -S
 
 cd ..
 rm -rf /tmp/lximediaserver/${PKGNAME}
+mkdir -p ${OUTDIR}/
 mv /tmp/lximediaserver/* ${OUTDIR}/
 cd ..
 rmdir /tmp/lximediaserver
