@@ -140,7 +140,7 @@ int basic_utf8filebuf<_type, _traits>::overflow(int value)
     else for (int pos = 0; pos < write; )
     {
         DWORD bytesWritten = 0;
-        if (WriteFile(handle, &buffer[pos], write - pos, &bytesWritten, NULL) && (bytesWritten <= (write - pos)))
+        if (WriteFile(handle, &buffer[pos], write - pos, &bytesWritten, NULL) && (bytesWritten <= DWORD(write - pos)))
             pos += bytesWritten;
         else
             return _traits::eof();
