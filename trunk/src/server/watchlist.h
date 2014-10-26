@@ -22,18 +22,29 @@
 #include "platform/messageloop.h"
 #include "platform/uuid.h"
 #include <chrono>
+#include <vector>
 
 class watchlist
 {
 public:
+    struct entry
+    {
+        std::chrono::system_clock::time_point last_seen;
+        std::chrono::milliseconds last_position;
+        std::chrono::milliseconds duration;
+        std::string mrl;
+    };
+
+public:
     explicit watchlist(class platform::messageloop_ref &);
     ~watchlist();
 
-    std::map<std::string, std::chrono::minutes> watched_items() const;
-    std::chrono::milliseconds last_position(const platform::uuid &) const;
-    std::chrono::system_clock::time_point last_seen(const platform::uuid &) const;
-    std::string mrl(const platform::uuid &) const;
-    void set_last_position(const platform::uuid &, std::chrono::milliseconds position, const std::string &);
+    std::vector<struct entry> watched_items() const;
+    struct entry watched_item(const platform::uuid &) const;
+    void set_watched_item(const platform::uuid &, const struct entry &);
+
+    static bool watched_till_end(std::chrono::milliseconds last_position, std::chrono::milliseconds duration);
+    static bool watched_till_end(const struct entry &);
 
 private:
     class platform::messageloop_ref messageloop;
