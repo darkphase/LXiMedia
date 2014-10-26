@@ -195,8 +195,8 @@ void server::add_video_protocols()
                     width, height, aspect,
                     frame_rate_num, frame_rate_den,
                     "acodec=mpga,ab=256", "vcodec=mp1v", "mpeg1",
-                    "vb=4096,venc=ffmpeg{keyint=0,vt=2048}",
-                    "vb=2048,venc=ffmpeg{bframes=0,vt=1024}");
+                    "vb=2048,scale=Auto,venc=ffmpeg{keyint=0}",
+                    "vb=2048,scale=Auto,venc=ffmpeg{bframes=0}");
     }
 
     /////////////////////////////////////////////////////////////////////////////
@@ -210,8 +210,8 @@ void server::add_video_protocols()
                     720, 576, 1.06667f,
                     25000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+                    "vb=6144,scale=Auto,venc=ffmpeg{keyint=0}",
+                    "vb=6144,scale=Auto,venc=ffmpeg{bframes=0}");
 
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_PAL",
@@ -220,8 +220,8 @@ void server::add_video_protocols()
                     720, 576, 1.42222f,
                     25000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+                    "vb=6144,scale=Auto,venc=ffmpeg{keyint=0}",
+                    "vb=6144,scale=Auto,venc=ffmpeg{bframes=0}");
 
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_NTSC",
@@ -230,8 +230,8 @@ void server::add_video_protocols()
                     640, 480, 1.0f,
                     30000, 1001,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+                    "vb=6144,scale=Auto,venc=ffmpeg{keyint=0}",
+                    "vb=6144,scale=Auto,venc=ffmpeg{bframes=0}");
 
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_NTSC",
@@ -240,8 +240,8 @@ void server::add_video_protocols()
                     704, 480, 1.21212f,
                     30000, 1001,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+                    "vb=6144,scale=Auto,venc=ffmpeg{keyint=0}",
+                    "vb=6144,scale=Auto,venc=ffmpeg{bframes=0}");
     }
 
     if (has_mpeg2 && has_dvd && has_surround51)
@@ -253,8 +253,8 @@ void server::add_video_protocols()
                     720, 576, 1.06667f,
                     25000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+                    "vb=6144,scale=Auto,venc=ffmpeg{keyint=0}",
+                    "vb=6144,scale=Auto,venc=ffmpeg{bframes=0}");
 
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_PAL_XAC3",
@@ -263,8 +263,8 @@ void server::add_video_protocols()
                     720, 576, 1.42222f,
                     25000, 1000,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+                    "vb=6144,scale=Auto,venc=ffmpeg{keyint=0}",
+                    "vb=6144,scale=Auto,venc=ffmpeg{bframes=0}");
 
         connection_manager.add_source_video_protocol(
                      "MPEG_PS_NTSC_XAC3",
@@ -273,8 +273,8 @@ void server::add_video_protocols()
                     640, 480, 1.0f,
                     30000, 1001,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+                    "vb=6144,scale=Auto,venc=ffmpeg{keyint=0}",
+                    "vb=6144,scale=Auto,venc=ffmpeg{bframes=0}");
 
         connection_manager.add_source_video_protocol(
                      "MPEG_PS_NTSC_XAC3",
@@ -283,8 +283,8 @@ void server::add_video_protocols()
                     704, 480, 1.21212f,
                     30000, 1001,
                     "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+                    "vb=6144,scale=Auto,venc=ffmpeg{keyint=0}",
+                    "vb=6144,scale=Auto,venc=ffmpeg{bframes=0}");
     }
 
     /////////////////////////////////////////////////////////////////////////////
@@ -301,8 +301,8 @@ void server::add_video_protocols()
                         44100, 2,
                         width_sd, height_sd, aspect_sd,
                         "acodec=mpga,ab=256", "vcodec=mp2v",
-                        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-                        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+                        "vb=6144,scale=Auto,venc=ffmpeg{keyint=0}",
+                        "vb=6144,scale=Auto,venc=ffmpeg{bframes=0}");
 
         if (has_mpeg2 && has_dvd && has_surround51)
             add_source_video_protocols(
@@ -311,8 +311,8 @@ void server::add_video_protocols()
                         48000, 6,
                         width_sd, height_sd, aspect_sd,
                         "acodec=a52,ab=640", "vcodec=mp2v",
-                        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-                        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+                        "vb=6144,scale=Auto,venc=ffmpeg{keyint=0}",
+                        "vb=6144,scale=Auto,venc=ffmpeg{bframes=0}");
     }
 
     /////////////////////////////////////////////////////////////////////////////
@@ -329,8 +329,8 @@ void server::add_video_protocols()
                         44100, 2,
                         width_720, height_720, aspect_720,
                         "acodec=mpga,ab=256", "vcodec=mp2v",
-                        "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
-                        "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
+                        "vb=8192,scale=Auto,venc=ffmpeg{keyint=0}",
+                        "vb=8192,scale=Auto,venc=ffmpeg{bframes=0}");
 
         if (has_mpeg2 && has_hdtv_720 && has_surround51)
             add_source_video_protocols(
@@ -339,8 +339,8 @@ void server::add_video_protocols()
                         48000, 6,
                         width_720, height_720, aspect_720,
                         "acodec=a52,ab=640", "vcodec=mp2v",
-                        "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
-                        "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
+                        "vb=8192,scale=Auto,venc=ffmpeg{keyint=0}",
+                        "vb=8192,scale=Auto,venc=ffmpeg{bframes=0}");
 
         if (has_mpeg2 && has_hdtv_1080)
             add_source_video_protocols(
@@ -349,8 +349,8 @@ void server::add_video_protocols()
                         44100, 2,
                         width_1080, height_1080, aspect_1080,
                         "acodec=mpga,ab=256", "vcodec=mp2v",
-                        "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
-                        "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
+                        "vb=12288,scale=Auto,venc=ffmpeg{keyint=0}",
+                        "vb=12288,scale=Auto,venc=ffmpeg{bframes=0}");
 
         if (has_mpeg2 && has_hdtv_1080 && has_surround51)
             add_source_video_protocols(
@@ -359,8 +359,8 @@ void server::add_video_protocols()
                         48000, 6,
                         width_1080, height_1080, aspect_1080,
                         "acodec=a52,ab=640", "vcodec=mp2v",
-                        "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
-                        "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
+                        "vb=12288,scale=Auto,venc=ffmpeg{keyint=0}",
+                        "vb=12288,scale=Auto,venc=ffmpeg{bframes=0}");
     }
 
     /////////////////////////////////////////////////////////////////////////////
@@ -379,8 +379,8 @@ void server::add_video_protocols()
                     44100, 2,
                     width, height, aspect,
                     "acodec=mp3,ab=128", "vcodec=h264",
-                    "vb=2048,venc=x264{keyint=1,bframes=0}",
-                    "vb=1024,venc=x264{keyint=25,bframes=3}");
+                    "vb=2048,scale=Auto,venc=x264{keyint=1,bframes=0}",
+                    "vb=2048,scale=Auto,venc=x264{keyint=25,bframes=3}");
     }
 
     /////////////////////////////////////////////////////////////////////////////
@@ -397,8 +397,8 @@ void server::add_video_protocols()
                     44100, 2,
                     width_sd, height_sd, aspect_sd,
                     "acodec=mp3,ab=128", "vcodec=h264",
-                    "vb=4096,venc=x264{keyint=1,bframes=0}",
-                    "vb=2048,venc=x264{keyint=25,bframes=3}");
+                    "vb=2048,scale=Auto,venc=x264{keyint=1,bframes=0}",
+                    "vb=2048,scale=Auto,venc=x264{keyint=25,bframes=3}");
     }
 
     if (has_mpeg4 && has_dvd && has_surround51)
@@ -413,8 +413,8 @@ void server::add_video_protocols()
                     48000, 6,
                     width_sd, height_sd, aspect_sd,
                     "acodec=a52,ab=640", "vcodec=h264",
-                    "vb=4096,venc=x264{keyint=1,bframes=0}",
-                    "vb=2048,venc=x264{keyint=25,bframes=3}");
+                    "vb=2048,scale=Auto,venc=x264{keyint=1,bframes=0}",
+                    "vb=2048,scale=Auto,venc=x264{keyint=25,bframes=3}");
     }
 
     /////////////////////////////////////////////////////////////////////////////
@@ -435,8 +435,8 @@ void server::add_video_protocols()
                         44100, 2,
                         width_720, height_720, aspect_720,
                         "acodec=mp3,ab=128", "vcodec=h264",
-                        "vb=8192,venc=x264{keyint=1,bframes=0}",
-                        "vb=4096,venc=x264{keyint=25,bframes=3}");
+                        "vb=4096,scale=Auto,venc=x264{keyint=1,bframes=0}",
+                        "vb=4096,scale=Auto,venc=x264{keyint=25,bframes=3}");
 
         if (has_mpeg4 && has_hdtv_720 && has_surround51)
             add_source_video_protocols(
@@ -445,8 +445,8 @@ void server::add_video_protocols()
                         48000, 6,
                         width_720, height_720, aspect_720,
                         "acodec=a52,ab=640", "vcodec=h264",
-                        "vb=8192,venc=x264{keyint=1,bframes=0}",
-                        "vb=4096,venc=x264{keyint=25,bframes=3}");
+                        "vb=4096,scale=Auto,venc=x264{keyint=1,bframes=0}",
+                        "vb=4096,scale=Auto,venc=x264{keyint=25,bframes=3}");
 
         if (has_mpeg4 && has_hdtv_1080)
             add_source_video_protocols(
@@ -455,8 +455,8 @@ void server::add_video_protocols()
                         44100, 2,
                         width_1080, height_1080, aspect_1080,
                         "acodec=mp3,ab=128", "vcodec=h264",
-                        "vb=16384,venc=x264{keyint=1,bframes=0}",
-                        "vb=8192,venc=x264{keyint=25,bframes=3}");
+                        "vb=8192,scale=Auto,venc=x264{keyint=1,bframes=0}",
+                        "vb=8192,scale=Auto,venc=x264{keyint=25,bframes=3}");
 
         if (has_mpeg4 && has_hdtv_1080 && has_surround51)
             add_source_video_protocols(
@@ -465,7 +465,7 @@ void server::add_video_protocols()
                         48000, 6,
                         width_1080, height_1080, aspect_1080,
                         "acodec=a52,ab=640", "vcodec=h264",
-                        "vb=16384,venc=x264{keyint=1,bframes=0}",
-                        "vb=8192,venc=x264{keyint=25,bframes=3}");
+                        "vb=8192,scale=Auto,venc=x264{keyint=1,bframes=0}",
+                        "vb=8192,scale=Auto,venc=x264{keyint=25,bframes=3}");
     }
 }
