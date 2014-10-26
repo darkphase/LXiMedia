@@ -29,7 +29,7 @@ namespace vlc {
 
 media media::from_file(class instance &instance, const std::string &path) noexcept
 {
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
     return libvlc_media_new_path(instance, path.c_str());
 #elif defined(WIN32)
     std::string bspath = path;

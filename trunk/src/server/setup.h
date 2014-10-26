@@ -33,8 +33,7 @@ class setup : private pupnp::content_directory::item_source
 public:
   setup(
           class platform::messageloop_ref &,
-          pupnp::content_directory &,
-          const class settings &);
+          pupnp::content_directory &);
 
   virtual ~setup();
 
@@ -47,7 +46,6 @@ private: // From content_directory::item_source
 private:
   class platform::messageloop_ref messageloop;
   class pupnp::content_directory &content_directory;
-  const class settings &settings;
   const std::string basedir;
 
   bool shutdown_pending;

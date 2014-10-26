@@ -719,7 +719,7 @@ std::string content_directory::parentpath(const std::string &dir)
     if (!dir.empty())
     {
         size_t lp = dir.length() - 1;
-        while ((lp >= 0) && (dir[lp] == '/'))
+        while ((lp != dir.npos) && (dir[lp] == '/'))
             lp--;
 
         if (lp != dir.npos)

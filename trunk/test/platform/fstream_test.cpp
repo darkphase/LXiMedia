@@ -48,7 +48,7 @@ static const struct fstream_test
     }
 } fstream_test;
 
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
 #include <unistd.h>
 
 static std::string filename()

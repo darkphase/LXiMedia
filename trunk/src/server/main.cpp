@@ -164,7 +164,7 @@ int main(int argc, const char *argv[])
     return 1;
 }
 
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
 #include <unistd.h>
 
 static std::string log_location(const std::string &location, int i)

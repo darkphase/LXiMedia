@@ -39,8 +39,6 @@ public:
 private:
     resource_file(const unsigned char *data, size_t size, const std::string &suffix);
 
-    const unsigned char * const data;
-    const size_t size;
     const std::string filename;
 };
 

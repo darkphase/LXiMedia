@@ -245,7 +245,7 @@ std::vector<pupnp::content_directory::item> files::list_recommended_items(
     std::set<std::string> directories;
     for (auto &i : watched_items)
     {
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
         if (starts_with(i.first, "file://"))
         {
             std::string path = from_percent(i.first.substr(7));

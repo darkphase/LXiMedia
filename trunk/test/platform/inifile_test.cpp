@@ -47,7 +47,7 @@ static const struct inifile_test
     }
 } inifile_test;
 
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
 #include <unistd.h>
 
 static std::string filename()

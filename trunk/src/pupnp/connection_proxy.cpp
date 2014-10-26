@@ -66,7 +66,6 @@ private:
 
 private:
     const std::unique_ptr<std::istream> input;
-    int32_t connection_id;
 
     std::unique_ptr<std::thread> consume_thread;
     std::mutex mutex;
@@ -82,13 +81,15 @@ private:
 };
 
 connection_proxy::connection_proxy()
-    : streambuf(new class streambuf(*this)),
+    : std::istream(new class streambuf(*this)),
+      streambuf(static_cast<class streambuf *>(std::istream::rdbuf())),
       source(nullptr)
 {
 }
 
 connection_proxy::connection_proxy(std::unique_ptr<std::istream> &&input)
-    : streambuf(new class streambuf(*this)),
+    : std::istream(new class streambuf(*this)),
+      streambuf(static_cast<class streambuf *>(std::istream::rdbuf())),
       source(new class source(std::move(input)))
 {
     source->attach(*streambuf);
@@ -102,6 +103,8 @@ connection_proxy::~connection_proxy()
         source->detach(*streambuf);
         source = nullptr;
     }
+
+    std::istream::rdbuf(nullptr);
 }
 
 bool connection_proxy::attach(connection_proxy &parent)
@@ -130,7 +133,6 @@ void connection_proxy::subscribe_detach(platform::messageloop_ref &messageloop_r
 
 connection_proxy::source::source(std::unique_ptr<std::istream> &&input)
     : input(std::move(input)),
-      connection_id(0),
       stream_end(false),
       buffer_offset(0),
       buffer_used(0)

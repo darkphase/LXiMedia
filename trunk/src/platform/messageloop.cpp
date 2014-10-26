@@ -196,7 +196,6 @@ void messageloop::abort()
 {
     // Can't lock from a signal
 
-    this->exitcode = exitcode;
     stopped = true;
     message_added.notify_one();
 }
@@ -308,7 +307,7 @@ void timer::stop()
 
 static std::map<platform::messageloop *, void(platform::messageloop::*)()> abort_handlers;
 
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
 #include <iostream>
 #include <signal.h>
 

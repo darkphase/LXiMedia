@@ -55,17 +55,18 @@ playlist_stream::playlist_stream(
         class instance &instance,
         const std::string &transcode,
         const std::string &mux)
-    : messageloop(messageloop),
+    : std::istream(new class streambuf(*this)),
+      streambuf(static_cast<class streambuf *>(std::istream::rdbuf())),
+      messageloop(messageloop),
       instance(instance),
       transcode(transcode),
-      mux(mux),
-      streambuf(new class streambuf(*this))
+      mux(mux)
 {
-    std::istream::rdbuf(streambuf.get());
 }
 
 playlist_stream::~playlist_stream()
 {
+    std::istream::rdbuf(nullptr);
 }
 
 void playlist_stream::add(const std::string &mrl)
@@ -76,7 +77,7 @@ void playlist_stream::add(const std::string &mrl)
 
 playlist_stream::streambuf::streambuf(class playlist_stream &parent)
     : parent(parent),
-      input(open_next())
+      input(nullptr)
 {
     buffer.resize(buffer_size);
 }
@@ -105,7 +106,7 @@ int playlist_stream::streambuf::underflow()
 
     for (;;)
     {
-        while (!*input)
+        while (!input || !*input)
         {
             input = nullptr;
             input = open_next();

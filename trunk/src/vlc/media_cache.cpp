@@ -43,7 +43,7 @@ media_cache::media_cache(class platform::messageloop_ref &messageloop)
 {
 }
 
-media_cache::~media_cache() noexcept
+media_cache::~media_cache()
 {
     abort();
 
@@ -197,7 +197,7 @@ const struct media_cache::parsed_data & media_cache::read_parsed_data(class medi
 
     std::unique_ptr<parsed_data> parsed(new parsed_data());
 
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
     if (starts_with(mrl, "file://"))
         parsed->uuid = uuid_from_file(from_percent(mrl.substr(7)));
 #elif defined(WIN32)

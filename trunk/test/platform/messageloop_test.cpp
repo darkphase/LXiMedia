@@ -56,7 +56,7 @@ static const struct messageloop_test
     {
 #if defined(__unix__)
         static const int granularity = 8;
-#elif defined(WIN32)
+#elif defined(WIN32) || defined(__APPLE__)
         static const int granularity = 32;
 #endif
 
