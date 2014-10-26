@@ -47,7 +47,8 @@ std::string clean_path(const std::string &path)
 
 } // End of namespace
 
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
+#include <cstdlib>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
@@ -81,6 +82,12 @@ static const std::unordered_set<std::string> & hidden_dirs()
         hidden_dirs.insert("/tmp"   );
         hidden_dirs.insert("/usr"   );
         hidden_dirs.insert("/var"   );
+#if defined(__APPLE__)
+        hidden_dirs.insert("/Applications"   );
+        hidden_dirs.insert("/Library"   );
+        hidden_dirs.insert("/Network"   );
+        hidden_dirs.insert("/System"   );
+#endif
     });
 
     return hidden_dirs;
@@ -200,7 +207,11 @@ std::string file_date(const std::string &path)
     if (::stat(path.c_str(), &stat) == 0)
     {
         struct tm tm;
+#if defined(__APPLE__)
+        if (localtime_r(&(stat.st_mtimespec.tv_sec), &tm))
+#else
         if (localtime_r(&(stat.st_mtim.tv_sec), &tm))
+#endif
         {
             char buffer[64];
             if (strftime(buffer, sizeof(buffer), "%F %H:%M", &tm) > 0)

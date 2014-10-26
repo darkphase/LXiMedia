@@ -93,8 +93,7 @@ bool server::initialize()
 
             setup.reset(new class setup(
                             messageloop,
-                            content_directory,
-                            settings));
+                            content_directory));
         }
         else
         {

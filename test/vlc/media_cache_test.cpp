@@ -56,8 +56,8 @@ static const struct media_cache_test
                 break;
 
             case media_cache::track_type::video:
-                test_assert(std::abs(track.video.width - 768) < 16);
-                test_assert(std::abs(track.video.height - 576) < 16);
+                test_assert(std::abs(int(track.video.width) - 768) < 16);
+                test_assert(std::abs(int(track.video.height) - 576) < 16);
                 break;
             }
         }
@@ -96,8 +96,8 @@ static const struct media_cache_test
                 break;
 
             case media_cache::track_type::video:
-                test_assert(std::abs(track.video.width - 768) < 16);
-                test_assert(std::abs(track.video.height - 576) < 16);
+                test_assert(std::abs(int(track.video.width) - 768) < 16);
+                test_assert(std::abs(int(track.video.height) - 576) < 16);
                 break;
             }
         }
@@ -109,7 +109,7 @@ static const struct media_cache_test
 
 } // End of namespace
 
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
 #include <unistd.h>
 
 static std::string filename(const char *file)

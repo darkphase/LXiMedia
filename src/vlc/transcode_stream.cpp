@@ -112,7 +112,8 @@ private:
 };
 
 transcode_stream::transcode_stream(class platform::messageloop_ref &messageloop, class instance &instance)
-    : messageloop(messageloop),
+    : std::istream(nullptr),
+      messageloop(messageloop),
       instance(instance),
       streambuf(nullptr)
 {
@@ -227,7 +228,7 @@ transcode_stream::streambuf::streambuf(
 
         consume_thread.reset(new std::thread(std::bind(&transcode_stream::streambuf::consume, this)));
 
-        std::clog << '[' << ((void *)this) << "] " << sout << std::endl;
+        std::clog << '[' << ((void *)this) << "] " << sout.str() << std::endl;
     }
 }
 
@@ -495,7 +496,7 @@ void transcode_stream::streambuf::callback(const libvlc_event_t *e, void *opaque
 
 } // End of namespace
 
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
 #include <unistd.h>
 
 static void pipe_create(int(& filedes)[2])

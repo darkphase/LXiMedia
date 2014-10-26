@@ -48,7 +48,7 @@ bool uuid::is_null() const
 
 }
 
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
 #include <uuid/uuid.h>
 
 namespace platform {

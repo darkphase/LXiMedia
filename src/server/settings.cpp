@@ -568,6 +568,52 @@ static std::string default_upnp_devicename()
     return default_devicename;
 }
 
+#elif defined(__APPLE__)
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#include <CoreFoundation/CoreFoundation.h>
+#include <ApplicationServices/ApplicationServices.h>
+
+static std::string get_user_dir(OSType type)
+{
+    FSRef ref;
+    OSErr err = FSFindFolder(kUserDomain, type, false, &ref);
+    if (!err)
+    {
+        std::string result;
+        result.resize(2048);
+        if (FSRefMakePath(&ref, reinterpret_cast<UInt8 *>(&result[0]), result.size()) == noErr)
+        {
+            result.resize(strnlen(result.data(), result.size()));
+            return result;
+        }
+    }
+
+    return std::string();
+}
+
+static struct user_dirs user_dirs()
+{
+    struct user_dirs user_dirs;
+    user_dirs.download  = get_user_dir(kDownloadsFolderType);
+    user_dirs.music     = get_user_dir(kMusicDocumentsFolderType);
+    user_dirs.pictures  = get_user_dir(kPictureDocumentsFolderType);
+    user_dirs.videos    = get_user_dir(kMovieDocumentsFolderType);
+
+    return user_dirs;
+}
+
+#include <cstring>
+static std::string default_upnp_devicename()
+{
+    std::string default_devicename = "LXiMediaServer";
+
+    char hostname[256] = { 0 };
+    if (gethostname(hostname, sizeof(hostname) - 1) == 0)
+        default_devicename = std::string(hostname) + " : " + default_devicename;
+
+    return default_devicename;
+}
+
 #elif defined(WIN32)
 #include <cstdlib>
 #include <direct.h>

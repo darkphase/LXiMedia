@@ -2,12 +2,15 @@ project(lximedia)
 cmake_minimum_required(VERSION 2.8)
 file(STRINGS "VERSION" VERSION)
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -static -D_FILE_OFFSET_BITS=64 -DWIN32")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -static -D_FILE_OFFSET_BITS=64 -DWIN32 -DUNICODE")
-else()
+if(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -D_FILE_OFFSET_BITS=64")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -D_FILE_OFFSET_BITS=64")
+elseif(${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_FILE_OFFSET_BITS=64")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_FILE_OFFSET_BITS=64")
+elseif(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -static -D_FILE_OFFSET_BITS=64 -DWIN32")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -static -D_FILE_OFFSET_BITS=64 -DWIN32 -DUNICODE")
 endif()
 
 #######################################
@@ -23,6 +26,17 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
     add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/libvlc.dll COMMAND cp ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/*.dll ${CMAKE_BINARY_DIR})
     add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/plugins COMMAND cp -R ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/plugins ${CMAKE_BINARY_DIR} VERBATIM)
     add_custom_target(vlc ALL DEPENDS ${CMAKE_BINARY_DIR}/libvlc.dll ${CMAKE_BINARY_DIR}/plugins VERBATIM)
+elseif(${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
+    set(VLC_VERSION "2.1.5-macx")
+    execute_process(COMMAND sh ${CMAKE_SOURCE_DIR}/ext/vlc/vlc.sh ${CMAKE_SOURCE_DIR}/ext/vlc/ ./ext/vlc/ ${VLC_VERSION})
+
+    include_directories(
+        SYSTEM
+        ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/include)
+
+    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/lib COMMAND cp -R ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/lib ${CMAKE_BINARY_DIR} VERBATIM)
+    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/plugins COMMAND cp -R ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/plugins ${CMAKE_BINARY_DIR} VERBATIM)
+    add_custom_target(vlc ALL DEPENDS ${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/plugins VERBATIM)
 endif()
 
 #######################################
@@ -88,12 +102,14 @@ target_include_directories(
     ${CMAKE_SOURCE_DIR}/src)
 
 target_link_libraries(lximediaserver pupnp)
-if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+if(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
+    target_link_libraries(lximediaserver uuid vlc pthread)
+elseif(${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
+    set_target_properties(lximediaserver PROPERTIES LINK_FLAGS "-framework Carbon ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/lib/libvlc.dylib")
+elseif(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
     target_link_libraries(lximediaserver ws2_32 iphlpapi rpcrt4 shell32)
     set_target_properties(lximediaserver PROPERTIES COMPILE_FLAGS "-mwindows")
     set_target_properties(lximediaserver PROPERTIES LINK_FLAGS "-mwindows ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlc.dll")
-else()
-    target_link_libraries(lximediaserver uuid vlc pthread)
 endif()
 
 #######################################
@@ -115,12 +131,16 @@ if(${CMAKE_BUILD_TYPE} STREQUAL Debug)
         ${CMAKE_SOURCE_DIR}/test)
 
     target_link_libraries(lximediaserver_test pupnp)
-    if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
-        target_link_libraries(lximediaserver_test ws2_32 iphlpapi rpcrt4)
-        set_target_properties(lximediaserver PROPERTIES COMPILE_FLAGS "-mconsole")
-        set_target_properties(lximediaserver_test PROPERTIES LINK_FLAGS "-mconsole ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlc.dll")
-    else()
+    if(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
         target_link_libraries(lximediaserver_test uuid vlc pthread)
+    elseif(${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
+        set_target_properties(lximediaserver_test PROPERTIES LINK_FLAGS "${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/lib/libvlc.dylib")
+        add_dependencies(lximediaserver_test vlc)
+    elseif(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+        target_link_libraries(lximediaserver_test ws2_32 iphlpapi rpcrt4)
+        set_target_properties(lximediaserver_test PROPERTIES COMPILE_FLAGS "-mconsole")
+        set_target_properties(lximediaserver_test PROPERTIES LINK_FLAGS "-mconsole ${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/libvlc.dll")
+        add_dependencies(lximediaserver_test vlc)
     endif()
 
     if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)

@@ -26,9 +26,7 @@ static void remove_file(const std::string &);
 namespace resources {
 
 resource_file::resource_file(const unsigned char *data, size_t size, const std::string &suffix)
-    : data(data),
-      size(size),
-      filename(get_temp_file(suffix))
+    : filename(get_temp_file(suffix))
 {
     platform::ofstream str(filename, std::ios::binary);
     if (str.is_open())
@@ -44,7 +42,7 @@ resource_file::~resource_file()
 
 static std::atomic<int> file_id(100);
 
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
 #include <unistd.h>
 
 static std::string get_temp_file(const std::string &suffix)

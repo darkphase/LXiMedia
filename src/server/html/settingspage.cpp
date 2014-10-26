@@ -230,7 +230,7 @@ static void save_dlna_settings(class settings &settings, const std::map<std::str
 
 static std::string format_path(const std::string &src)
 {
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
     return src;
 #elif defined(WIN32)
     std::string dst = src;
@@ -315,7 +315,7 @@ static void render_path_settings(const std::map<std::string, std::string> &query
             break;
     }
 
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
     std::string full_path = "/";
 #elif defined(WIN32)
     std::string full_path;
@@ -369,7 +369,7 @@ static void save_path_settings(class settings &settings, const std::map<std::str
     auto append = query.find("append");
     if (append != query.end())
     {
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
         std::string full_path = "/";
 #elif defined(WIN32)
         std::string full_path;

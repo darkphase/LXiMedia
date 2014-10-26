@@ -24,11 +24,9 @@ static bool shutdown();
 
 setup::setup(
         class platform::messageloop_ref &messageloop,
-        pupnp::content_directory &content_directory,
-        const class settings &settings)
+        pupnp::content_directory &content_directory)
     : messageloop(messageloop),
       content_directory(content_directory),
-      settings(settings),
       basedir('/' + tr("Setup") + '/'),
       shutdown_pending(false)
 {
@@ -116,6 +114,18 @@ static bool shutdown()
         return true;
 
     std::clog << "\"/usr/bin/dbus-send\" failed with exit code " << exitcode << '.' << std::endl;
+    return false;
+}
+#elif defined(__APPLE__)
+#include <cstdlib>
+
+static bool shutdown()
+{
+    const int exitcode = system("/sbin/shutdown now");
+    if (exitcode == 0)
+        return true;
+
+    std::clog << "\"/sbin/shutdown\" failed with exit code " << exitcode << '.' << std::endl;
     return false;
 }
 #elif defined(WIN32)

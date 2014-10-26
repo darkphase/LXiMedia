@@ -18,6 +18,7 @@
 #ifndef VLC_MEDIA_CACHE_H
 #define VLC_MEDIA_CACHE_H
 
+#include "media.h"
 #include "platform/messageloop.h"
 #include "platform/uuid.h"
 #include <chrono>
@@ -35,7 +36,6 @@ struct libvlc_media_t;
 namespace vlc {
 
 class instance;
-class media;
 
 class media_cache
 {
