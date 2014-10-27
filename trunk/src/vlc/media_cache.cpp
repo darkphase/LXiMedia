@@ -37,8 +37,11 @@ struct media_cache::parsed_data
     int chapter_count;
 };
 
-media_cache::media_cache(class platform::messageloop_ref &messageloop)
+media_cache::media_cache(
+        class platform::messageloop_ref &messageloop,
+        class instance &instance)
   : messageloop(messageloop),
+    instance(instance),
     pending_items(0)
 {
 }
@@ -56,15 +59,15 @@ media_cache::~media_cache()
     thread_dump.clear();
 }
 
-void media_cache::async_parse_items(const std::vector<class media> &items)
+void media_cache::async_parse_items(const std::vector<std::string> &mrls)
 {
     std::lock_guard<std::mutex> _(mutex);
 
     while (!work_list.empty())
         work_list.pop();
 
-    for (auto &i : items)
-        if (cache.find(i.mrl()) == cache.end())
+    for (auto &i : mrls)
+        if (cache.find(i) == cache.end())
             work_list.push(i);
 
     if (!work_list.empty())
@@ -98,9 +101,8 @@ void media_cache::abort()
         work_list.pop();
 }
 
-bool media_cache::has_data(const class media &media)
+bool media_cache::has_data(const std::string &mrl)
 {
-    const std::string mrl = media.mrl();
     {
         std::lock_guard<std::mutex> _(mutex);
 
@@ -112,24 +114,24 @@ bool media_cache::has_data(const class media &media)
     return false;
 }
 
-platform::uuid media_cache::uuid(class media &media)
+platform::uuid media_cache::uuid(const std::string &mrl)
 {
-    return read_parsed_data(media).uuid;
+    return read_parsed_data(instance, mrl).uuid;
 }
 
-const std::vector<media_cache::track> & media_cache::tracks(class media &media)
+const std::vector<media_cache::track> & media_cache::tracks(const std::string &mrl)
 {
-    return read_parsed_data(media).tracks;
+    return read_parsed_data(instance, mrl).tracks;
 }
 
-std::chrono::milliseconds media_cache::duration(class media &media)
+std::chrono::milliseconds media_cache::duration(const std::string &mrl)
 {
-    return read_parsed_data(media).duration;
+    return read_parsed_data(instance, mrl).duration;
 }
 
-int media_cache::chapter_count(class media &media)
+int media_cache::chapter_count(const std::string &mrl)
 {
-    return read_parsed_data(media).chapter_count;
+    return read_parsed_data(instance, mrl).chapter_count;
 }
 
 static platform::uuid uuid_from_file(const std::string &path)
@@ -172,9 +174,10 @@ static platform::uuid uuid_from_file(const std::string &path)
     return platform::uuid();
 }
 
-const struct media_cache::parsed_data & media_cache::read_parsed_data(class media &media)
+const struct media_cache::parsed_data & media_cache::read_parsed_data(
+        class instance &instance,
+        const std::string &mrl)
 {
-    const std::string mrl = media.mrl();
     {
         std::unique_lock<std::mutex> l(mutex);
 
@@ -204,6 +207,8 @@ const struct media_cache::parsed_data & media_cache::read_parsed_data(class medi
     if (starts_with(mrl, "file:"))
         parsed->uuid = uuid_from_file(from_percent(mrl.substr(5)));
 #endif
+
+    auto media = media::from_mrl(instance, mrl);
 
     //libvlc_media_parse(media);
 
@@ -361,22 +366,24 @@ const struct media_cache::parsed_data & media_cache::read_parsed_data(class medi
 
 void media_cache::worker_thread()
 {
+    class instance instance;
+
     for (;;)
     {
-        class media item;
+        std::string mrl;
         {
             std::lock_guard<std::mutex> _(mutex);
 
             if (!work_list.empty())
             {
-                item = work_list.front();
+                mrl = std::move(work_list.front());
                 work_list.pop();
             }
             else
                 break;
         }
 
-        read_parsed_data(item);
+        read_parsed_data(instance, mrl);
     }
 
     {

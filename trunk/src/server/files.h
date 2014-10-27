@@ -81,6 +81,7 @@ private:
     class watchlist &watchlist;
     const std::string basedir;
     const std::chrono::milliseconds max_parse_time;
+    const std::chrono::milliseconds item_parse_time;
 
     std::map<std::string, std::vector<std::string>> files_cache;
 };

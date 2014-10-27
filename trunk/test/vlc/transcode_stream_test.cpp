@@ -39,14 +39,14 @@ static const struct transcode_stream_test
         class platform::messageloop messageloop;
         class platform::messageloop_ref messageloop_ref(messageloop);
         class instance instance;
-        class media_cache media_cache(messageloop_ref);
+        class media_cache media_cache(messageloop_ref, instance);
 
         // Transcode file.
         const std::string outfile = filename("output.ts");
         {
             struct transcode_stream::track_ids track_ids;
             class media media = media::from_file(instance, infile);
-            for (auto &track : media_cache.tracks(media))
+            for (auto &track : media_cache.tracks(media.mrl()))
                 switch (track.type)
                 {
                 case media_cache::track_type::unknown: break;
@@ -89,7 +89,7 @@ static const struct transcode_stream_test
         {
             auto media = media::from_file(instance, outfile);
 
-            const auto tracks = media_cache.tracks(media);
+            const auto tracks = media_cache.tracks(media.mrl());
             test_assert(tracks.size() == 2);
             for (const auto &track : tracks)
             {
