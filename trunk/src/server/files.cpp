@@ -28,6 +28,8 @@
 #include <iostream>
 #include <map>
 #include <sstream>
+#include <unordered_map>
+#include <unordered_set>
 
 using std::chrono::duration_cast;
 
@@ -240,24 +242,30 @@ std::vector<pupnp::content_directory::item> files::list_recommended_items(
 {
     const bool return_all = count == 0;
 
-    const auto now = std::chrono::system_clock::now();
-    const auto two_weeks_ago = now - std::chrono::hours(336);
-    std::map<std::string, watchlist::entry> watched_items;
-    for (auto &i : watchlist.watched_items())
-        if (i.last_seen > two_weeks_ago)
-            watched_items.emplace(i.mrl, i);
-
-    std::set<std::string> directories;
+    const auto watched_items = watchlist.watched_items();
+    std::unordered_map<std::string, const watchlist::entry &> watched_by_mrl;
+    std::map<std::chrono::system_clock::time_point, const watchlist::entry &> watched_by_last_seen;
     for (auto &i : watched_items)
     {
+        watched_by_mrl.emplace(i.mrl, i);
+        watched_by_last_seen.emplace(i.last_seen, i);
+    }
+
+    std::unordered_set<std::string> directories;
+    for (auto i = watched_by_last_seen.rbegin();
+         (i != watched_by_last_seen.rend()) && (directories.size() < 8);
+         i++)
+    {
+        const std::string &mrl = i->second.mrl;
+
 #if defined(__unix__) || defined(__APPLE__)
-        if (starts_with(i.first, "file://"))
+        if (starts_with(mrl, "file://"))
         {
-            std::string path = from_percent(i.first.substr(7));
+            std::string path = from_percent(mrl.substr(7));
 #elif defined(WIN32)
-        if (starts_with(i.first, "file:"))
+        if (starts_with(mrl, "file:"))
         {
-            std::string path = from_percent(i.first.substr(5));
+            std::string path = from_percent(mrl.substr(5));
             std::replace(path.begin(), path.end(), '\\', '/');
 #endif
 
@@ -278,6 +286,7 @@ std::vector<pupnp::content_directory::item> files::list_recommended_items(
         }
     }
 
+    const auto now = std::chrono::system_clock::now();
     std::vector<std::string> recommended_items;
     std::multimap<double, std::string> recommended_paths;
     for (auto &i : directories)
@@ -294,8 +303,8 @@ std::vector<pupnp::content_directory::item> files::list_recommended_items(
             if (!ends_with(file_path, "/"))
             {
                 auto media = vlc::media::from_file(vlc_instance, to_system_path(file_path).path);
-                auto watched = watched_items.find(media.mrl());
-                if ((watched != watched_items.end()) && watchlist.watched_till_end(watched->second))
+                auto watched = watched_by_mrl.find(media.mrl());
+                if ((watched != watched_by_mrl.end()) && watchlist.watched_till_end(watched->second))
                 {
                     last_media = vlc::media();
                     last_path.clear();
