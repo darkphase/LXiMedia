@@ -57,32 +57,36 @@ public:
     };
 
 public:
-    explicit media_cache(class platform::messageloop_ref &);
+    media_cache(
+            class platform::messageloop_ref &,
+            class instance &);
+
     ~media_cache();
 
-    void async_parse_items(const std::vector<class media> &items);
+    void async_parse_items(const std::vector<std::string> &mrls);
     void wait();
     template< class Rep, class Period >
     std::cv_status wait_for(const std::chrono::duration<Rep, Period>& rel_time);
     void abort();
 
-    bool has_data(const class media &);
+    bool has_data(const std::string &);
 
-    platform::uuid uuid(class media &);
-    const std::vector<track> & tracks(class media &);
-    std::chrono::milliseconds duration(class media &);
-    int chapter_count(class media &);
+    platform::uuid uuid(const std::string &);
+    const std::vector<track> & tracks(const std::string &);
+    std::chrono::milliseconds duration(const std::string &);
+    int chapter_count(const std::string &);
 
     std::function<void()> on_finished;
 
 private:
     struct parsed_data;
-    const struct parsed_data &read_parsed_data(class media &media);
+    const struct parsed_data &read_parsed_data(class instance &, const std::string &mrl);
     void worker_thread();
     void finish();
 
 private:
     class platform::messageloop_ref messageloop;
+    class instance &instance;
 
     std::mutex mutex;
     std::condition_variable condition;
@@ -91,7 +95,7 @@ private:
 
     std::map<std::thread::id, std::unique_ptr<std::thread>> thread_pool;
     std::vector<std::unique_ptr<std::thread>> thread_dump;
-    std::queue<class media> work_list;
+    std::queue<std::string> work_list;
 };
 
 template< class Rep, class Period >

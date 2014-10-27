@@ -21,8 +21,7 @@
 
 namespace vlc {
 
-static const int argc_verbose = 1;
-static const char * const argv_verbose[argc_verbose] = { "-vvv" };
+static const char * const argv[] = { "--avcodec-hw", "disable", "-vvv" };
 
 int instance::compare_version(int major, int minor, int patch)
 {
@@ -59,19 +58,34 @@ int instance::compare_version(int major, int minor, int patch)
     return -1;
 }
 
-instance::instance(bool verbose_logging) noexcept
-    : libvlc_instance(libvlc_new(verbose_logging ? argc_verbose : 0, argv_verbose))
+static libvlc_instance_t * create_instance(bool verbose_logging) noexcept
 {
+    static const char * const default_argv[] = { "--avcodec-hw", "disable", "-vvv" };
+
+    const bool version_2_2 = instance::compare_version(2, 2) >= 0;
+    const char * const * const argv = version_2_2 ? default_argv : (default_argv + 2);
+    const size_t argc =
+            (sizeof(default_argv) / sizeof(*default_argv)) -
+            (version_2_2 ? 0 : 2) -
+            (verbose_logging ? 0 : 1);
+
 #if !defined(TEST_H)
-    std::clog << "[" << libvlc_instance << "] created new libvlc instance (" << libvlc_get_version() << ")";
+    std::clog << "Creating new libvlc instance (" << libvlc_get_version() << ")";
     if (verbose_logging)
     {
         std::clog << " with arguments:";
-        for (int i = 0; i < argc_verbose; i++)
-            std::clog << ' ' << argv_verbose[i];
+        for (size_t i = 0; i < argc; i++)
+            std::clog << ' ' << argv[i];
     }
     std::clog << std::endl;
 #endif
+
+    return libvlc_new(argc, argv);
+}
+
+instance::instance(bool verbose_logging) noexcept
+    : libvlc_instance(create_instance(verbose_logging))
+{
 }
 
 instance::~instance() noexcept

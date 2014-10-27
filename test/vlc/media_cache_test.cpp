@@ -42,8 +42,8 @@ static const struct media_cache_test
 
         class platform::messageloop messageloop;
         class platform::messageloop_ref messageloop_ref(messageloop);
-        class media_cache media_cache(messageloop_ref);
-        const auto tracks = media_cache.tracks(media);
+        class media_cache media_cache(messageloop_ref, instance);
+        const auto tracks = media_cache.tracks(media.mrl());
         test_assert(tracks.size() == 1);
         for (const auto &track : tracks)
         {
@@ -76,8 +76,8 @@ static const struct media_cache_test
 
         class platform::messageloop messageloop;
         class platform::messageloop_ref messageloop_ref(messageloop);
-        class media_cache media_cache(messageloop_ref);
-        const auto tracks = media_cache.tracks(media);
+        class media_cache media_cache(messageloop_ref, instance);
+        const auto tracks = media_cache.tracks(media.mrl());
         test_assert(tracks.size() == 3);
         for (const auto &track : tracks)
         {
@@ -102,8 +102,8 @@ static const struct media_cache_test
             }
         }
 
-        test_assert(std::abs(media_cache.duration(media).count() - 10000) < 100);
-        test_assert(media_cache.chapter_count(media) == 0);
+        test_assert(std::abs(media_cache.duration(media.mrl()).count() - 10000) < 100);
+        test_assert(media_cache.chapter_count(media.mrl()) == 0);
     }
 } media_cache_test;
 
