@@ -206,7 +206,7 @@ private:
     static std::string parentpath(const std::string &);
     std::string to_objectid(const std::string &path, bool create = true);
     std::string from_objectid(const std::string &id);
-    std::string to_objectpath(const std::string &path, const std::string &profile, const std::string &suffix);
+    std::string to_objectpath(const std::string &path, const platform::uuid &, const std::string &profile, const std::string &suffix);
     std::string from_objectpath(const std::string &path, std::string &profile);
 
     void num_connections_changed(int num_connections);
