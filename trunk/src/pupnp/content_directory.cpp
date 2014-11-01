@@ -697,7 +697,7 @@ void content_directory::add_file(action_browse &action, const std::string &host,
             {
                 upnp::url url;
                 url.host = host;
-                url.path = to_objectpath(path, protocol.profile, protocol.suffix);
+                url.path = to_objectpath(path, item.uuid, protocol.profile, protocol.suffix);
                 browse_item.files.push_back(std::make_pair(url, protocol));
             }
     }
@@ -792,7 +792,7 @@ std::string content_directory::from_objectid(const std::string &id_str)
     }
 }
 
-std::string content_directory::to_objectpath(const std::string &path, const std::string &profile, const std::string &suffix)
+std::string content_directory::to_objectpath(const std::string &path, const platform::uuid &uuid, const std::string &profile, const std::string &suffix)
 {
     size_t profile_id = 0;
     {
@@ -821,7 +821,8 @@ std::string content_directory::to_objectpath(const std::string &path, const std:
     }
 
     std::ostringstream str;
-    str << basedir << std::hex << std::setfill('0')
+    str << basedir << std::string(uuid) << '/'
+        << std::hex << std::setfill('0')
         << std::setw(5) << path_id << '-'
         << std::setw(2) << profile_id << '.' << suffix;
     return str.str();
