@@ -66,7 +66,6 @@ private:
     class platform::messageloop_ref messageloop;
     class instance &instance;
     std::vector<std::string> options;
-    std::unique_ptr<class streambuf> streambuf;
 };
 
 } // End of namespace

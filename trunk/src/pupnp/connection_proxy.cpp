@@ -15,7 +15,7 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#include "pupnp/connection_proxy.h"
+#include "connection_proxy.h"
 #include <cassert>
 #include <condition_variable>
 #include <cstring>
@@ -82,38 +82,33 @@ private:
 
 connection_proxy::connection_proxy()
     : std::istream(new class streambuf(*this)),
-      streambuf(static_cast<class streambuf *>(std::istream::rdbuf())),
       source(nullptr)
 {
 }
 
 connection_proxy::connection_proxy(std::unique_ptr<std::istream> &&input)
     : std::istream(new class streambuf(*this)),
-      streambuf(static_cast<class streambuf *>(std::istream::rdbuf())),
       source(new class source(std::move(input)))
 {
-    source->attach(*streambuf);
-    std::istream::rdbuf(streambuf.get());
+    source->attach(static_cast<class streambuf &>(*std::istream::rdbuf()));
 }
 
 connection_proxy::~connection_proxy()
 {
     if (source)
     {
-        source->detach(*streambuf);
+        source->detach(static_cast<class streambuf &>(*std::istream::rdbuf()));
         source = nullptr;
     }
 
-    std::istream::rdbuf(nullptr);
+    delete std::istream::rdbuf();
 }
 
 bool connection_proxy::attach(connection_proxy &parent)
 {
-    if (parent.source->attach(*streambuf))
+    if (parent.source->attach(static_cast<class streambuf &>(*std::istream::rdbuf())))
     {
         source = parent.source;
-        std::istream::rdbuf(streambuf.get());
-
         return true;
     }
 

@@ -114,14 +114,13 @@ private:
 transcode_stream::transcode_stream(class platform::messageloop_ref &messageloop, class instance &instance)
     : std::istream(nullptr),
       messageloop(messageloop),
-      instance(instance),
-      streambuf(nullptr)
+      instance(instance)
 {
 }
 
 transcode_stream::~transcode_stream()
 {
-    close();
+    delete std::istream::rdbuf();
 }
 
 void transcode_stream::add_option(const std::string &option)
@@ -136,15 +135,16 @@ bool transcode_stream::open(const std::string &mrl,
         const std::string &mux,
         float rate)
 {
-    streambuf.reset(new class streambuf(*this, mrl, chapter, track_ids, transcode, mux, rate));
+    close();
+
+    auto * const streambuf = new class streambuf(*this, mrl, chapter, track_ids, transcode, mux, rate);
     if (streambuf->is_open())
     {
-        std::istream::rdbuf(streambuf.get());
-
+        std::istream::rdbuf(streambuf);
         return true;
     }
 
-    streambuf = nullptr;
+    delete streambuf;
     return false;
 }
 
@@ -156,22 +156,23 @@ bool transcode_stream::open(
         const std::string &mux,
         float rate)
 {
-    streambuf.reset(new class streambuf(*this, mrl, position, track_ids, transcode, mux, rate));
+    close();
+
+    auto * const streambuf = new class streambuf(*this, mrl, position, track_ids, transcode, mux, rate);
     if (streambuf->is_open())
     {
-        std::istream::rdbuf(streambuf.get());
-
+        std::istream::rdbuf(streambuf);
         return true;
     }
 
-    streambuf = nullptr;
+    delete streambuf;
     return false;
 }
 
 void transcode_stream::close()
 {
+    delete std::istream::rdbuf();
     std::istream::rdbuf(nullptr);
-    streambuf = nullptr;
 }
 
 
