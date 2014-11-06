@@ -42,7 +42,6 @@ public:
 private:
     class streambuf;
 
-    const std::unique_ptr<class streambuf> streambuf;
     class platform::messageloop_ref messageloop;
     class instance &instance;
     const std::string transcode;

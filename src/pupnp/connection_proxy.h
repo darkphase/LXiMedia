@@ -42,7 +42,6 @@ private:
     class streambuf;
     class source;
 
-    const std::unique_ptr<class streambuf> streambuf;
     std::shared_ptr<class source> source;
 };
 

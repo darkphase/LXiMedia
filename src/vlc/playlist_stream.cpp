@@ -56,7 +56,6 @@ playlist_stream::playlist_stream(
         const std::string &transcode,
         const std::string &mux)
     : std::istream(new class streambuf(*this)),
-      streambuf(static_cast<class streambuf *>(std::istream::rdbuf())),
       messageloop(messageloop),
       instance(instance),
       transcode(transcode),
@@ -66,7 +65,7 @@ playlist_stream::playlist_stream(
 
 playlist_stream::~playlist_stream()
 {
-    std::istream::rdbuf(nullptr);
+    delete std::istream::rdbuf();
 }
 
 void playlist_stream::add(const std::string &mrl)
