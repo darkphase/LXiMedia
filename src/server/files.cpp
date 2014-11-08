@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "files.h"
+#include "mpeg/ps_filter.h"
 #include "platform/path.h"
 #include "platform/string.h"
 #include "platform/translator.h"
@@ -560,7 +561,8 @@ int files::play_item(
                     ? stream->open(item.mrl, item.chapter, track_ids, transcode.str(), protocol.mux, rate)
                     : stream->open(item.mrl, item.position, track_ids, transcode.str(), protocol.mux, rate))
             {
-                auto proxy = std::make_shared<pupnp::connection_proxy>(std::move(stream));
+                std::unique_ptr<mpeg::ps_filter> filter(new mpeg::ps_filter(std::move(stream)));
+                auto proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter));
                 connection_manager.add_output_connection(proxy, protocol, item.mrl, source_address, opt.str());
                 response = proxy;
             }
