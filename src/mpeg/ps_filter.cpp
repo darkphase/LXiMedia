@@ -20,7 +20,6 @@
 #include "ps_filter.h"
 #include <cassert>
 #include <cstring>
-#include <thread>
 
 #ifdef DEBUG_OUTPUT
 # include <iostream>
@@ -51,7 +50,7 @@ ps_filter::ps_filter(std::unique_ptr<std::istream> &&input)
 
 ps_filter::~ps_filter()
 {
-    delete std::istream::rdbuf();
+    delete std::istream::rdbuf(nullptr);
 }
 
 static uint64_t get_timestamp(const class pes_packet &pes_packet)

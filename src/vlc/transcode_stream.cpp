@@ -105,7 +105,7 @@ transcode_stream::transcode_stream(class platform::messageloop_ref &messageloop,
 
 transcode_stream::~transcode_stream()
 {
-    delete std::istream::rdbuf();
+    delete std::istream::rdbuf(nullptr);
 }
 
 void transcode_stream::add_option(const std::string &option)
@@ -156,8 +156,7 @@ bool transcode_stream::open(
 
 void transcode_stream::close()
 {
-    delete std::istream::rdbuf();
-    std::istream::rdbuf(nullptr);
+    delete std::istream::rdbuf(nullptr);
 }
 
 
@@ -180,6 +179,7 @@ transcode_stream::streambuf::streambuf(
     std::lock_guard<std::mutex> _(mutex);
 
     pipe_create(pipe);
+    memset(buffer, 0, sizeof(buffer));
 
     std::ostringstream sout;
     sout

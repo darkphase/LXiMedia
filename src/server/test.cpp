@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "test.h"
+#include "mpeg/m2ts_filter.h"
 #include "mpeg/ps_filter.h"
 #include "platform/string.h"
 #include "platform/translator.h"
@@ -274,15 +275,22 @@ int test::play_item(
             std::unique_ptr<vlc::transcode_stream> stream(new vlc::transcode_stream(messageloop, vlc_instance));
             stream->add_option(":input-slave=" + a440hz_flac_media.mrl());
 
+            const std::string vlc_mux = (protocol.mux == "m2ts") ? "ts" : protocol.mux;
+
             struct vlc::transcode_stream::track_ids track_ids;
             if ((item.chapter > 0)
-                    ? stream->open(item.mrl, item.chapter, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate)
-                    : stream->open(item.mrl, item.position, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate))
+                    ? stream->open(item.mrl, item.chapter, track_ids, transcode_plugin + transcode.str(), vlc_mux, rate)
+                    : stream->open(item.mrl, item.position, track_ids, transcode_plugin + transcode.str(), vlc_mux, rate))
             {
                 std::shared_ptr<pupnp::connection_proxy> proxy;
                 if (protocol.mux == "ps")
                 {
                     std::unique_ptr<mpeg::ps_filter> filter(new mpeg::ps_filter(std::move(stream)));
+                    proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter));
+                }
+                else if (protocol.mux == "m2ts")
+                {
+                    std::unique_ptr<mpeg::m2ts_filter> filter(new mpeg::m2ts_filter(std::move(stream)));
                     proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter));
                 }
                 else
