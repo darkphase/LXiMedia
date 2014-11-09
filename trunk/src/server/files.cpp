@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "files.h"
+#include "mpeg/m2ts_filter.h"
 #include "mpeg/ps_filter.h"
 #include "platform/path.h"
 #include "platform/string.h"
@@ -557,14 +558,21 @@ int files::play_item(
             const auto started = std::chrono::system_clock::now();
             stream->on_playback_progress = std::bind(&files::playback_progress, this, item, started, _1);
 
+            const std::string vlc_mux = (protocol.mux == "m2ts") ? "ts" : protocol.mux;
+
             if ((item.chapter > 0)
-                    ? stream->open(item.mrl, item.chapter, track_ids, transcode.str(), protocol.mux, rate)
-                    : stream->open(item.mrl, item.position, track_ids, transcode.str(), protocol.mux, rate))
+                    ? stream->open(item.mrl, item.chapter, track_ids, transcode.str(), vlc_mux, rate)
+                    : stream->open(item.mrl, item.position, track_ids, transcode.str(), vlc_mux, rate))
             {
                 std::shared_ptr<pupnp::connection_proxy> proxy;
                 if (protocol.mux == "ps")
                 {
                     std::unique_ptr<mpeg::ps_filter> filter(new mpeg::ps_filter(std::move(stream)));
+                    proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter));
+                }
+                else if (protocol.mux == "m2ts")
+                {
+                    std::unique_ptr<mpeg::m2ts_filter> filter(new mpeg::m2ts_filter(std::move(stream)));
                     proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter));
                 }
                 else

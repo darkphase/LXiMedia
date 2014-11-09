@@ -65,7 +65,7 @@ playlist_stream::playlist_stream(
 
 playlist_stream::~playlist_stream()
 {
-    delete std::istream::rdbuf();
+    delete std::istream::rdbuf(nullptr);
 }
 
 void playlist_stream::add(const std::string &mrl)

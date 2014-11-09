@@ -101,7 +101,7 @@ connection_proxy::~connection_proxy()
         source = nullptr;
     }
 
-    delete std::istream::rdbuf();
+    delete std::istream::rdbuf(nullptr);
 }
 
 bool connection_proxy::attach(connection_proxy &parent)
