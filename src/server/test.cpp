@@ -279,8 +279,15 @@ int test::play_item(
                     ? stream->open(item.mrl, item.chapter, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate)
                     : stream->open(item.mrl, item.position, track_ids, transcode_plugin + transcode.str(), protocol.mux, rate))
             {
-                std::unique_ptr<mpeg::ps_filter> filter(new mpeg::ps_filter(std::move(stream)));
-                auto proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter));
+                std::shared_ptr<pupnp::connection_proxy> proxy;
+                if (protocol.mux == "ps")
+                {
+                    std::unique_ptr<mpeg::ps_filter> filter(new mpeg::ps_filter(std::move(stream)));
+                    proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter));
+                }
+                else
+                    proxy = std::make_shared<pupnp::connection_proxy>(std::move(stream));
+
                 connection_manager.add_output_connection(proxy, protocol, item.mrl, source_address, opt.str());
                 response = proxy;
             }
