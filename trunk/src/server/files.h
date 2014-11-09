@@ -80,6 +80,7 @@ private:
     const class settings &settings;
     class watchlist &watchlist;
     const std::string basedir;
+    const std::chrono::milliseconds min_parse_time;
     const std::chrono::milliseconds max_parse_time;
     const std::chrono::milliseconds item_parse_time;
 

@@ -52,6 +52,7 @@ files::files(
       settings(settings),
       watchlist(watchlist),
       basedir('/' + tr("Files") + '/'),
+      min_parse_time(3000),
       max_parse_time(30000),
       item_parse_time(500)
 {
@@ -212,9 +213,11 @@ std::vector<pupnp::content_directory::item> files::list_contentdir_items(
                 next_items.emplace_back(vlc::media::from_file(vlc_instance, to_system_path(file_path).path).mrl());
         }
 
-    const std::chrono::milliseconds parse_time = std::min(
-                std::chrono::milliseconds(item_parse_time * items.size()),
-                max_parse_time);
+    const std::chrono::milliseconds parse_time = std::max(
+                min_parse_time,
+                std::min(
+                    std::chrono::milliseconds(item_parse_time * items.size()),
+                    max_parse_time));
 
     media_cache.on_finished = nullptr;
     media_cache.async_parse_items(items);
