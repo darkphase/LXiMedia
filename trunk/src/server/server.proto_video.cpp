@@ -170,7 +170,7 @@ void server::add_video_protocols()
     const bool has_hdtv_1080        = (video_mode == ::video_mode::auto_) || (video_mode == ::video_mode::hdtv_1080 );
     const bool has_mpeg2 = settings.mpeg2_enabled();
     const bool has_mpeg4 = settings.mpeg4_enabled();
-    const bool has_format[] = { /*settings.video_mpegm2ts_enabled()*/false, /*settings.video_mpegts_enabled()*/false, settings.video_mpeg_enabled()};
+    const bool has_format[] = { /*settings.video_mpegm2ts_enabled()*/false, settings.video_mpegts_enabled(), settings.video_mpeg_enabled()};
 
     // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
 
