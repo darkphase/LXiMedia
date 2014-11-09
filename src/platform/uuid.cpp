@@ -16,8 +16,7 @@
  ******************************************************************************/
 
 #include "uuid.h"
-#include <iomanip>
-#include <sstream>
+#include <algorithm>
 #include <cstring>
 
 namespace platform {
@@ -74,6 +73,7 @@ uuid::operator std::string() const
     uuid_unparse(value, &result[0]);
     result.resize(strlen(&result[0]));
 
+    std::transform(result.begin(), result.end(), result.begin(), ::tolower);
     return result;
 }
 
@@ -173,6 +173,7 @@ uuid::operator std::string() const
     const std::string result = reinterpret_cast<const char *>(rpc_string);
     RpcStringFreeA(&rpc_string);
 
+    std::transform(result.begin(), result.end(), result.begin(), ::tolower);
     return result;
 }
 

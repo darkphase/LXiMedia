@@ -189,7 +189,11 @@ static bool is_root()
 
 static bool open_url(const std::string &location)
 {
+#if defined(__unix__)
     return system(("xdg-open " + location).c_str()) == 0;
+#elif defined(__APPLE__)
+    return system(("open " + location).c_str()) == 0;
+#endif
 }
 
 #elif defined(WIN32)
