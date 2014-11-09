@@ -170,7 +170,7 @@ uuid::operator std::string() const
     if (UuidToStringA(&uuid, &rpc_string) != RPC_S_OK)
         throw std::runtime_error("out of memory");
 
-    const std::string result = reinterpret_cast<const char *>(rpc_string);
+    std::string result = reinterpret_cast<const char *>(rpc_string);
     RpcStringFreeA(&rpc_string);
 
     std::transform(result.begin(), result.end(), result.begin(), ::tolower);
