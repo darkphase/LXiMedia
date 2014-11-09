@@ -53,7 +53,7 @@ bool m2ts_filter::read_ts_packet(char *dest)
 {
     do dest[0] = input->get(); while((dest[0] != ts_sync_byte) && *input);
 
-    return input->read(dest + 1, ts_packet_size - 1);
+    return bool(input->read(dest + 1, ts_packet_size - 1));
 }
 
 
