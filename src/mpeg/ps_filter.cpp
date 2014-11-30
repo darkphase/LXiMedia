@@ -63,6 +63,27 @@ static uint64_t get_timestamp(const class pes_packet &pes_packet)
     return uint64_t(-1);
 }
 
+static void finish_pack(std::list<ps_packet> &pack, uint64_t scr)
+{
+    class ps_pack_header ps_pack_header;
+    ps_pack_header.set_scr(scr);
+
+    size_t pack_size = 0;
+    for (const auto &i : pack)
+        pack_size += i.size();
+
+    ps_pack_header.set_muxrate(uint32_t(pack_size * 2 / 50));
+
+#ifdef DEBUG_OUTPUT
+    std::cout << std::hex << unsigned(ps_pack_header.stream_id()) << std::dec
+              << " scr: " << ps_pack_header.scr()
+              << " muxrate: " << ps_pack_header.muxrate()
+              << std::endl;
+#endif
+
+    pack.emplace_front(std::move(ps_pack_header));
+}
+
 std::list<ps_packet> ps_filter::read_pack()
 {
     static const size_t max_packet_queue_size = 64;
@@ -151,27 +172,10 @@ std::list<ps_packet> ps_filter::read_pack()
 #endif
             }
 
-            if ((int64_t(ts - clock_offset) - int64_t(next_pack_header)) >= 45000)
+            if ((int64_t(ts - clock_offset) - int64_t(next_pack_header)) >= int64_t(pack_header_interval))
             {
-                // Finish pack.
-                class ps_pack_header ps_pack_header;
-                ps_pack_header.set_scr(next_pack_header);
-                next_pack_header += 45000;
-
-                size_t pack_size = 0;
-                for (const auto &i : pack)
-                    pack_size += i.size();
-
-                ps_pack_header.set_muxrate(uint32_t(pack_size * 2 / 50));
-
-#ifdef DEBUG_OUTPUT
-                std::cout << std::hex << unsigned(ps_pack_header.stream_id()) << std::dec
-                          << " scr: " << ps_pack_header.scr()
-                          << " muxrate: " << ps_pack_header.muxrate()
-                          << std::endl;
-#endif
-
-                pack.emplace_front(std::move(ps_pack_header));
+                finish_pack(pack, next_pack_header);
+                next_pack_header += pack_header_interval;
                 break;
             }
             else if (stream_finished ||
@@ -200,9 +204,20 @@ std::list<ps_packet> ps_filter::read_pack()
                 filter_packet();
         }
         else if (!stream_finished)
+        {
             filter_packet();
-        else
+        }
+        else // Stream finished
+        {
+            std::vector<uint8_t> buffer;
+            buffer.resize(4);
+            buffer[0] = 0x00; buffer[1] = 0x00; buffer[2] = 0x01;
+            buffer[3] = uint8_t(stream_type::end_code);
+            pack.emplace_back(std::move(buffer));
+
+            finish_pack(pack, next_pack_header);
             break;
+        }
     }
 
     return std::move(pack);

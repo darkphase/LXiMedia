@@ -26,16 +26,21 @@ namespace mpeg {
 
 enum class stream_type : uint8_t
 {
-    none          = 0x00,
-    audio         = 0xC0,
-    video         = 0xE0,
-    ecm           = 0xF0,
-    private1      = 0xBD,
-    padding       = 0xBE,
-    private2      = 0xBF,
-    pack_header   = 0xBA,
-    system_header = 0xBB,
-    program_stream_map = 0xBC
+    none                = 0x00,
+
+    end_code            = 0xB9,
+
+    pack_header         = 0xBA,
+    system_header       = 0xBB,
+    program_stream_map  = 0xBC,
+
+    private1            = 0xBD,
+    padding             = 0xBE,
+    private2            = 0xBF,
+
+    audio               = 0xC0,
+    video               = 0xE0,
+    ecm                 = 0xF0,
 };
 
 class ps_packet
