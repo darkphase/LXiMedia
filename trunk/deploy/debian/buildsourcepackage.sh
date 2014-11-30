@@ -17,6 +17,7 @@ echo " -- A.J. Admiraal <code@admiraal.dds.nl>  `date -R`" >> /tmp/lximediaserve
 cd /tmp/lximediaserver/${PKGNAME} || exit 1
 
 rm -rf `find -name .svn`
+rm -rf `find -name *.user`
 
 dpkg-buildpackage -rfakeroot -S
 
