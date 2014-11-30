@@ -83,24 +83,26 @@ std::list<ps_packet> ps_filter::read_pack()
                 max = std::max(max, stream.size());
 
                 const uint64_t ts = get_timestamp(stream.front());
-                if (ts == uint64_t(-1))
-                {
-                    class pes_packet pes_packet(std::move(stream.front()));
-                    stream.pop_front();
-                    if (!pack.empty())
-                        pack.emplace_back(std::move(pes_packet));
-                }
-                else if (ts < lts)
+                if (ts < lts)
                 {
                     lts = ts;
                     lstream = &stream;
+                }
+                else if (ts == uint64_t(-1))
+                {
+#ifdef DEBUG_OUTPUT
+                    std::cout << std::hex << unsigned(i.first) << std::dec
+                              << " dropped packet without timestamp"
+                              << std::endl;
+#endif
+                    stream.pop_front();
                 }
             }
         }
 
         if (pack.empty() && !stream_finished && (min < max_packet_queue_size))
         {
-            // Make sure all stream timestamps starts within 250 ms.
+            // Make sure all stream timestamps start within 250 ms.
             if (lstream)
                 for (auto &i : streams)
                     if ((&i.second != lstream) && !i.second.empty())
@@ -176,20 +178,23 @@ std::list<ps_packet> ps_filter::read_pack()
                      (min > (max_packet_queue_size / 2)) ||
                      (max > max_packet_queue_size))
             {
-                // Add packet.
-                class pes_packet pes_packet(std::move(lstream->front()));
-                if (pes_packet.has_pts()) pes_packet.set_pts(pes_packet.pts() - clock_offset);
-                if (pes_packet.has_dts()) pes_packet.set_dts(pes_packet.dts() - clock_offset);
-                lstream->pop_front();
+                do
+                {
+                    // Add packet.
+                    class pes_packet pes_packet(std::move(lstream->front()));
+                    if (pes_packet.has_pts()) pes_packet.set_pts(pes_packet.pts() - clock_offset);
+                    if (pes_packet.has_dts()) pes_packet.set_dts(pes_packet.dts() - clock_offset);
+                    lstream->pop_front();
 
 #ifdef DEBUG_OUTPUT
-                std::cout << std::hex << unsigned(pes_packet.stream_id()) << std::dec;
-                if (pes_packet.has_pts()) std::cout << " pts: " << pes_packet.pts();
-                if (pes_packet.has_dts()) std::cout << " dts: " << pes_packet.dts();
-                std::cout << std::endl;
+                    std::cout << std::hex << unsigned(pes_packet.stream_id()) << std::dec;
+                    if (pes_packet.has_pts()) std::cout << " pts: " << pes_packet.pts();
+                    if (pes_packet.has_dts()) std::cout << " dts: " << pes_packet.dts();
+                    std::cout << std::endl;
 #endif
 
-                pack.emplace_back(std::move(pes_packet));
+                    pack.emplace_back(std::move(pes_packet));
+                } while (!lstream->empty() && (get_timestamp(lstream->front()) == uint64_t(-1)));
             }
             else
                 filter_packet();
@@ -208,15 +213,26 @@ void ps_filter::filter_packet()
     class ps_packet ps_packet = read_ps_packet();
     if (!ps_packet.empty())
     {
-        if (ps_packet.stream_id() >= stream_type::private1)
+        const auto stream_id = ps_packet.stream_id();
+        if ((stream_id >= stream_type::private1) &&
+            (stream_id <  stream_type::ecm) &&
+            (stream_id != stream_type::padding))
         {
             class pes_packet pes_packet(std::move(ps_packet));
             if (pes_packet.is_valid())
             {
                 if (pes_packet.packet_length() != (pes_packet.size() - 6))
+                {
+#ifdef DEBUG_OUTPUT
+                    std::cout << std::hex << unsigned(stream_id) << std::dec
+                              << " correcting packet_length from " << pes_packet.packet_length()
+                              << " to " << (pes_packet.size() - 6)
+                              << std::endl;
+#endif
                     pes_packet.set_packet_length(uint16_t(pes_packet.size() - 6));
+                }
 
-                streams[pes_packet.stream_id()].emplace_back(std::move(pes_packet));
+                streams[stream_id].emplace_back(std::move(pes_packet));
             }
         }
     }
@@ -234,6 +250,11 @@ ps_packet ps_filter::read_ps_packet()
     uint8_t header[6];
     if (input->read(reinterpret_cast<char *>(header), sizeof(header)))
     {
+#ifdef DEBUG_OUTPUT
+        if (!is_valid_ps_packet(header))
+            std::cout << "corrupted data found, seeking for next packet" << std::endl;
+#endif
+
         while (!is_valid_ps_packet(header) && *input)
         {
             memmove(header, header + 1, sizeof(header) - 1);
