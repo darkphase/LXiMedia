@@ -50,7 +50,7 @@ ps_packet & ps_packet::operator=(ps_packet &&from)
 bool ps_packet::is_valid() const
 {
     if (buffer.size() >= 4)
-        return (buffer[0] == 0x00) && (buffer[1] == 0x00) && (buffer[2] == 0x01);
+        return (buffer[0] == 0x00) && (buffer[1] == 0x00) && (buffer[2] == 0x01) && (buffer[3] >= 0xB9);
 
     return false;
 }

@@ -29,6 +29,7 @@ enum class stream_type : uint8_t
     none          = 0x00,
     audio         = 0xC0,
     video         = 0xE0,
+    ecm           = 0xF0,
     private1      = 0xBD,
     padding       = 0xBE,
     private2      = 0xBF,
