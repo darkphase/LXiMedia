@@ -45,12 +45,12 @@ bool uuid::is_null() const
     return true;
 }
 
-std::ostream & operator<<(std::ostream &str, const class uuid &uuid)
+std::ostream & operator<<(std::ostream &str, const struct uuid &uuid)
 {
     return str << std::string(uuid);
 }
 
-std::istream & operator>>(std::istream &str, class uuid &uuid)
+std::istream & operator>>(std::istream &str, struct uuid &uuid)
 {
     std::string string;
     str >> string;
