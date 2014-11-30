@@ -18,12 +18,14 @@
 #include "vlc/media_cache.h"
 #include "vlc/instance.h"
 #include "vlc/media.h"
+#include "platform/fork.h"
 #include "platform/fstream.h"
 #include "platform/sha1.h"
 #include "platform/string.h"
 #include <stdexcept>
 #include <vlc/vlc.h>
 #include <cstring>
+#include <sstream>
 
 namespace vlc {
 
@@ -36,6 +38,103 @@ struct media_cache::parsed_data
     std::chrono::milliseconds duration;
     int chapter_count;
 };
+
+static std::ostream & operator<<(std::ostream &str, const media_cache::track &track)
+{
+    str << track.id << ' '
+        << '"' << to_percent(track.language) << '"' << ' '
+        << '"' << to_percent(track.description) << '"' << ' '
+        << int(track.type);
+
+    switch (track.type)
+    {
+    case media_cache::track_type::audio:
+        str << ' ' << track.audio.sample_rate << ' ' << track.audio.channels;
+        break;
+
+    case media_cache::track_type::video:
+        str << ' ' << track.video.width << ' ' << track.video.height << ' ' << track.video.frame_rate;
+        break;
+
+    case media_cache::track_type::unknown:
+    case media_cache::track_type::text:
+        break;
+    }
+
+    return str;
+}
+
+static std::istream & operator>>(std::istream &str, media_cache::track &track)
+{
+    str >> track.id;
+
+    std::string language;
+    str >> language;
+    if (language.length() >= 2)
+        track.language = from_percent(language.substr(1, language.length() - 2));
+
+    std::string description;
+    str >> description;
+    if (description.length() >= 2)
+        track.description = from_percent(description.substr(1, description.length() - 2));
+
+    int type;
+    str >> type;
+    track.type = media_cache::track_type(type);
+
+    switch (track.type)
+    {
+    case media_cache::track_type::audio:
+        str >> track.audio.sample_rate >> track.audio.channels;
+        break;
+
+    case media_cache::track_type::video:
+        str >> track.video.width >> track.video.height >> track.video.frame_rate;
+        break;
+
+    case media_cache::track_type::unknown:
+    case media_cache::track_type::text:
+        break;
+    }
+
+    return str;
+}
+
+std::ostream & operator<<(std::ostream &str, const media_cache::parsed_data &parsed_data)
+{
+    str << parsed_data.uuid << ' ';
+
+    for (auto &i : parsed_data.tracks)
+        str << '{' << i << '}' << ' ';
+
+    str << parsed_data.duration.count() << ' ';
+    str << parsed_data.chapter_count;
+
+    return str;
+}
+
+std::istream & operator>>(std::istream &str, media_cache::parsed_data &parsed_data)
+{
+    str >> parsed_data.uuid;
+    str.get(); // ' '
+    while (str.peek() == '{')
+    {
+        str.get(); // '{'
+        struct media_cache::track track;
+        str >> track;
+        parsed_data.tracks.push_back(track);
+        str.get(); // '}'
+        str.get(); // ' '
+    }
+
+    long d;
+    str >> d;
+    parsed_data.duration = std::chrono::milliseconds(d);
+
+    str >> parsed_data.chapter_count;
+
+    return str;
+}
 
 media_cache::media_cache(
         class platform::messageloop_ref &messageloop,
@@ -103,13 +202,11 @@ void media_cache::abort()
 
 bool media_cache::has_data(const std::string &mrl)
 {
-    {
-        std::lock_guard<std::mutex> _(mutex);
+    std::lock_guard<std::mutex> _(mutex);
 
-        auto i = cache.find(mrl);
-        if (i != cache.end())
-            return i->second != nullptr;
-    }
+    auto i = cache.find(mrl);
+    if (i != cache.end())
+        return i->second != nullptr;
 
     return false;
 }
@@ -132,6 +229,57 @@ std::chrono::milliseconds media_cache::duration(const std::string &mrl)
 int media_cache::chapter_count(const std::string &mrl)
 {
     return read_parsed_data(instance, mrl).chapter_count;
+}
+
+const struct media_cache::parsed_data & media_cache::read_parsed_data(class instance &instance, const std::string &mrl)
+{
+    {
+        std::unique_lock<std::mutex> l(mutex);
+
+        for (;;)
+        {
+            auto i = cache.find(mrl);
+            if (i == cache.end())
+            {
+                cache[mrl] = nullptr;
+                break;
+            }
+            else if (i->second == nullptr) // Other thread is currently parsing this item.
+                condition.wait(l);
+            else // Already parsed.
+                return *(i->second);
+        }
+
+        pending_items++;
+    }
+
+    std::unique_ptr<struct parsed_data> parsed_data(new struct parsed_data());
+
+    const std::string data = platform::run_forked([&instance, &mrl]
+    {
+        return parse_file(instance, mrl);
+    }, true);
+
+    if (!data.empty())
+    {
+        std::stringstream str(data);
+        str >> *parsed_data;
+    }
+
+    {
+        std::lock_guard<std::mutex> _(mutex);
+
+        auto i = cache.find(mrl);
+        if (i != cache.end())
+        {
+            i->second = std::move(parsed_data);
+            pending_items--;
+            condition.notify_all();
+            return *(i->second);
+        }
+    }
+
+    throw std::runtime_error("Cache corruption detected.");
 }
 
 static platform::uuid uuid_from_file(const std::string &path)
@@ -174,38 +322,18 @@ static platform::uuid uuid_from_file(const std::string &path)
     return platform::uuid();
 }
 
-const struct media_cache::parsed_data & media_cache::read_parsed_data(
+std::string media_cache::parse_file(
         class instance &instance,
         const std::string &mrl)
 {
-    {
-        std::unique_lock<std::mutex> l(mutex);
-
-        for (;;)
-        {
-            auto i = cache.find(mrl);
-            if (i == cache.end())
-            {
-                cache[mrl] = nullptr;
-                break;
-            }
-            else if (i->second == nullptr) // Other thread is currently parsing this item.
-                condition.wait(l);
-            else // Already parsed.
-                return *(i->second);
-        }
-
-        pending_items++;
-    }
-
-    std::unique_ptr<parsed_data> parsed(new parsed_data());
+    struct parsed_data parsed_data;
 
 #if defined(__unix__) || defined(__APPLE__)
     if (starts_with(mrl, "file://"))
-        parsed->uuid = uuid_from_file(from_percent(mrl.substr(7)));
+        parsed_data.uuid = uuid_from_file(from_percent(mrl.substr(7)));
 #elif defined(WIN32)
     if (starts_with(mrl, "file:"))
-        parsed->uuid = uuid_from_file(from_percent(mrl.substr(5)));
+        parsed_data.uuid = uuid_from_file(from_percent(mrl.substr(5)));
 #endif
 
     auto media = media::from_mrl(instance, mrl);
@@ -282,7 +410,7 @@ const struct media_cache::parsed_data & media_cache::read_parsed_data(
                 while ((t.new_time < 1000) && !t.stopped) t.condition.wait(l);
             }
 
-            parsed->chapter_count = libvlc_media_player_get_chapter_count(player);
+            parsed_data.chapter_count = libvlc_media_player_get_chapter_count(player);
 
             libvlc_media_player_stop(player);
         }
@@ -340,34 +468,21 @@ const struct media_cache::parsed_data & media_cache::read_parsed_data(
                     break;
                 }
 
-                parsed->tracks.emplace_back(std::move(track));
+                parsed_data.tracks.emplace_back(std::move(track));
             }
 
         libvlc_media_tracks_release(track_list, count);
     }
 
-    parsed->duration = std::chrono::milliseconds(libvlc_media_get_duration(media));
+    parsed_data.duration = std::chrono::milliseconds(libvlc_media_get_duration(media));
 
-    {
-        std::lock_guard<std::mutex> _(mutex);
-
-        auto i = cache.find(mrl);
-        if (i != cache.end())
-        {
-            i->second = std::move(parsed);
-            pending_items--;
-            condition.notify_all();
-            return *(i->second);
-        }
-    }
-
-    throw std::runtime_error("Cache corruption detected.");
+    std::ostringstream str;
+    str << parsed_data;
+    return str.str();
 }
 
 void media_cache::worker_thread()
 {
-    class instance instance;
-
     for (;;)
     {
         std::string mrl;

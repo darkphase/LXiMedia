@@ -15,33 +15,16 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef UUID_H
-#define UUID_H
+#ifndef PLATFORM_FORK_H
+#define PLATFORM_FORK_H
 
 #include <string>
-#include <istream>
-#include <ostream>
+#include <functional>
 
 namespace platform {
 
-struct uuid
-{
-    static uuid generate();
-    uuid();
-    uuid(const std::string &);
+std::string run_forked(const std::function<std::string()> &, bool background_task);
 
-    bool operator==(const uuid &) const;
-    bool operator!=(const uuid &from) const { return !operator==(from); }
-    bool operator<(const uuid &) const;
-    operator std::string() const;
-    bool is_null() const;
-
-    uint8_t value[16];
-};
-
-std::ostream & operator<<(std::ostream &, const uuid &);
-std::istream & operator>>(std::istream &, uuid &);
-
-}
+} // End of namespace
 
 #endif

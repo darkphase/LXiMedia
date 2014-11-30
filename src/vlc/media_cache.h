@@ -80,9 +80,14 @@ public:
 
 private:
     struct parsed_data;
-    const struct parsed_data &read_parsed_data(class instance &, const std::string &mrl);
+    friend std::ostream & operator<<(std::ostream &, const media_cache::parsed_data &);
+    friend std::istream & operator>>(std::istream &, media_cache::parsed_data &);
+
+    const struct parsed_data & read_parsed_data(class instance &, const std::string &mrl);
     void worker_thread();
     void finish();
+
+    static std::string parse_file(class instance &, const std::string &mrl);
 
 private:
     class platform::messageloop_ref messageloop;
