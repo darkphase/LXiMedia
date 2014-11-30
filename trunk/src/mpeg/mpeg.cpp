@@ -21,6 +21,8 @@
 
 namespace mpeg {
 
+const uint64_t max_pack_header_interval = 63000;
+
 ps_packet::ps_packet()
 {
 }

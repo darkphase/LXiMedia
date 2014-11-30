@@ -24,6 +24,8 @@
 
 namespace mpeg {
 
+extern const uint64_t max_pack_header_interval;
+
 enum class stream_type : uint8_t
 {
     none                = 0x00,

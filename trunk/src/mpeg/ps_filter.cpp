@@ -44,6 +44,7 @@ ps_filter::ps_filter(std::unique_ptr<std::istream> &&input)
       input(std::move(input)),
       stream_finished(false),
       clock_offset(-1),
+      pack_header_interval(max_pack_header_interval - 3000),
       next_pack_header(90000)
 {
 }
@@ -148,8 +149,14 @@ std::list<ps_packet> ps_filter::read_pack()
             auto lts = last_timestamp.find(stream_id);
             if (lts != last_timestamp.end())
             {
-                if (std::abs(int64_t(ts) - int64_t(lts->second)) >= 15000)
+                if (std::abs(int64_t(ts) - int64_t(lts->second)) >= 45000)
                 {
+#ifdef DEBUG_OUTPUT
+                    std::cout << std::hex << unsigned(stream_id) << std::dec
+                              << " correcting clock_offset by "
+                              << (int64_t(clock_offset) - int64_t(ts - next_pack_header))
+                              << std::endl;
+#endif
                     last_timestamp.clear();
                     clock_offset = -1;
                     pack.clear();
@@ -162,19 +169,17 @@ std::list<ps_packet> ps_filter::read_pack()
                 lts = last_timestamp.emplace(stream_id, ts).first;
 
             if (clock_offset == uint64_t(-1))
-            {
                 clock_offset = ts - next_pack_header;
 
-#ifdef DEBUG_OUTPUT
-                std::cout << std::hex << unsigned(stream_id) << std::dec
-                          << " clock_offset: " << clock_offset
-                          << std::endl;
-#endif
-            }
-
-            if ((int64_t(ts - clock_offset) - int64_t(next_pack_header)) >= int64_t(pack_header_interval))
+            if ((int64_t(ts - clock_offset) - int64_t(next_pack_header - pack_header_delay)) >= int64_t(pack_header_interval))
             {
-                finish_pack(pack, next_pack_header);
+                if (!program_stream_map.empty())
+                    pack.emplace_front(std::move(program_stream_map));
+
+                if (!system_header.empty())
+                    pack.emplace_front(std::move(system_header));
+
+                finish_pack(pack, next_pack_header - pack_header_delay);
                 next_pack_header += pack_header_interval;
                 break;
             }
@@ -209,13 +214,16 @@ std::list<ps_packet> ps_filter::read_pack()
         }
         else // Stream finished
         {
+#ifdef DEBUG_OUTPUT
+            std::cout << "finished stream" << std::endl;
+#endif
             std::vector<uint8_t> buffer;
             buffer.resize(4);
             buffer[0] = 0x00; buffer[1] = 0x00; buffer[2] = 0x01;
             buffer[3] = uint8_t(stream_type::end_code);
             pack.emplace_back(std::move(buffer));
 
-            finish_pack(pack, next_pack_header);
+            finish_pack(pack, next_pack_header - pack_header_delay);
             break;
         }
     }
@@ -250,6 +258,10 @@ void ps_filter::filter_packet()
                 streams[stream_id].emplace_back(std::move(pes_packet));
             }
         }
+        else if (stream_id == stream_type::system_header)
+            system_header = std::move(ps_packet);
+        else if (stream_id == stream_type::program_stream_map)
+            program_stream_map = std::move(ps_packet);
     }
     else
         stream_finished = true;

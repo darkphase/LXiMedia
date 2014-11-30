@@ -45,10 +45,13 @@ private:
     bool stream_finished;
 
     std::map<stream_type, std::list<pes_packet>> streams;
+    ps_packet system_header;
+    ps_packet program_stream_map;
     std::map<stream_type, uint64_t> last_timestamp;
     uint64_t clock_offset;
 
-    static const uint64_t pack_header_interval = 45000;
+    static const uint64_t pack_header_delay = 15000;
+    const uint64_t pack_header_interval;
     uint64_t next_pack_header;
 };
 
