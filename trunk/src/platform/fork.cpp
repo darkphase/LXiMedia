@@ -100,7 +100,7 @@ std::string run_forked(const std::function<std::string()> &function, bool backgr
 #elif defined(WIN32)
 namespace platform {
 
-std::string run_forked(const std::function<std::string()> &function)
+std::string run_forked(const std::function<std::string()> &function, bool)
 {
     return function();
 }
