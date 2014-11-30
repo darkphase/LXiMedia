@@ -48,6 +48,7 @@ private:
     std::map<stream_type, uint64_t> last_timestamp;
     uint64_t clock_offset;
 
+    static const uint64_t pack_header_interval = 45000;
     uint64_t next_pack_header;
 };
 
