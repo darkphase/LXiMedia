@@ -361,7 +361,7 @@ void transcode_stream::streambuf::callback(const libvlc_event_t *e, void *opaque
         const std::chrono::milliseconds pos(-1);
         me->parent.messageloop.post(std::bind(&transcode_stream::streambuf::progress, me, pos));
     }
-    else if (e->type == libvlc_MediaPlayerEndReached)
+    else if (e->type == libvlc_MediaPlayerEncounteredError)
     {
         me->parent.messageloop.post(std::bind(&transcode_stream::streambuf::stop, me));
     }
