@@ -135,7 +135,9 @@ static std::string to_time(std::chrono::duration<rep, period> duration)
 
 static std::chrono::milliseconds complete_time(std::chrono::milliseconds duration)
 {
-    return duration - std::max(duration / 10, std::chrono::milliseconds(60000));
+    return std::max(
+                duration - std::max(duration / 10, std::chrono::milliseconds(60000)),
+                std::chrono::milliseconds(0));
 }
 
 static std::vector<std::string> playseek_items(const content_directory::item &item)
