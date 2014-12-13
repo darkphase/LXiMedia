@@ -24,18 +24,15 @@
 #include <chrono>
 #include <condition_variable>
 #include <map>
-#include <memory>
 #include <mutex>
-#include <queue>
 #include <string>
-#include <thread>
 #include <vector>
 
 struct libvlc_media_t;
 
 namespace vlc {
 
-class instance;
+class media;
 
 class media_cache
 {
@@ -44,6 +41,9 @@ public:
 
     struct track
     {
+        track();
+        ~track();
+
         int id;
         std::string language;
         std::string description;
@@ -56,68 +56,43 @@ public:
         };
     };
 
-public:
-    media_cache(
-            class platform::messageloop_ref &,
-            class instance &);
+    struct media_info
+    {
+        media_info();
+        ~media_info();
 
+        std::vector<track> tracks;
+        std::chrono::milliseconds duration;
+        int chapter_count;
+    };
+
+private:
+    struct data
+    {
+        data();
+        ~data();
+
+        bool uuid_generated;
+        bool media_type_read;
+        bool media_info_read;
+
+        platform::uuid uuid;
+        track_type media_type;
+        struct media_info media_info;
+    };
+
+public:
+    media_cache();
     ~media_cache();
 
-    void async_parse_items(const std::vector<std::string> &mrls);
-    void wait();
-    template< class Rep, class Period >
-    std::cv_status wait_for(const std::chrono::duration<Rep, Period>& rel_time);
-    void abort();
-
-    bool has_data(const std::string &);
-
-    platform::uuid uuid(const std::string &);
-    const std::vector<track> & tracks(const std::string &);
-    std::chrono::milliseconds duration(const std::string &);
-    int chapter_count(const std::string &);
-
-    std::function<void()> on_finished;
+    platform::uuid uuid(const std::string &) const;
+    track_type media_type(class media &) const;
+    struct media_info media_info(class media &) const;
 
 private:
-    struct parsed_data;
-    friend std::ostream & operator<<(std::ostream &, const media_cache::parsed_data &);
-    friend std::istream & operator>>(std::istream &, media_cache::parsed_data &);
-
-    const struct parsed_data & read_parsed_data(class instance &, const std::string &mrl);
-    void worker_thread();
-    void finish();
-
-    static std::string parse_file(class instance &, const std::string &mrl);
-
-private:
-    class platform::messageloop_ref messageloop;
-    class instance &instance;
-
-    std::mutex mutex;
-    std::condition_variable condition;
-    std::map<std::string, std::unique_ptr<parsed_data>> cache;
-    int pending_items;
-
-    std::map<std::thread::id, std::unique_ptr<std::thread>> thread_pool;
-    std::vector<std::unique_ptr<std::thread>> thread_dump;
-    std::queue<std::string> work_list;
+    mutable std::mutex mutex;
+    mutable std::map<std::string, data> cache;
 };
-
-template< class Rep, class Period >
-std::cv_status media_cache::wait_for(const std::chrono::duration<Rep, Period> &rel_time)
-{
-    const auto deadline = std::chrono::system_clock::now() + rel_time;
-    std::unique_lock<std::mutex> l(mutex);
-
-    std::cv_status result = std::cv_status::no_timeout;
-    while (!thread_pool.empty() && (result == std::cv_status::no_timeout))
-        result = condition.wait_until(l, deadline);
-
-    if (result == std::cv_status::no_timeout)
-        this->on_finished = nullptr;
-
-    return result;
-}
 
 } // End of namespace
 

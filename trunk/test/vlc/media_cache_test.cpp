@@ -40,12 +40,16 @@ static const struct media_cache_test
         test_assert(static_cast< ::libvlc_media_t *>(media) != nullptr);
         test_assert(!media.mrl().empty());
 
-        class platform::messageloop messageloop;
-        class platform::messageloop_ref messageloop_ref(messageloop);
-        class media_cache media_cache(messageloop_ref, instance);
-        const auto tracks = media_cache.tracks(media.mrl());
-        test_assert(tracks.size() == 1);
-        for (const auto &track : tracks)
+        class media_cache media_cache;
+
+        static const platform::uuid ref_uuid("6c9a8849-dbd4-5b7e-8f50-0916d1294251");
+        test_assert(media_cache.uuid(media.mrl()) == ref_uuid);
+
+        test_assert(media_cache.media_type(media) == media_cache::track_type::video);
+
+        const auto media_info = media_cache.media_info(media);
+        test_assert(media_info.tracks.size() == 1);
+        for (const auto &track : media_info.tracks)
         {
             switch (track.type)
             {
@@ -74,12 +78,16 @@ static const struct media_cache_test
         test_assert(static_cast< ::libvlc_media_t *>(media) != nullptr);
         test_assert(!media.mrl().empty());
 
-        class platform::messageloop messageloop;
-        class platform::messageloop_ref messageloop_ref(messageloop);
-        class media_cache media_cache(messageloop_ref, instance);
-        const auto tracks = media_cache.tracks(media.mrl());
-        test_assert(tracks.size() == 3);
-        for (const auto &track : tracks)
+        class media_cache media_cache;
+
+        static const platform::uuid ref_uuid("c34d207f-0b0a-5a40-a119-76792ed46e18");
+        test_assert(media_cache.uuid(media.mrl()) == ref_uuid);
+
+        test_assert(media_cache.media_type(media) == media_cache::track_type::video);
+
+        const auto media_info = media_cache.media_info(media);
+        test_assert(media_info.tracks.size() == 3);
+        for (const auto &track : media_info.tracks)
         {
             switch (track.type)
             {
@@ -102,8 +110,8 @@ static const struct media_cache_test
             }
         }
 
-        test_assert(std::abs(media_cache.duration(media.mrl()).count() - 10000) < 100);
-        test_assert(media_cache.chapter_count(media.mrl()) == 0);
+        test_assert(std::abs(media_info.duration.count() - 10000) < 100);
+        test_assert(media_info.chapter_count == 0);
     }
 } media_cache_test;
 
