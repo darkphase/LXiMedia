@@ -78,6 +78,8 @@ private:
     void progress(std::chrono::milliseconds);
     void stop();
 
+    void select_tracks();
+
     static void callback(const libvlc_event_t *, void *);
 
 private:
@@ -256,14 +258,14 @@ void transcode_stream::streambuf::started()
 {
     std::lock_guard<std::mutex> _(mutex);
 
-    if (track_ids.video >= 0)   libvlc_video_set_track(player, track_ids.video);
-    if (track_ids.audio >= 0)   libvlc_audio_set_track(player, track_ids.audio);
-    libvlc_video_set_spu(player, track_ids.text);
+    if (chapter >= 0)
+        libvlc_media_player_set_chapter(player, chapter);
 
-    if (chapter >= 0)           libvlc_media_player_set_chapter(player, chapter);
-    if (position.count() > 0)   libvlc_media_player_set_time(player, position.count());
+    if (position.count() > 0)
+        libvlc_media_player_set_time(player, position.count());
 
-    if (std::abs(rate - 1.0f) > 0.01f) libvlc_media_player_set_rate(player, rate);
+    if (std::abs(rate - 1.0f) > 0.01f)
+        libvlc_media_player_set_rate(player, rate);
 }
 
 void transcode_stream::streambuf::progress(std::chrono::milliseconds pos)
@@ -322,6 +324,23 @@ void transcode_stream::streambuf::stop()
     pipe[1] = pipe[0] = -1;
 }
 
+void transcode_stream::streambuf::select_tracks()
+{
+    std::lock_guard<std::mutex> _(mutex);
+
+    libvlc_video_set_track(player, -1);
+    if (track_ids.video >= 0)
+        libvlc_video_set_track(player, track_ids.video);
+
+    libvlc_audio_set_track(player, -1);
+    if (track_ids.audio >= 0)
+        libvlc_audio_set_track(player, track_ids.audio);
+
+    libvlc_video_set_spu(player, -1);
+    if (track_ids.text >= 0)
+        libvlc_video_set_spu(player, track_ids.text);
+}
+
 int transcode_stream::streambuf::underflow()
 {
     if ((gptr() != nullptr) && (gptr() < egptr())) // buffer not exhausted
@@ -352,6 +371,7 @@ void transcode_stream::streambuf::callback(const libvlc_event_t *e, void *opaque
     }
     else if (e->type == libvlc_MediaPlayerPlaying)
     {
+        me->select_tracks();
         me->parent.messageloop.post(std::bind(&transcode_stream::streambuf::started, me));
     }
     else if (e->type == libvlc_MediaPlayerEndReached)
