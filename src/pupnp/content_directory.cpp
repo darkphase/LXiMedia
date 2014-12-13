@@ -269,7 +269,6 @@ static content_directory::item make_play_item(const content_directory::item &bas
 void content_directory::handle_action(const upnp::request &request, action_browse &action)
 {
     const auto objectid = action.get_object_id();
-    const auto path = from_objectid(objectid);
     const auto start = action.get_starting_index();
     const auto count = action.get_requested_count();
 
@@ -277,6 +276,8 @@ void content_directory::handle_action(const upnp::request &request, action_brows
     const size_t space = request.user_agent.find_first_of(' ');
     if (space != request.user_agent.npos)
         client = client.substr(0, space);
+
+    auto path = from_objectid(objectid);
 
     const std::string basepath = content_directory::basepath(path);
     auto item_source = item_sources.find(basepath);
@@ -288,6 +289,11 @@ void content_directory::handle_action(const upnp::request &request, action_brows
         std::clog << "[" << this << "] pupnp::content_directory: Could not find item source for path: " << std::endl;
         return;
     }
+
+    auto itemprops = split_item_props(path);
+    const item item = item_source->second->get_contentdir_item(client, itemprops[0]);
+    if (starts_with(item.path, path))
+        itemprops[0] = path = item.path;
 
     size_t totalmatches = 0;
 
@@ -327,11 +333,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
 
                     case item_type::audio:
                     case item_type::video:
-                        if (item.duration < std::chrono::minutes(5))
-                            add_file(action, request.url.host, *item_source->second, item, item.path, title);
-                        else
-                            add_container(action, item.type, item.path, title);
-
+                        add_file(action, request.url.host, *item_source->second, item, item.path, title);
                         break;
 
                     case item_type::audio_book:
@@ -351,18 +353,8 @@ void content_directory::handle_action(const upnp::request &request, action_brows
             break;
         }
     }
-    else
+    else if (!item.mrl.empty())
     {
-        const auto itemprops = split_item_props(path);
-
-        // Get the item
-        const item item = item_source->second->get_contentdir_item(client, itemprops[0]);
-        if (item.mrl.empty())
-        {
-            std::clog << "[" << this << "] pupnp::content_directory: Could not find item " << itemprops[0] << std::endl;
-            return;
-        }
-
         const std::vector<std::string> items = all_items(item, itemprops);
         switch (action.get_browse_flag())
         {
@@ -390,6 +382,8 @@ void content_directory::handle_action(const upnp::request &request, action_brows
             break;
         }
     }
+    else
+        std::clog << "[" << this << "] pupnp::content_directory: Could not find item " << itemprops[0] << std::endl;
 
     auto updateid = system_update_id;
     if (objectid != "0")

@@ -36,17 +36,15 @@ static const struct transcode_stream_test
         const std::string infile = write_file("pm5544.mp4", pm5544_mp4, sizeof(pm5544_mp4));
         write_file("pm5544.srt", pm5544_srt, sizeof(pm5544_srt));
 
-        class platform::messageloop messageloop;
-        class platform::messageloop_ref messageloop_ref(messageloop);
         class instance instance;
-        class media_cache media_cache(messageloop_ref, instance);
+        class media_cache media_cache;
 
         // Transcode file.
         const std::string outfile = filename("output.ts");
         {
             struct transcode_stream::track_ids track_ids;
             class media media = media::from_file(instance, infile);
-            for (auto &track : media_cache.tracks(media.mrl()))
+            for (auto &track : media_cache.media_info(media).tracks)
                 switch (track.type)
                 {
                 case media_cache::track_type::unknown: break;
@@ -55,6 +53,8 @@ static const struct transcode_stream_test
                 case media_cache::track_type::text:   track_ids.text  = track.id; break;
                 }
 
+            class platform::messageloop messageloop;
+            class platform::messageloop_ref messageloop_ref(messageloop);
             class transcode_stream transcode_stream(messageloop_ref, instance);
             if (vlc::instance::compare_version(2, 1) == 0)
             {
@@ -89,9 +89,9 @@ static const struct transcode_stream_test
         {
             auto media = media::from_file(instance, outfile);
 
-            const auto tracks = media_cache.tracks(media.mrl());
-            test_assert(tracks.size() == 2);
-            for (const auto &track : tracks)
+            const auto media_info = media_cache.media_info(media);
+            test_assert(media_info.tracks.size() == 2);
+            for (const auto &track : media_info.tracks)
             {
                 switch (track.type)
                 {
