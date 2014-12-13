@@ -18,7 +18,6 @@
 #include "vlc/media_cache.h"
 #include "vlc/instance.h"
 #include "vlc/media.h"
-#include "platform/fork.h"
 #include "platform/fstream.h"
 #include "platform/sha1.h"
 #include "platform/string.h"
