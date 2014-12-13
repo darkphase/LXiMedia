@@ -53,17 +53,56 @@ std::string to_lower(const std::string &input)
     return result;
 }
 
-static bool is_number(char c)
+static std::basic_string<char32_t> to_utf32(const std::string &u8)
+{
+    std::basic_string<char32_t> result;
+
+    for (auto i = u8.begin(); i != u8.end(); )
+    {
+        const uint8_t lead = uint8_t(*(i++));
+
+        char32_t cp = 0;
+        if (lead < 0x80)
+        {
+            cp = char32_t(lead);
+        }
+        else if ((lead >> 5) == 0x06)
+        {
+            cp = (char32_t(lead) << 6) & 0x07FF;
+            if (i != u8.end()) cp |= (char32_t(uint8_t(*(i++))) & 0x3F);
+        }
+        else if ((lead >> 4) == 0x0E)
+        {
+            cp = (char32_t(lead) << 12) & 0xFFFF;
+            if (i != u8.end()) cp |= (char32_t(uint8_t(*(i++))) << 6) & 0x0FFF;
+            if (i != u8.end()) cp |= char32_t(uint8_t(*(i++))) & 0x3F;
+        }
+        else if ((lead >> 3) == 0x1E)
+        {
+            cp = (char32_t(lead) << 18) & 0x1FFFFF;
+            if (i != u8.end()) cp |= (char32_t(uint8_t(*(i++))) << 12) & 0x03FFFF;
+            if (i != u8.end()) cp |= (char32_t(uint8_t(*(i++))) << 6) & 0x0FFF;
+            if (i != u8.end()) cp |= char32_t(uint8_t(*(i++))) & 0x3F;
+        }
+
+        if (cp)
+            result.push_back(cp);
+    }
+
+    return std::move(result);
+}
+
+static bool is_number(char32_t c)
 {
     return (c >= '0') && (c <= '9');
 }
 
-static unsigned read_number(const std::string &s, size_t &p)
+static unsigned read_number(const std::basic_string<char32_t> &s, size_t &p)
 {
     unsigned n = 0;
     while (p < s.length())
     {
-        const char c = s[p];
+        const char32_t c = s[p];
         if (is_number(c))
         {
             const unsigned v = unsigned(c - '0');
@@ -81,12 +120,15 @@ static unsigned read_number(const std::string &s, size_t &p)
     return n;
 }
 
-bool alphanum_less::operator()(const std::string &a, const std::string &b) const
+bool alphanum_less::operator()(const std::string &a_u8, const std::string &b_u8) const
 {
+    const auto a = to_utf32(a_u8);
+    const auto b = to_utf32(b_u8);
+
     for (size_t ap = 0, bp = 0, m = 0; (ap < a.length()) && (bp < b.length()); )
         if (m == 0) // Processing strings
         {
-            const char ac = a[ap], bc = b[bp];
+            const char32_t ac = a[ap], bc = b[bp];
             if (is_number(ac) && is_number(bc))
                 m = 1;
             else if (ac < bc)
