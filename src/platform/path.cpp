@@ -83,10 +83,10 @@ static const std::unordered_set<std::string> & hidden_dirs()
         hidden_dirs.insert("/usr"   );
         hidden_dirs.insert("/var"   );
 #if defined(__APPLE__)
-        hidden_dirs.insert("/Applications"   );
-        hidden_dirs.insert("/Library"   );
-        hidden_dirs.insert("/Network"   );
-        hidden_dirs.insert("/System"   );
+        hidden_dirs.insert("/Applications"  );
+        hidden_dirs.insert("/Library"       );
+        hidden_dirs.insert("/Network"       );
+        hidden_dirs.insert("/System"        );
 #endif
     });
 
