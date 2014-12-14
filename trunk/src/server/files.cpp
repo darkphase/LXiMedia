@@ -784,7 +784,7 @@ pupnp::content_directory::item files::make_item(const std::string &client, const
     {
         const size_t lsl = std::max(path.find_last_of('/'), path.length() - 1);
         const size_t psl = path.find_last_of('/', lsl - 1);
-        item.title = path.substr(psl + 1, lsl - psl - 1);
+        item.title = path.substr(psl, lsl - psl);
     }
     else
     {
