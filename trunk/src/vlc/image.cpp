@@ -93,7 +93,7 @@ void image::swap_rb()
 } // End of namespace
 
 
-#include <jpge.h>
+#include <jpge/jpge.h>
 
 bool vlc::image::save_jpeg(std::ostream &out) const
 {

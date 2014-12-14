@@ -69,18 +69,8 @@ target_include_directories(
     ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/upnp/src/inc)
 
 #######################################
-# Compile MiniZ
-aux_source_directory(ext/miniz/ MINIZ_SRC_LIST)
-
-set_source_files_properties(
-    ${MINIZ_SRC_LIST}
-    PROPERTIES COMPILE_FLAGS "-std=gnu99 -O3")
-
-add_library(miniz STATIC ${MINIZ_SRC_LIST})
-
-#######################################
 # Compile JPGE
-include_directories(SYSTEM ext/jpge)
+include_directories(SYSTEM ext/)
 
 aux_source_directory(ext/jpge/ JPGE_SRC_LIST)
 
@@ -91,15 +81,36 @@ set_source_files_properties(
 add_library(jpge STATIC ${JPGE_SRC_LIST})
 
 #######################################
+# Compile MiniZ
+aux_source_directory(ext/miniz/ MINIZ_SRC_LIST)
+
+set_source_files_properties(
+    ${MINIZ_SRC_LIST}
+    PROPERTIES COMPILE_FLAGS "-std=gnu99 -O3")
+
+add_library(miniz STATIC ${MINIZ_SRC_LIST})
+
+#######################################
+# Compile SHA1
+include_directories(SYSTEM ext/)
+
+aux_source_directory(ext/sha1/ SHA1_SRC_LIST)
+
+set_source_files_properties(
+    ${SHA1_SRC_LIST}
+    PROPERTIES COMPILE_FLAGS "-std=c++03 -O3")
+
+add_library(sha1 STATIC ${SHA1_SRC_LIST})
+
+#######################################
 # lximediaserver
 aux_source_directory(src/mpeg/ MPEG_SRC_LIST)
-aux_source_directory(src/png/ PNG_SRC_LIST)
 aux_source_directory(src/platform/ PLATFORM_SRC_LIST)
 aux_source_directory(src/pupnp/ PUPNP_SRC_LIST)
 aux_source_directory(src/vlc/ VLC_SRC_LIST)
 
 set_source_files_properties(
-    ${MPEG_SRC_LIST} ${PNG_SRC_LIST} ${PLATFORM_SRC_LIST} ${PUPNP_SRC_LIST} ${VLC_SRC_LIST}
+    ${MPEG_SRC_LIST} ${PLATFORM_SRC_LIST} ${PUPNP_SRC_LIST} ${VLC_SRC_LIST}
     PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -DUPNP_STATIC_LIB")
 
 aux_source_directory(src/server/ SERVER_SRC_LIST)
@@ -118,14 +129,14 @@ endif()
 
 add_executable(
     lximediaserver
-    ${MPEG_SRC_LIST} ${PNG_SRC_LIST} ${PLATFORM_SRC_LIST} ${PUPNP_SRC_LIST} ${VLC_SRC_LIST}
+    ${MPEG_SRC_LIST} ${PLATFORM_SRC_LIST} ${PUPNP_SRC_LIST} ${VLC_SRC_LIST}
     ${SERVER_SRC_LIST} ${SERVER_HTML_SRC_LIST} ${RESOURCES_SRC_LIST} ${SERVER_RESOURCES})
 
 target_include_directories(
     lximediaserver PRIVATE
     ${CMAKE_SOURCE_DIR}/src)
 
-target_link_libraries(lximediaserver pupnp jpge miniz)
+target_link_libraries(lximediaserver pupnp jpge miniz sha1)
 if(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
     target_link_libraries(lximediaserver uuid vlc pthread)
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
@@ -139,15 +150,19 @@ endif()
 #######################################
 # test
 if(${CMAKE_BUILD_TYPE} STREQUAL Debug)
+    aux_source_directory(test/ext/ TEST_EXT_SRC_LIST)
     aux_source_directory(test/platform/ TEST_PLATFORM_SRC_LIST)
     aux_source_directory(test/vlc/ TEST_VLC_SRC_LIST)
     aux_source_directory(test/ TEST_SRC_LIST)
 
     set_source_files_properties(
-        ${TEST_PLATFORM_SRC_LIST} ${TEST_VLC_SRC_LIST} ${TEST_SRC_LIST}
+        ${TEST_EXT_SRC_LIST} ${TEST_PLATFORM_SRC_LIST} ${TEST_VLC_SRC_LIST} ${TEST_SRC_LIST}
         PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall")
 
-    add_executable(lximediaserver_test ${TEST_PLATFORM_SRC_LIST} ${TEST_VLC_SRC_LIST} ${TEST_SRC_LIST})
+    add_executable(
+        lximediaserver_test
+        ${TEST_EXT_SRC_LIST} ${TEST_PLATFORM_SRC_LIST}
+        ${TEST_VLC_SRC_LIST} ${TEST_SRC_LIST})
 
     target_include_directories(
         lximediaserver_test PRIVATE

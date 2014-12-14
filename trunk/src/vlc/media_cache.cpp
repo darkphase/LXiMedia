@@ -19,10 +19,10 @@
 #include "vlc/instance.h"
 #include "vlc/media.h"
 #include "platform/fstream.h"
-#include "platform/sha1.h"
 #include "platform/string.h"
-#include <stdexcept>
+#include <sha1/sha1.h>
 #include <vlc/vlc.h>
+#include <stdexcept>
 #include <cstring>
 #include <sstream>
 #include <iostream>
