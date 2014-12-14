@@ -43,6 +43,7 @@ private:
 
     const std::unique_ptr<std::istream> input;
     bool stream_finished;
+    bool end_code_sent;
 
     std::map<stream_type, std::list<pes_packet>> streams;
     ps_packet system_header;
