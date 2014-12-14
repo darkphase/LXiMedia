@@ -3,8 +3,6 @@
 #include "platform/path.h"
 #include <cstdio>
 
-static std::string filename();
-
 static const struct inifile_test
 {
     const std::string filename;

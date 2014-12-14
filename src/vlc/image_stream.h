@@ -36,6 +36,7 @@ public:
 
     bool open(
             const std::string &mrl,
+            const std::string &mime,
             unsigned width, unsigned height);
 
     void close();

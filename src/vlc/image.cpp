@@ -16,11 +16,12 @@
  ******************************************************************************/
 
 #include "image.h"
+#include <jpge.h>
 #include <endian.h>
 
 extern "C" int mz_compress(unsigned char *pDest, unsigned long *pDest_len, const unsigned char *pSource, unsigned long source_len);
 
-namespace png {
+namespace vlc {
 
 image::image()
     : width(0), height(0)
@@ -78,6 +79,30 @@ uint32_t * image::scan_line(unsigned y)
     return nullptr;
 }
 
+static inline uint32_t swap_rb_pixel(uint32_t px)
+{
+    return (px & 0xFF00FF00) | ((px & 0x00FF0000) >> 16) | ((px & 0x000000FF) << 16);
+}
+
+void image::swap_rb()
+{
+    for (unsigned y = 0; y < height; y++)
+    {
+        auto line = scan_line(y);
+        for (unsigned x = 0; x < width; x++)
+            line[x] = swap_rb_pixel(line[x]);
+    }
+}
+
+bool image::save_jpeg(std::ostream &out) const
+{
+    return jpge::compress_image_to_jpeg_file_in_memory(
+                out,
+                width, height,
+                4,
+                reinterpret_cast<const jpge::uint8 *>(scan_line(0)));
+}
+
 static uint32_t crc_table[256];
 static struct _Crc
 {
@@ -102,17 +127,7 @@ static uint32_t calc_crc(const void *buf, size_t len, uint32_t crc = 0xFFFFFFFF)
     return crc;
 }
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-static inline uint32_t swap_rb(uint32_t px)
-{
-    return (px & 0xFF00FF00) | ((px & 0x00FF0000) >> 16) | ((px & 0x000000FF) << 16);
-}
-# define htobergba(x) swap_rb(x)
-#else
-# define htobergba(x) (x)
-#endif
-
-bool image::save(std::ostream &out) const
+bool image::save_png(std::ostream &out) const
 {
     {
         static const uint8_t png_header[] = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
@@ -152,7 +167,7 @@ bool image::save(std::ostream &out) const
 
             dst_line[0] = 0; // no filter
             for (uint32_t x = 0; x < width; x++)
-                reinterpret_cast<uint32_t *>(dst_line + 1)[x] = htobergba(src_line[x]);
+                reinterpret_cast<uint32_t *>(dst_line + 1)[x] = src_line[x];
         }
 
         std::vector<uint8_t> compressed;

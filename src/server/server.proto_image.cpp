@@ -26,6 +26,35 @@ void server::add_image_protocols()
     const bool has_hdtv_1080        = (video_mode == ::video_mode::auto_) || (video_mode == ::video_mode::hdtv_1080 );
 
     connection_manager.add_source_image_protocol(
+                "JPEG_TN",
+                pupnp::upnp::mime_image_jpeg, "jpeg",
+                160, 160);
+
+    if (has_dvd)
+    {
+        connection_manager.add_source_image_protocol(
+                    "JPEG_SM",
+                    pupnp::upnp::mime_image_jpeg, "jpeg",
+                    768, 576);
+    }
+
+    if (has_hdtv_720)
+    {
+        connection_manager.add_source_image_protocol(
+                    "JPEG_MED",
+                    pupnp::upnp::mime_image_jpeg, "jpeg",
+                    1280, 720);
+    }
+
+    if (has_hdtv_1080)
+    {
+        connection_manager.add_source_image_protocol(
+                    "JPEG_LRG",
+                    pupnp::upnp::mime_image_jpeg, "jpeg",
+                    1920, 1080);
+    }
+
+    connection_manager.add_source_image_protocol(
                 "PNG_TN",
                 pupnp::upnp::mime_image_png, "png",
                 160, 160);

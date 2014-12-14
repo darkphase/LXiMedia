@@ -21,7 +21,7 @@
 #include "platform/fstream.h"
 #include "platform/path.h"
 #include "platform/uuid.h"
-#include "png/image.h"
+#include "vlc/image.h"
 #include <vlc/vlc.h>
 #include <condition_variable>
 #include <mutex>
@@ -41,6 +41,7 @@ image_stream::~image_stream()
 
 bool image_stream::open(
         const std::string &mrl,
+        const std::string &mime,
         unsigned width, unsigned height)
 {
     close();
@@ -85,14 +86,14 @@ bool image_stream::open(
             std::condition_variable condition;
             bool displayed;
             bool encountered_error;
-            png::image pixel_buffer;
+            image pixel_buffer;
         } t;
 
         std::unique_lock<std::mutex> l(t.mutex);
 
         t.displayed = false;
         t.encountered_error = false;
-        t.pixel_buffer = png::image(width, height);
+        t.pixel_buffer = image(width, height);
 
         libvlc_media_player_set_rate(player, 10.0f);
 
@@ -120,8 +121,11 @@ bool image_stream::open(
 
         if (t.displayed && !t.encountered_error)
         {
+            t.pixel_buffer.swap_rb();
+
             stream.reset(new std::stringstream());
-            if (t.pixel_buffer.save(*stream))
+            if (((mime == "image/png") && t.pixel_buffer.save_png(*stream)) ||
+                ((mime == "image/jpeg") && t.pixel_buffer.save_jpeg(*stream)))
             {
                 std::istream::rdbuf(stream->rdbuf());
                 result = true;

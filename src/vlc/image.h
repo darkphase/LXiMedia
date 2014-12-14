@@ -15,14 +15,14 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef PNG_IMAGE_H
-#define PNG_IMAGE_H
+#ifndef VLC_IMAGE_H
+#define VLC_IMAGE_H
 
 #include <cstdint>
 #include <ostream>
 #include <vector>
 
-namespace png {
+namespace vlc {
 
 class image
 {
@@ -39,7 +39,10 @@ public:
     const uint32_t * scan_line(unsigned y) const;
     uint32_t * scan_line(unsigned y);
 
-    bool save(std::ostream &) const;
+    void swap_rb();
+
+    bool save_jpeg(std::ostream &) const;
+    bool save_png(std::ostream &) const;
 
 private:
     static const unsigned align = 32;
