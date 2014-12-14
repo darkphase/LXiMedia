@@ -91,6 +91,23 @@ void connection_manager::add_source_video_protocol(
     protocol.slow_encode_options = slow_encode_options;
 }
 
+void connection_manager::add_source_image_protocol(
+        const char *name,
+        const char *mime, const char *suffix,
+        unsigned width, unsigned height)
+{
+    std::clog << "[" << this << "] connection_manager: enabled image protocol "
+              << name << " " << width << "x" << height
+              << std::endl;
+
+    source_image_protocol_list.emplace_back(protocol(
+                                                "http-get", mime,
+                                                true, false, false,
+                                                name, suffix,
+                                                0, 0,
+                                                width, height));
+}
+
 std::vector<connection_manager::protocol> connection_manager::get_protocols(unsigned channels) const
 {
     std::map<int, std::vector<protocol>> protocols;
@@ -114,7 +131,7 @@ std::vector<connection_manager::protocol> connection_manager::get_protocols(unsi
                     result.back().channels = std::min(result.back().channels, channels);
                 }
 
-    return result;
+    return std::move(result);
 }
 
 std::vector<connection_manager::protocol> connection_manager::get_protocols(unsigned channels, unsigned width, float frame_rate) const
@@ -151,7 +168,40 @@ std::vector<connection_manager::protocol> connection_manager::get_protocols(unsi
                 result.back().channels = std::min(result.back().channels, channels);
             }
 
-    return result;
+    return std::move(result);
+}
+
+std::vector<connection_manager::protocol> connection_manager::get_protocols(unsigned width, unsigned height) const
+{
+    std::map<int, std::vector<protocol>> protocols;
+    for (auto &protocol : source_image_protocol_list)
+    {
+        int score = 0;
+
+        score += ((protocol.width > 1024) == (width > 1024)) ? -1 : 0;
+        score += ((protocol.width >  640) == (width >  640)) ? -1 : 0;
+        score += ((protocol.width >  160) == (width >  160)) ? -1 : 0;
+        score += ((protocol.width <= 160) == (width <= 160)) ? -1 : 0;
+
+        score += ((protocol.height >  768) == (height >  768)) ? -1 : 0;
+        score += ((protocol.height >  480) == (height >  480)) ? -1 : 0;
+        score += ((protocol.height >  160) == (height >  160)) ? -1 : 0;
+        score += ((protocol.height <= 160) == (height <= 160)) ? -1 : 0;
+
+        protocols[score].emplace_back(protocol);
+    }
+
+    std::set<std::string> profiles;
+    std::vector<protocol> result;
+    for (auto &i : protocols)
+        for (auto &protocol : i.second)
+            if (profiles.find(protocol.profile) == profiles.end())
+            {
+                profiles.insert(protocol.profile);
+                result.emplace_back(std::move(protocol));
+            }
+
+    return std::move(result);
 }
 
 connection_manager::protocol connection_manager::get_protocol(const std::string &profile, unsigned num_channels) const
@@ -166,6 +216,15 @@ connection_manager::protocol connection_manager::get_protocol(const std::string 
 connection_manager::protocol connection_manager::get_protocol(const std::string &profile, unsigned num_channels, unsigned width, float frame_rate) const
 {
     for (auto &i : get_protocols(num_channels, width, frame_rate))
+        if (i.profile == profile)
+            return i;
+
+    return connection_manager::protocol();
+}
+
+connection_manager::protocol connection_manager::get_protocol(const std::string &profile, unsigned width, unsigned height) const
+{
+    for (auto &i : get_protocols(width, height))
         if (i.profile == profile)
             return i;
 
@@ -230,6 +289,9 @@ void connection_manager::write_eventable_statevariables(rootdevice::eventable_pr
         sp += "," + protocol.to_string(true);
 
     for (auto &protocol : source_video_protocol_list)
+        sp += "," + protocol.to_string(true);
+
+    for (auto &protocol : source_image_protocol_list)
         sp += "," + protocol.to_string(true);
 
     propset.add_property("SourceProtocolInfo", sp.empty() ? sp : sp.substr(1));
@@ -363,6 +425,9 @@ void connection_manager::handle_action(const upnp::request &, action_get_protoco
         source_protocols += "," + protocol.to_string(true);
 
     for (auto &protocol : source_video_protocol_list)
+        source_protocols += "," + protocol.to_string(true);
+
+    for (auto &protocol : source_image_protocol_list)
         source_protocols += "," + protocol.to_string(true);
 
     source_protocols = source_protocols.empty() ? source_protocols : source_protocols.substr(1);

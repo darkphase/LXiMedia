@@ -65,6 +65,19 @@ private:
     root_path to_system_path(const std::string &) const;
     std::string to_virtual_path(const std::string &) const;
 
+    int play_audio_video_item(
+            const std::string &source_address,
+            const pupnp::content_directory::item &,
+            const pupnp::connection_manager::protocol &,
+            std::string &content_type,
+            std::shared_ptr<std::istream> &response);
+
+    int get_image_item(
+            const pupnp::content_directory::item &,
+            const pupnp::connection_manager::protocol &,
+            std::string &content_type,
+            std::shared_ptr<std::istream> &response);
+
     void playback_progress(
             const pupnp::content_directory::item &item,
             std::chrono::system_clock::time_point,

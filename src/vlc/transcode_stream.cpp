@@ -107,7 +107,7 @@ transcode_stream::transcode_stream(class platform::messageloop_ref &messageloop,
 
 transcode_stream::~transcode_stream()
 {
-    delete std::istream::rdbuf(nullptr);
+    close();
 }
 
 void transcode_stream::add_option(const std::string &option)

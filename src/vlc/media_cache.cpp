@@ -117,10 +117,10 @@ platform::uuid media_cache::uuid(const std::string &mrl) const
     return data.uuid;
 }
 
-static media_cache::track_type track_type_from_media(
+static media_type media_type_from_media(
     class media &media)
 {
-    media_cache::track_type track_type = media_cache::track_type::unknown;
+    media_type result = media_type::unknown;
 
     libvlc_media_parse(media);
 
@@ -128,39 +128,33 @@ static media_cache::track_type track_type_from_media(
     const unsigned count = libvlc_media_tracks_get(media, &track_list);
     if (track_list)
     {
+        bool has_audio = false, has_video = false;
         for (unsigned i = 0; (i < count) && track_list[i]; i++)
             if (track_list[i]->i_codec != 0x66646E75 /*'undf'*/)
             {
                 switch (track_list[i]->i_type)
                 {
-                case libvlc_track_unknown:
-                    break;
-
-                case libvlc_track_audio:
-                    if (track_type != media_cache::track_type::video)
-                        track_type = media_cache::track_type::audio;
-
-                    break;
-
-                case libvlc_track_video:
-                    track_type = media_cache::track_type::video;
-                    break;
-
-                case libvlc_track_text:
-                    if (track_type == media_cache::track_type::unknown)
-                        track_type = media_cache::track_type::text;
-
-                    break;
+                case libvlc_track_unknown:  break;
+                case libvlc_track_audio:    has_audio = true;   break;
+                case libvlc_track_video:    has_video = true;   break;
+                case libvlc_track_text:     break;
                 }
             }
+
+        if (has_audio && has_video)
+            result = media_type::video;
+        else if (has_audio)
+            result = media_type::audio;
+        else if (has_video)
+            result = media_type::picture;
 
         libvlc_media_tracks_release(track_list, count);
     }
 
-    return track_type;
+    return result;
 }
 
-media_cache::track_type media_cache::media_type(class media &media) const
+enum media_type media_cache::media_type(class media &media) const
 {
     std::unique_lock<std::mutex> l(mutex);
 
@@ -169,7 +163,7 @@ media_cache::track_type media_cache::media_type(class media &media) const
     {
         l.unlock();
 
-        const auto media_type = track_type_from_media(media);
+        const auto media_type = media_type_from_media(media);
 
         l.lock();
 
@@ -232,7 +226,7 @@ static struct media_cache::media_info media_info_from_media(
         t.new_time = -1;
         t.pixel_buffer.resize((width * height * sizeof(uint32_t)) + align);
 
-        libvlc_media_player_set_rate(player, 1000.0f);
+        libvlc_media_player_set_rate(player, 10.0f);
 
         libvlc_audio_set_callbacks(player, &T::play, nullptr, nullptr, nullptr, nullptr, &t);
         libvlc_audio_set_format(player, "S16N", 44100, 2);
@@ -282,15 +276,15 @@ static struct media_cache::media_info media_info_from_media(
                 if (track_list[i]->psz_language)    track.language    = track_list[i]->psz_language;
                 if (track_list[i]->psz_description) track.description = track_list[i]->psz_description;
 
-                track.type = media_cache::track_type::unknown;
+                track.type = track_type::unknown;
                 switch (track_list[i]->i_type)
                 {
                 case libvlc_track_unknown:
-                    track.type = media_cache::track_type::unknown;
+                    track.type = track_type::unknown;
                     break;
 
                 case libvlc_track_audio:
-                    track.type = media_cache::track_type::audio;
+                    track.type = track_type::audio;
                     if (track_list[i]->audio)
                     {
                         track.audio.sample_rate = track_list[i]->audio->i_rate;
@@ -299,7 +293,7 @@ static struct media_cache::media_info media_info_from_media(
                     break;
 
                 case libvlc_track_video:
-                    track.type = media_cache::track_type::video;
+                    track.type = track_type::video;
                     if (track_list[i]->video)
                     {
                         track.video.width = track_list[i]->video->i_width;
@@ -311,7 +305,7 @@ static struct media_cache::media_info media_info_from_media(
                     break;
 
                 case libvlc_track_text:
-                    track.type = media_cache::track_type::text;
+                    track.type = track_type::text;
                     break;
                 }
 
@@ -375,113 +369,12 @@ media_cache::data::data()
     : uuid_generated(false),
       media_type_read(false),
       media_info_read(false),
-      media_type(track_type::unknown)
+      media_type(vlc::media_type::unknown)
 {
 }
 
 media_cache::data::~data()
 {
 }
-
-/*
-
-static std::ostream & operator<<(std::ostream &str, const media_cache::track &track)
-{
-    str << track.id << ' '
-        << '"' << to_percent(track.language) << '"' << ' '
-        << '"' << to_percent(track.description) << '"' << ' '
-        << int(track.type);
-
-    switch (track.type)
-    {
-    case media_cache::track_type::audio:
-        str << ' ' << track.audio.sample_rate << ' ' << track.audio.channels;
-        break;
-
-    case media_cache::track_type::video:
-        str << ' ' << track.video.width << ' ' << track.video.height << ' ' << track.video.frame_rate;
-        break;
-
-    case media_cache::track_type::unknown:
-    case media_cache::track_type::text:
-        break;
-    }
-
-    return str;
-}
-
-static std::istream & operator>>(std::istream &str, media_cache::track &track)
-{
-    str >> track.id;
-
-    std::string language;
-    str >> language;
-    if (language.length() >= 2)
-        track.language = from_percent(language.substr(1, language.length() - 2));
-
-    std::string description;
-    str >> description;
-    if (description.length() >= 2)
-        track.description = from_percent(description.substr(1, description.length() - 2));
-
-    int type;
-    str >> type;
-    track.type = media_cache::track_type(type);
-
-    switch (track.type)
-    {
-    case media_cache::track_type::audio:
-        str >> track.audio.sample_rate >> track.audio.channels;
-        break;
-
-    case media_cache::track_type::video:
-        str >> track.video.width >> track.video.height >> track.video.frame_rate;
-        break;
-
-    case media_cache::track_type::unknown:
-    case media_cache::track_type::text:
-        break;
-    }
-
-    return str;
-}
-
-std::ostream & operator<<(std::ostream &str, const media_cache::parsed_data &parsed_data)
-{
-    str << parsed_data.uuid << ' ';
-
-    for (auto &i : parsed_data.tracks)
-        str << '{' << i << '}' << ' ';
-
-    str << parsed_data.duration.count() << ' ';
-    str << parsed_data.chapter_count;
-
-    return str;
-}
-
-std::istream & operator>>(std::istream &str, media_cache::parsed_data &parsed_data)
-{
-    str >> parsed_data.uuid;
-    str.get(); // ' '
-    while (str.peek() == '{')
-    {
-        str.get(); // '{'
-        struct media_cache::track track;
-        str >> track;
-        parsed_data.tracks.push_back(track);
-        str.get(); // '}'
-        str.get(); // ' '
-    }
-
-    long d;
-    str >> d;
-    parsed_data.duration = std::chrono::milliseconds(d);
-
-    str >> parsed_data.chapter_count;
-
-    return str;
-}
-
-*/
 
 } // End of namespace

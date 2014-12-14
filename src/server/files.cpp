@@ -21,6 +21,7 @@
 #include "platform/path.h"
 #include "platform/string.h"
 #include "platform/translator.h"
+#include "vlc/image_stream.h"
 #include "vlc/media.h"
 #include "vlc/transcode_stream.h"
 #include "watchlist.h"
@@ -72,16 +73,16 @@ static track_list list_tracks(const struct vlc::media_cache::media_info &media_i
 {
     std::vector<vlc::media_cache::track> video, audio, text;
     vlc::media_cache::track none;
-    none.type = vlc::media_cache::track_type::unknown;
+    none.type = vlc::track_type::unknown;
     text.push_back(none);
 
     for (auto &track : media_info.tracks)
         switch (track.type)
         {
-        case vlc::media_cache::track_type::unknown:   break;
-        case vlc::media_cache::track_type::video:     video.push_back(track); break;
-        case vlc::media_cache::track_type::audio:     audio.push_back(track); break;
-        case vlc::media_cache::track_type::text:      text.push_back(track);  break;
+        case vlc::track_type::unknown:  break;
+        case vlc::track_type::video:    video.push_back(track); break;
+        case vlc::track_type::audio:    audio.push_back(track); break;
+        case vlc::track_type::text:     text.push_back(track);  break;
         }
 
     if (video.empty()) video.push_back(none);
@@ -95,7 +96,7 @@ static track_list list_tracks(const struct vlc::media_cache::media_info &media_i
                 std::string name;
                 std::vector<vlc::media_cache::track> tracks;
 
-                if (video[v].type != vlc::media_cache::track_type::unknown)
+                if (video[v].type != vlc::track_type::unknown)
                 {
                     tracks.push_back(video[v]);
                     if (video.size() > 1)
@@ -108,7 +109,7 @@ static track_list list_tracks(const struct vlc::media_cache::media_info &media_i
                     }
                 }
 
-                if (audio[a].type != vlc::media_cache::track_type::unknown)
+                if (audio[a].type != vlc::track_type::unknown)
                 {
                     tracks.push_back(audio[a]);
                     if (audio.size() > 1)
@@ -125,7 +126,7 @@ static track_list list_tracks(const struct vlc::media_cache::media_info &media_i
                 if (!name.empty()) name += ", ";
                 name += std::to_string(t + 1) + ". ";
                 tracks.push_back(text[t]);
-                if (text[t].type != vlc::media_cache::track_type::unknown)
+                if (text[t].type != vlc::track_type::unknown)
                 {
                     if (!text[t].language.empty() && (text[t].language != "und"))
                         name += text[t].language + ' ' + tr("subtitles");
@@ -380,22 +381,203 @@ static void max_scale(const std::string &codec, unsigned srcw, unsigned srch, un
 
 bool files::correct_protocol(const pupnp::content_directory::item &item, pupnp::connection_manager::protocol &protocol)
 {
-    switch (settings.canvas_mode())
+    if ((settings.canvas_mode() == canvas_mode::none) || item.is_image())
     {
-    case canvas_mode::none:
         min_scale(
                     protocol.vcodec,
                     item.width, item.height,
                     protocol.width, protocol.height,
                     protocol.width, protocol.height);
-        break;
-
-    case canvas_mode::pad:
-    case canvas_mode::crop:
-        break;
     }
 
     return true;
+}
+
+int files::play_audio_video_item(
+        const std::string &source_address,
+        const pupnp::content_directory::item &item,
+        const pupnp::connection_manager::protocol &protocol,
+        std::string &content_type,
+        std::shared_ptr<std::istream> &response)
+{
+    using namespace std::placeholders;
+
+    float rate = 1.0f;
+    std::ostringstream transcode;
+    if (!protocol.acodec.empty() || !protocol.vcodec.empty())
+    {
+        // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
+        transcode << "#transcode{";
+
+        if (!protocol.vcodec.empty())
+        {
+            transcode << protocol.vcodec;
+
+            const float frame_rate = float(protocol.frame_rate_num) / float(protocol.frame_rate_den);
+            if (std::abs(frame_rate - item.frame_rate) > 0.3f)
+            {
+                transcode << ",fps=" << frame_rate;
+                //                    if (std::abs(protocol.frame_rate - item.frame_rate) < 1.5f)
+                //                        rate = protocol.frame_rate / item.frame_rate;
+            }
+
+            unsigned width = 0, height = 0;
+            switch (settings.canvas_mode())
+            {
+            case canvas_mode::none:
+                width = protocol.width;
+                height = protocol.height;
+                break;
+
+            case canvas_mode::pad:
+                min_scale(
+                            protocol.vcodec,
+                            unsigned((item.width / protocol.aspect) + 0.5f), item.height,
+                            protocol.width, protocol.height,
+                            width, height);
+                break;
+
+            case canvas_mode::crop:
+                max_scale(
+                            protocol.vcodec,
+                            unsigned((item.width / protocol.aspect) + 0.5f), item.height,
+                            protocol.width, protocol.height,
+                            width, height);
+                break;
+            }
+
+            transcode << ",width=" << protocol.width << ",height=" << protocol.height;
+
+            if ((width != protocol.width) || (height != protocol.height))
+            {
+                transcode
+                        << ",vfilter=canvas{width=" << protocol.width
+                        << ",height=" << protocol.height;
+
+                const float aspect = float(protocol.width * protocol.aspect) / float(protocol.height);
+                if (std::abs(aspect - 1.33333f) < 0.1f)
+                    transcode << ",aspect=4:3";
+                else if (std::abs(aspect - 1.77778f) < 0.1f)
+                    transcode << ",aspect=16:9";
+
+                transcode << ",padd=true}";
+            }
+
+            switch (settings.encode_mode())
+            {
+            case ::encode_mode::fast:
+                if (!protocol.fast_encode_options.empty())
+                    transcode << ',' << protocol.fast_encode_options;
+
+                break;
+
+            case ::encode_mode::slow:
+                if (!protocol.slow_encode_options.empty())
+                    transcode << ',' << protocol.slow_encode_options;
+
+                break;
+            }
+
+            transcode << ",soverlay";
+        }
+
+        if (!protocol.acodec.empty())
+        {
+            if (!protocol.vcodec.empty()) transcode << ',';
+
+            transcode
+                    << protocol.acodec
+                    << ",samplerate=" << protocol.sample_rate
+                    << ",channels=" << protocol.channels;
+        }
+
+        transcode << '}';
+    }
+
+    std::ostringstream opt;
+    if (item.chapter > 0)               opt << "@C" << item.chapter;
+    else if (item.position.count() > 0) opt << "@" << item.position.count();
+
+    // First try to attach to an already running stream.
+    response = connection_manager.try_attach_output_connection(protocol, item.mrl, source_address, opt.str());
+    if (!response)
+    {
+        std::clog << '[' << this << "] Creating new stream " << item.mrl << " transcode=" << transcode.str() << " mux=" << protocol.mux << std::endl;
+
+        struct vlc::transcode_stream::track_ids track_ids;
+        std::string file_path, track_name;
+        split_path(item.path, file_path, track_name);
+        const auto system_path = to_system_path(file_path);
+        auto media = vlc::media::from_file(vlc_instance, system_path.path);
+
+        for (auto &track : list_tracks(media_cache.media_info(media)))
+            if (track.first == track_name)
+                for (auto &t : track.second)
+                    switch (t.type)
+                    {
+                    case vlc::track_type::unknown:  break;
+                    case vlc::track_type::audio:    track_ids.audio = t.id; break;
+                    case vlc::track_type::video:    track_ids.video = t.id; break;
+                    case vlc::track_type::text:     track_ids.text  = t.id; break;
+                    }
+
+        std::unique_ptr<vlc::transcode_stream> stream(new vlc::transcode_stream(messageloop, vlc_instance));
+        const auto started = std::chrono::system_clock::now();
+        stream->on_playback_progress = std::bind(&files::playback_progress, this, item, started, _1);
+
+        const std::string vlc_mux = (protocol.mux == "m2ts") ? "ts" : protocol.mux;
+
+        if ((item.chapter > 0)
+                ? stream->open(item.mrl, item.chapter, track_ids, transcode.str(), vlc_mux, rate)
+                : stream->open(item.mrl, item.position, track_ids, transcode.str(), vlc_mux, rate))
+        {
+            std::shared_ptr<pupnp::connection_proxy> proxy;
+            if (protocol.mux == "ps")
+            {
+                std::unique_ptr<mpeg::ps_filter> filter(new mpeg::ps_filter(std::move(stream)));
+                proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter));
+            }
+            else if (protocol.mux == "m2ts")
+            {
+                std::unique_ptr<mpeg::m2ts_filter> filter(new mpeg::m2ts_filter(std::move(stream)));
+                proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter));
+            }
+            else
+                proxy = std::make_shared<pupnp::connection_proxy>(std::move(stream));
+
+            connection_manager.add_output_connection(proxy, protocol, item.mrl, source_address, opt.str());
+            response = proxy;
+        }
+    }
+
+    if (response)
+    {
+        content_type = protocol.content_format;
+        return pupnp::upnp::http_ok;
+    }
+
+    return pupnp::upnp::http_not_found;
+}
+
+int files::get_image_item(
+        const pupnp::content_directory::item &item,
+        const pupnp::connection_manager::protocol &protocol,
+        std::string &content_type,
+        std::shared_ptr<std::istream> &response)
+{
+    auto stream = std::make_shared<vlc::image_stream>(vlc_instance);
+    if (stream->open(
+                item.mrl,
+                protocol.width,
+                protocol.height))
+    {
+        content_type = protocol.content_format;
+        response = stream;
+
+        return pupnp::upnp::http_ok;
+    }
+
+    return pupnp::upnp::http_not_found;
 }
 
 int files::play_item(
@@ -405,164 +587,23 @@ int files::play_item(
         std::string &content_type,
         std::shared_ptr<std::istream> &response)
 {
-    using namespace std::placeholders;
-
-    auto protocol = connection_manager.get_protocol(profile, item.channels, item.width, item.frame_rate);
-    if (!protocol.profile.empty() && correct_protocol(item, protocol))
+    if (item.is_audio())
     {
-        float rate = 1.0f;
-        std::ostringstream transcode;
-        if (!protocol.acodec.empty() || !protocol.vcodec.empty())
-        {
-            // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
-            transcode << "#transcode{";
-
-            if (!protocol.vcodec.empty())
-            {
-                transcode << protocol.vcodec;
-
-                const float frame_rate = float(protocol.frame_rate_num) / float(protocol.frame_rate_den);
-                if (std::abs(frame_rate - item.frame_rate) > 0.3f)
-                {
-                    transcode << ",fps=" << frame_rate;
-                    //                    if (std::abs(protocol.frame_rate - item.frame_rate) < 1.5f)
-                    //                        rate = protocol.frame_rate / item.frame_rate;
-                }
-
-                unsigned width = 0, height = 0;
-                switch (settings.canvas_mode())
-                {
-                case canvas_mode::none:
-                    width = protocol.width;
-                    height = protocol.height;
-                    break;
-
-                case canvas_mode::pad:
-                    min_scale(
-                                protocol.vcodec,
-                                unsigned((item.width / protocol.aspect) + 0.5f), item.height,
-                                protocol.width, protocol.height,
-                                width, height);
-                    break;
-
-                case canvas_mode::crop:
-                    max_scale(
-                                protocol.vcodec,
-                                unsigned((item.width / protocol.aspect) + 0.5f), item.height,
-                                protocol.width, protocol.height,
-                                width, height);
-                    break;
-                }
-
-                transcode << ",width=" << protocol.width << ",height=" << protocol.height;
-
-                if ((width != protocol.width) || (height != protocol.height))
-                {
-                    transcode
-                            << ",vfilter=canvas{width=" << protocol.width
-                            << ",height=" << protocol.height;
-
-                    const float aspect = float(protocol.width * protocol.aspect) / float(protocol.height);
-                    if (std::abs(aspect - 1.33333f) < 0.1f)
-                        transcode << ",aspect=4:3";
-                    else if (std::abs(aspect - 1.77778f) < 0.1f)
-                        transcode << ",aspect=16:9";
-
-                    transcode << ",padd=true}";
-                }
-
-                switch (settings.encode_mode())
-                {
-                case ::encode_mode::fast:
-                    if (!protocol.fast_encode_options.empty())
-                        transcode << ',' << protocol.fast_encode_options;
-
-                    break;
-
-                case ::encode_mode::slow:
-                    if (!protocol.slow_encode_options.empty())
-                        transcode << ',' << protocol.slow_encode_options;
-
-                    break;
-                }
-
-                transcode << ",soverlay";
-            }
-
-            if (!protocol.acodec.empty())
-            {
-                if (!protocol.vcodec.empty()) transcode << ',';
-
-                transcode
-                        << protocol.acodec
-                        << ",samplerate=" << protocol.sample_rate
-                        << ",channels=" << protocol.channels;
-            }
-
-            transcode << '}';
-        }
-
-        std::ostringstream opt;
-        if (item.chapter > 0)               opt << "@C" << item.chapter;
-        else if (item.position.count() > 0) opt << "@" << item.position.count();
-
-        // First try to attach to an already running stream.
-        response = connection_manager.try_attach_output_connection(protocol, item.mrl, source_address, opt.str());
-        if (!response)
-        {
-            std::clog << '[' << this << "] Creating new stream " << item.mrl << " transcode=" << transcode.str() << " mux=" << protocol.mux << std::endl;
-
-            struct vlc::transcode_stream::track_ids track_ids;
-            std::string file_path, track_name;
-            split_path(item.path, file_path, track_name);
-            const auto system_path = to_system_path(file_path);
-            auto media = vlc::media::from_file(vlc_instance, system_path.path);
-
-            for (auto &track : list_tracks(media_cache.media_info(media)))
-                if (track.first == track_name)
-                    for (auto &t : track.second)
-                        switch (t.type)
-                        {
-                        case vlc::media_cache::track_type::unknown: break;
-                        case vlc::media_cache::track_type::audio:  track_ids.audio = t.id; break;
-                        case vlc::media_cache::track_type::video:  track_ids.video = t.id; break;
-                        case vlc::media_cache::track_type::text:   track_ids.text  = t.id; break;
-                        }
-
-            std::unique_ptr<vlc::transcode_stream> stream(new vlc::transcode_stream(messageloop, vlc_instance));
-            const auto started = std::chrono::system_clock::now();
-            stream->on_playback_progress = std::bind(&files::playback_progress, this, item, started, _1);
-
-            const std::string vlc_mux = (protocol.mux == "m2ts") ? "ts" : protocol.mux;
-
-            if ((item.chapter > 0)
-                    ? stream->open(item.mrl, item.chapter, track_ids, transcode.str(), vlc_mux, rate)
-                    : stream->open(item.mrl, item.position, track_ids, transcode.str(), vlc_mux, rate))
-            {
-                std::shared_ptr<pupnp::connection_proxy> proxy;
-                if (protocol.mux == "ps")
-                {
-                    std::unique_ptr<mpeg::ps_filter> filter(new mpeg::ps_filter(std::move(stream)));
-                    proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter));
-                }
-                else if (protocol.mux == "m2ts")
-                {
-                    std::unique_ptr<mpeg::m2ts_filter> filter(new mpeg::m2ts_filter(std::move(stream)));
-                    proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter));
-                }
-                else
-                    proxy = std::make_shared<pupnp::connection_proxy>(std::move(stream));
-
-                connection_manager.add_output_connection(proxy, protocol, item.mrl, source_address, opt.str());
-                response = proxy;
-            }
-        }
-
-        if (response)
-        {
-            content_type = protocol.content_format;
-            return pupnp::upnp::http_ok;
-        }
+        auto protocol = connection_manager.get_protocol(profile, item.channels);
+        if (!protocol.profile.empty() && correct_protocol(item, protocol))
+            return play_audio_video_item(source_address, item, protocol, content_type, response);
+    }
+    else if (item.is_video())
+    {
+        auto protocol = connection_manager.get_protocol(profile, item.channels, item.width, item.frame_rate);
+        if (!protocol.profile.empty() && correct_protocol(item, protocol))
+            return play_audio_video_item(source_address, item, protocol, content_type, response);
+    }
+    else if (item.is_image())
+    {
+        auto protocol = connection_manager.get_protocol(profile, item.width, item.height);
+        if (!protocol.profile.empty() && correct_protocol(item, protocol))
+            return get_image_item(item, protocol, content_type, response);
     }
 
     return pupnp::upnp::http_not_found;
@@ -570,23 +611,24 @@ int files::play_item(
 
 static void fill_item(
         pupnp::content_directory::item &item,
+        vlc::media_type media_type,
         const class vlc::media_cache::media_info &media_info,
         const std::vector<vlc::media_cache::track> &tracks,
-        path_type type)
+        ::path_type path_type)
 {
     for (auto &track : tracks)
         switch (track.type)
         {
-        case vlc::media_cache::track_type::unknown:
+        case vlc::track_type::unknown:
             break;
 
-        case vlc::media_cache::track_type::audio:
-            if (!item.is_audio() && !item.is_video())
-                switch (type)
+        case vlc::track_type::audio:
+            if (media_type == vlc::media_type::audio)
+                switch (path_type)
                 {
-                case path_type::auto_:
-                case path_type::pictures:
-                case path_type::videos:
+                case ::path_type::auto_:
+                case ::path_type::pictures:
+                case ::path_type::videos:
                     if (item.duration >= std::chrono::minutes(50))
                         item.type = pupnp::content_directory::item_type::audio_book;
                     else if (item.duration < std::chrono::minutes(5))
@@ -596,20 +638,23 @@ static void fill_item(
 
                     break;
 
-                case path_type::music:      item.type = pupnp::content_directory::item_type::music;  break;
+                case ::path_type::music:
+                    item.type = pupnp::content_directory::item_type::music;
+                    break;
                 }
 
             item.sample_rate = track.audio.sample_rate;
             item.channels = track.audio.channels;
             break;
 
-        case vlc::media_cache::track_type::video:
-            if (!item.is_video())
-                switch (type)
+        case vlc::track_type::video:
+            if (media_type == vlc::media_type::video)
+            {
+                switch (path_type)
                 {
-                case path_type::auto_:
-                case path_type::pictures:
-                case path_type::videos:
+                case ::path_type::auto_:
+                case ::path_type::pictures:
+                case ::path_type::videos:
                     if (item.duration >= std::chrono::minutes(50))
                         item.type = pupnp::content_directory::item_type::movie;
                     else
@@ -617,15 +662,34 @@ static void fill_item(
 
                     break;
 
-                case path_type::music: item.type = pupnp::content_directory::item_type::music_video; break;
+                case ::path_type::music:
+                    item.type = pupnp::content_directory::item_type::music_video;
+                    break;
                 }
+
+                item.frame_rate = track.video.frame_rate;
+            }
+            else if (media_type == vlc::media_type::picture)
+            {
+                switch (path_type)
+                {
+                case ::path_type::auto_:
+                case ::path_type::music:
+                case ::path_type::videos:
+                    item.type = pupnp::content_directory::item_type::image;
+                    break;
+
+                case ::path_type::pictures:
+                    item.type = pupnp::content_directory::item_type::photo;
+                    break;
+                }
+            }
 
             item.width = track.video.width;
             item.height = track.video.height;
-            item.frame_rate = track.video.frame_rate;
             break;
 
-        case vlc::media_cache::track_type::text:
+        case vlc::track_type::text:
             break;
         }
 
@@ -729,9 +793,8 @@ pupnp::content_directory::item files::make_item(const std::string &client, const
         const auto system_path = to_system_path(file_path);
         auto media = vlc::media::from_file(vlc_instance, system_path.path);
 
-        const auto type = media_cache.media_type(media);
-        if ((type == vlc::media_cache::track_type::audio) ||
-            (type == vlc::media_cache::track_type::video))
+        const auto media_type = media_cache.media_type(media);
+        if (media_type != vlc::media_type::unknown)
         {
             if (!fast)
             {
@@ -748,7 +811,7 @@ pupnp::content_directory::item files::make_item(const std::string &client, const
                             item.mrl = media.mrl();
                             item.uuid = uuid;
 
-                            fill_item(item, media_info, track.second, system_path.type);
+                            fill_item(item, media_type, media_info, track.second, system_path.type);
                             break;
                         }
                 }
@@ -763,10 +826,10 @@ pupnp::content_directory::item files::make_item(const std::string &client, const
                 {
                     item.mrl = media.mrl();
                     item.uuid = uuid;
-                    fill_item(item, media_info, tracks.front().second, system_path.type);
+                    fill_item(item, media_type, media_info, tracks.front().second, system_path.type);
                 }
             }
-            else if ((type != vlc::media_cache::track_type::video) ||
+            else if ((media_type != vlc::media_type::video) ||
                      (system_path.type == path_type::music) ||
                      (system_path.type == path_type::pictures))
             {
@@ -774,7 +837,7 @@ pupnp::content_directory::item files::make_item(const std::string &client, const
 
                 item.mrl = media.mrl();
                 item.uuid = media_cache.uuid(item.mrl);
-                fill_item(item, media_info, media_info.tracks, system_path.type);
+                fill_item(item, media_type, media_info, media_info.tracks, system_path.type);
             }
             else
             {

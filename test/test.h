@@ -1,10 +1,15 @@
 #ifndef TEST_H
 #define TEST_H
 
+#include <functional>
+
 struct test
 {
-    test(const char *name, void(* func)())
-        : name(name), func(func), previous(current)
+    template <class _object>
+    test(_object *parent, const char *name, void(_object::*func)())
+        : name(name),
+          func(std::bind(func, parent)),
+          previous(current)
     {
         current = this;
     }
@@ -12,7 +17,7 @@ struct test
     static void assert_fail(const char *, const char *, unsigned int, const char *);
 
     const char * const name;
-    void(* func)();
+    std::function<void()> func;
     struct test *previous;
     static struct test *current;
 };

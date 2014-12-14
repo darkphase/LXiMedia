@@ -7,13 +7,13 @@ namespace vlc {
 static const struct instance_test
 {
     instance_test()
-        : compare_version_test("vlc::instance::compare_version", &instance_test::compare_version),
-          instance_test_("vlc::instance::libvlc_instance_t", &instance_test::instance)
+        : compare_version_test(this, "vlc::instance::compare_version", &instance_test::compare_version),
+          instance_test_(this, "vlc::instance::libvlc_instance_t", &instance_test::instance)
     {
     }
 
     struct test compare_version_test;
-    static void compare_version()
+    void compare_version()
     {
         int major = 0, minor = 0, patch = 0;
         test_assert(sscanf(libvlc_get_version(), "%d.%d.%d", &major, &minor, &patch) == 3);
@@ -32,7 +32,7 @@ static const struct instance_test
     }
 
     struct test instance_test_;
-    static void instance()
+    void instance()
     {
         class instance instance;
         test_assert(static_cast< ::libvlc_instance_t *>(instance) != nullptr);

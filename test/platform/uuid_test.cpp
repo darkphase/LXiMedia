@@ -4,13 +4,13 @@
 static const struct uuid_test
 {
     uuid_test()
-        : generate_test("uuid::generate", &uuid_test::generate),
-          string_test("uuid::string", &uuid_test::string)
+        : generate_test(this, "uuid::generate", &uuid_test::generate),
+          string_test(this, "uuid::string", &uuid_test::string)
     {
     }
 
     struct test generate_test;
-    static void generate()
+    void generate()
     {
         const auto uuid1 = platform::uuid::generate();
         test_assert(!uuid1.is_null());
@@ -23,7 +23,7 @@ static const struct uuid_test
     }
 
     struct test string_test;
-    static void string()
+    void string()
     {
         const auto uuid1 = platform::uuid::generate();
         test_assert(!uuid1.is_null());

@@ -15,24 +15,37 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#include "resource_file.h"
-#include "platform/fstream.h"
-#include "platform/path.h"
-#include <stdexcept>
+#ifndef VLC_IMAGE_STREAM_H
+#define VLC_IMAGE_STREAM_H
 
-namespace resources {
+#include "platform/messageloop.h"
+#include <istream>
+#include <memory>
+#include <string>
+#include <sstream>
 
-resource_file::resource_file(const unsigned char *data, size_t size, const std::string &suffix)
-    : filename(platform::temp_file_path(suffix))
+namespace vlc {
+
+class instance;
+
+class image_stream : public std::istream
 {
-    platform::ofstream str(filename, std::ios::binary);
-    if (str.is_open())
-        str.write(reinterpret_cast<const char *>(data), size);
-}
+public:
+    explicit image_stream(class instance &);
+    ~image_stream();
 
-resource_file::~resource_file()
-{
-    platform::remove_file(filename);
-}
+    bool open(
+            const std::string &mrl,
+            unsigned width, unsigned height);
 
-}
+    void close();
+
+private:
+    class instance &instance;
+
+    std::unique_ptr<std::stringstream> stream;
+};
+
+} // End of namespace
+
+#endif

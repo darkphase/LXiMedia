@@ -17,6 +17,7 @@
 
 #include "path.h"
 #include "string.h"
+#include "uuid.h"
 #include <algorithm>
 #include <map>
 #include <mutex>
@@ -222,6 +223,16 @@ std::string file_date(const std::string &path)
     return std::string();
 }
 
+std::string temp_file_path(const std::string &suffix)
+{
+    return std::string("/tmp/") + std::string(uuid::generate()) + '.' + suffix;
+}
+
+void remove_file(const std::string &path)
+{
+    remove(path.c_str());
+}
+
 std::string home_dir()
 {
     const char *home = getenv("HOME");
@@ -338,6 +349,10 @@ static const std::unordered_set<std::wstring> & hidden_dirs()
         if (dir) hidden_dirs.insert(to_lower(clean_path(dir)));
         dir = _wgetenv(L"windir");
         if (dir) hidden_dirs.insert(to_lower(clean_path(dir)));
+
+        wchar_t temp_path[MAX_PATH];
+        if (GetTempPath(sizeof(temp_path) / sizeof(*temp_path), temp_path) > 0)
+            hidden_dirs.insert(to_lower(clean_path(temp_path)));
     });
 
     return hidden_dirs;
@@ -500,6 +515,24 @@ std::string file_date(const std::string &path)
     }
 
     return std::string();
+}
+
+std::string temp_file_path(const std::string &suffix)
+{
+    wchar_t temp_path[MAX_PATH];
+    if (GetTempPath(sizeof(temp_path) / sizeof(*temp_path), temp_path) > 0)
+    {
+        return platform::from_windows_path(
+                    std::wstring(temp_path) + L'\\' +
+                    platform::to_windows_path(std::string(uuid::generate()) + '.' + suffix));
+    }
+
+    throw std::runtime_error("failed to get temp directory");
+}
+
+void remove_file(const std::string &path)
+{
+    _wremove(platform::to_windows_path(path).c_str());
 }
 
 std::string home_dir()

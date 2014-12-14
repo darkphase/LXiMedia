@@ -12,12 +12,12 @@ static const unsigned char sha1_ref[]
 static const struct sha1_test
 {
     sha1_test()
-        : calc_test("sha1::calc", &sha1_test::calc)
+        : calc_test(this, "sha1::calc", &sha1_test::calc)
     {
     }
 
     struct test calc_test;
-    static void calc()
+    void calc()
     {
         unsigned char hash[20];
         sha1::calc(sha1_src, sizeof(sha1_src) - 1, hash);
