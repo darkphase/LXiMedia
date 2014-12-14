@@ -1,5 +1,5 @@
 #include "test.h"
-#include "platform/sha1.cpp"
+#include "sha1/sha1.cpp"
 #include <cstring>
 
 static const char sha1_src[] = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
