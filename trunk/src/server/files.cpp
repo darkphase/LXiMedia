@@ -568,6 +568,7 @@ int files::get_image_item(
     auto stream = std::make_shared<vlc::image_stream>(vlc_instance);
     if (stream->open(
                 item.mrl,
+                protocol.content_format,
                 protocol.width,
                 protocol.height))
     {

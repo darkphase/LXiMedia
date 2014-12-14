@@ -74,9 +74,21 @@ aux_source_directory(ext/miniz/ MINIZ_SRC_LIST)
 
 set_source_files_properties(
     ${MINIZ_SRC_LIST}
-    PROPERTIES COMPILE_FLAGS "-std=gnu99")
+    PROPERTIES COMPILE_FLAGS "-std=gnu99 -O3")
 
 add_library(miniz STATIC ${MINIZ_SRC_LIST})
+
+#######################################
+# Compile JPGE
+include_directories(SYSTEM ext/jpge)
+
+aux_source_directory(ext/jpge/ JPGE_SRC_LIST)
+
+set_source_files_properties(
+    ${JPGE_SRC_LIST}
+    PROPERTIES COMPILE_FLAGS "-std=c++03 -O3")
+
+add_library(jpge STATIC ${JPGE_SRC_LIST})
 
 #######################################
 # lximediaserver
@@ -113,7 +125,7 @@ target_include_directories(
     lximediaserver PRIVATE
     ${CMAKE_SOURCE_DIR}/src)
 
-target_link_libraries(lximediaserver pupnp miniz)
+target_link_libraries(lximediaserver pupnp jpge miniz)
 if(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
     target_link_libraries(lximediaserver uuid vlc pthread)
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
