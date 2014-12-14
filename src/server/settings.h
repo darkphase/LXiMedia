@@ -40,6 +40,7 @@ public:
 
     void save();
 
+    bool was_clean_exit() const;
     bool is_configure_required() const;
     void set_configure_required(bool);
 
@@ -94,6 +95,8 @@ private:
     class platform::inifile::section paths;
     class platform::timer timer;
     const std::chrono::milliseconds save_delay;
+
+    bool last_clean_exit;
 };
 
 #endif

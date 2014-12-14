@@ -28,6 +28,8 @@
 struct user_dirs { std::string download, music, pictures, videos; };
 static struct user_dirs user_dirs();
 
+static const char clean_exit_name[] = "_clean_exit";
+
 settings::settings(class platform::messageloop_ref &messageloop)
     : messageloop(messageloop),
       inifile(platform::config_dir() + "/settings"),
@@ -36,19 +38,28 @@ settings::settings(class platform::messageloop_ref &messageloop)
       formats(inifile.open_section("formats")),
       paths(inifile.open_section("paths")),
       timer(messageloop, std::bind(&settings::save, this)),
-      save_delay(250)
+      save_delay(250),
+      last_clean_exit(general.read(clean_exit_name, true))
 {
     inifile.on_touched = [this] { timer.start(save_delay, true); };
+
+    general.write(clean_exit_name, false);
 }
 
 settings::~settings()
 {
+    general.erase(clean_exit_name);
 }
 
 void settings::save()
 {
     timer.stop();
     inifile.save();
+}
+
+bool settings::was_clean_exit() const
+{
+    return last_clean_exit;
 }
 
 static const char is_configure_required_name[] = "is_configure_required";
