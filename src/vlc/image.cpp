@@ -16,10 +16,6 @@
  ******************************************************************************/
 
 #include "image.h"
-#include <jpge.h>
-#include <endian.h>
-
-extern "C" int mz_compress(unsigned char *pDest, unsigned long *pDest_len, const unsigned char *pSource, unsigned long source_len);
 
 namespace vlc {
 
@@ -94,7 +90,12 @@ void image::swap_rb()
     }
 }
 
-bool image::save_jpeg(std::ostream &out) const
+} // End of namespace
+
+
+#include <jpge.h>
+
+bool vlc::image::save_jpeg(std::ostream &out) const
 {
     return jpge::compress_image_to_jpeg_file_in_memory(
                 out,
@@ -102,6 +103,30 @@ bool image::save_jpeg(std::ostream &out) const
                 4,
                 reinterpret_cast<const jpge::uint8 *>(scan_line(0)));
 }
+
+
+#if defined(__unix__)
+# include <endian.h>
+#else
+#define __bswap_16(x) \
+     ((((x) >> 8) & 0x00FFu) | (((x) & 0x00FFu) << 8))
+
+# define htobe16(x) __bswap_16 (x)
+# define htole16(x) (x)
+# define be16toh(x) __bswap_16 (x)
+# define le16toh(x) (x)
+
+#define __bswap_32(x) \
+     ((((x) & 0xFF000000u) >> 24) | (((x) & 0x00FF0000u) >>  8) | \
+      (((x) & 0x0000FF00u) <<  8) | (((x) & 0x000000FFu) << 24))
+
+# define htobe32(x) __bswap_32 (x)
+# define htole32(x) (x)
+# define be32toh(x) __bswap_32 (x)
+# define le32toh(x) (x)
+#endif
+
+extern "C" int mz_compress(unsigned char *pDest, unsigned long *pDest_len, const unsigned char *pSource, unsigned long source_len);
 
 static uint32_t crc_table[256];
 static struct _Crc
@@ -127,7 +152,7 @@ static uint32_t calc_crc(const void *buf, size_t len, uint32_t crc = 0xFFFFFFFF)
     return crc;
 }
 
-bool image::save_png(std::ostream &out) const
+bool vlc::image::save_png(std::ostream &out) const
 {
     {
         static const uint8_t png_header[] = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
@@ -192,5 +217,3 @@ bool image::save_png(std::ostream &out) const
 
     return true;
 }
-
-} // End of namespace
