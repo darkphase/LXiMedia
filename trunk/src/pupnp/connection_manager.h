@@ -144,7 +144,8 @@ public:
             unsigned sample_rate, unsigned channels,
             const char *acodec, const char *mux);
 
-    void add_source_video_protocol(const char *name,
+    void add_source_video_protocol(
+            const char *name,
             const char *mime, const char *suffix,
             unsigned sample_rate, unsigned channels,
             unsigned width, unsigned height, float aspect,
@@ -152,10 +153,17 @@ public:
             const char *acodec, const char *vcodec, const char *mux,
             const char *fast_encode_options, const char *slow_encode_options);
 
+    void add_source_image_protocol(
+            const char *name,
+            const char *mime, const char *suffix,
+            unsigned width, unsigned height);
+
     std::vector<protocol> get_protocols(unsigned channels) const;
     std::vector<protocol> get_protocols(unsigned channels, unsigned width, float frame_rate) const;
+    std::vector<protocol> get_protocols(unsigned width, unsigned height) const;
     protocol get_protocol(const std::string &profile, unsigned num_channels) const;
     protocol get_protocol(const std::string &profile, unsigned num_channels, unsigned width, float frame_rate) const;
+    protocol get_protocol(const std::string &profile, unsigned width, unsigned height) const;
 
     void add_output_connection(
             const std::shared_ptr<class connection_proxy> &,
@@ -196,6 +204,7 @@ private:
 
     std::vector<protocol> source_audio_protocol_list;
     std::vector<protocol> source_video_protocol_list;
+    std::vector<protocol> source_image_protocol_list;
 
     std::vector<protocol> sink_protocol_list;
 

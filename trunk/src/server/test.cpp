@@ -39,11 +39,11 @@ test::test(
       connection_manager(connection_manager),
       content_directory(content_directory),
       settings(settings),
-      a440hz_flac(resources::a440hz_flac, ".flac"),
+      a440hz_flac(resources::a440hz_flac, "flac"),
       a440hz_flac_media(vlc::media::from_file(vlc_instance, a440hz_flac)),
-      pm5544_png(resources::pm5544_png, ".png"),
+      pm5544_png(resources::pm5544_png, "png"),
       pm5544_png_media(vlc::media::from_file(vlc_instance, pm5544_png)),
-      pm5644_png(resources::pm5644_png, ".png"),
+      pm5644_png(resources::pm5644_png, "png"),
       pm5644_png_media(vlc::media::from_file(vlc_instance, pm5644_png))
 {
     content_directory.item_source_register("/", *this);

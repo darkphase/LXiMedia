@@ -34,11 +34,12 @@ namespace vlc {
 
 class media;
 
+enum class track_type { unknown, audio, video, text };
+enum class media_type { unknown, audio, video, picture };
+
 class media_cache
 {
 public:
-    enum class track_type { unknown, audio, video, text };
-
     struct track
     {
         track();
@@ -77,7 +78,7 @@ private:
         bool media_info_read;
 
         platform::uuid uuid;
-        track_type media_type;
+        enum media_type media_type;
         struct media_info media_info;
     };
 
@@ -86,7 +87,7 @@ public:
     ~media_cache();
 
     platform::uuid uuid(const std::string &) const;
-    track_type media_type(class media &) const;
+    enum media_type media_type(class media &) const;
     struct media_info media_info(class media &) const;
 
 private:

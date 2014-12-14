@@ -15,24 +15,40 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#include "resource_file.h"
-#include "platform/fstream.h"
-#include "platform/path.h"
-#include <stdexcept>
+#include "server.h"
+#include "pupnp/upnp.h"
 
-namespace resources {
-
-resource_file::resource_file(const unsigned char *data, size_t size, const std::string &suffix)
-    : filename(platform::temp_file_path(suffix))
+void server::add_image_protocols()
 {
-    platform::ofstream str(filename, std::ios::binary);
-    if (str.is_open())
-        str.write(reinterpret_cast<const char *>(data), size);
-}
+    const auto video_mode = settings.video_mode();
+    const bool has_dvd              = (video_mode == ::video_mode::auto_) || (video_mode == ::video_mode::dvd       );
+    const bool has_hdtv_720         = (video_mode == ::video_mode::auto_) || (video_mode == ::video_mode::hdtv_720  );
+    const bool has_hdtv_1080        = (video_mode == ::video_mode::auto_) || (video_mode == ::video_mode::hdtv_1080 );
 
-resource_file::~resource_file()
-{
-    platform::remove_file(filename);
-}
+    connection_manager.add_source_image_protocol(
+                "PNG_TN",
+                pupnp::upnp::mime_image_png, "png",
+                160, 160);
 
+    if (has_hdtv_1080)
+    {
+        connection_manager.add_source_image_protocol(
+                    "PNG_LRG",
+                    pupnp::upnp::mime_image_png, "png",
+                    1920, 1080);
+    }
+    else if (has_hdtv_720)
+    {
+        connection_manager.add_source_image_protocol(
+                    "PNG_LRG",
+                    pupnp::upnp::mime_image_png, "png",
+                    1280, 720);
+    }
+    else if (has_dvd)
+    {
+        connection_manager.add_source_image_protocol(
+                    "PNG_LRG",
+                    pupnp::upnp::mime_image_png, "png",
+                    768, 576);
+    }
 }

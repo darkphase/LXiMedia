@@ -687,6 +687,7 @@ void content_directory::add_file(action_browse &action, const std::string &host,
         std::vector<connection_manager::protocol> protocols;
         if (item.is_audio())  protocols = connection_manager.get_protocols(item.channels);
         if (item.is_video())  protocols = connection_manager.get_protocols(item.channels, item.width, item.frame_rate);
+        if (item.is_image())  protocols = connection_manager.get_protocols(item.width, item.height);
 
         for (auto protocol : protocols)
             if (item_source.correct_protocol(item, protocol))

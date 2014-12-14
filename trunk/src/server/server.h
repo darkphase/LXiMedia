@@ -69,6 +69,7 @@ private:
     void force_apply_settings();
     void add_audio_protocols();
     void add_video_protocols();
+    void add_image_protocols();
 
 private:
     class platform::messageloop_ref messageloop;

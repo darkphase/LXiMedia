@@ -71,6 +71,7 @@ bool server::initialize()
 
     add_audio_protocols();
     add_video_protocols();
+    add_image_protocols();
 
     if (upnp.initialize(settings.http_port(), settings.bind_all_networks()))
     {

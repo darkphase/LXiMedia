@@ -5,13 +5,13 @@
 static const struct path_test
 {
     path_test()
-        : list_root_directories_test("path::list_root_directories", &path_test::list_root_directories),
-          list_files_test("path::list_files", &path_test::list_files)
+        : list_root_directories_test(this, "path::list_root_directories", &path_test::list_root_directories),
+          list_files_test(this, "path::list_files", &path_test::list_files)
     {
     }
 
     struct test list_root_directories_test;
-    static void list_root_directories()
+    void list_root_directories()
     {
         const auto dirs = platform::list_root_directories();
 #if defined(__unix__)
@@ -21,7 +21,7 @@ static const struct path_test
     }
 
     struct test list_files_test;
-    static void list_files()
+    void list_files()
     {
         for (const auto &i : platform::list_root_directories())
         {

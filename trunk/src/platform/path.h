@@ -35,6 +35,9 @@ std::vector<std::string> list_removable_media();
 
 std::string file_date(const std::string &path);
 
+std::string temp_file_path(const std::string &suffix);
+void remove_file(const std::string &);
+
 std::string home_dir();
 std::string config_dir();
 

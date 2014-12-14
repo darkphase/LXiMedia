@@ -1,23 +1,27 @@
 #include "test.h"
 #include "platform/inifile.cpp"
+#include "platform/path.h"
 #include <cstdio>
 
 static std::string filename();
 
 static const struct inifile_test
 {
+    const std::string filename;
+
     inifile_test()
-        : loopback_test("inifile::loopback", &inifile_test::loopback)
+        : filename(platform::temp_file_path("ini")),
+          loopback_test(this, "inifile::loopback", &inifile_test::loopback)
     {
     }
 
     ~inifile_test()
     {
-        ::remove(filename().c_str());
+        ::remove(filename.c_str());
     }
 
     struct test loopback_test;
-    static void loopback()
+    void loopback()
     {
         static const char data[] =
                 "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor\n"
@@ -27,7 +31,6 @@ static const struct inifile_test
                 "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt\n"
                 "mollit anim id est laborum.";
 
-        const std::string filename = ::filename();
         {
             platform::inifile out(filename);
             out.open_section("section[1]\\").write("string=", data);
@@ -46,25 +49,3 @@ static const struct inifile_test
         }
     }
 } inifile_test;
-
-#if defined(__unix__) || defined(__APPLE__)
-#include <unistd.h>
-
-static std::string filename()
-{
-    return "/tmp/" + std::to_string(getpid()) + ".inifile_test.ini";
-}
-#elif defined(WIN32)
-#include <cstdlib>
-#include <process.h>
-#include "platform/path.h"
-
-static std::string filename()
-{
-    const wchar_t * const temp = _wgetenv(L"TEMP");
-    if (temp)
-        return platform::from_windows_path(std::wstring(temp) + L'\\' + std::to_wstring(_getpid()) + L".inifile_test.ini");
-
-    throw std::runtime_error("failed to get TEMP directory");
-}
-#endif

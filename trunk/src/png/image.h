@@ -15,24 +15,38 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#include "resource_file.h"
-#include "platform/fstream.h"
-#include "platform/path.h"
-#include <stdexcept>
+#ifndef PNG_IMAGE_H
+#define PNG_IMAGE_H
 
-namespace resources {
+#include <cstdint>
+#include <ostream>
+#include <vector>
 
-resource_file::resource_file(const unsigned char *data, size_t size, const std::string &suffix)
-    : filename(platform::temp_file_path(suffix))
+namespace png {
+
+class image
 {
-    platform::ofstream str(filename, std::ios::binary);
-    if (str.is_open())
-        str.write(reinterpret_cast<const char *>(data), size);
-}
+public:
+    image();
+    image(unsigned width, unsigned height);
+    image(image &&);
+    image(const image &) = delete;
+    ~image();
 
-resource_file::~resource_file()
-{
-    platform::remove_file(filename);
-}
+    image & operator=(const image &) = delete;
+    image & operator=(image &&);
 
-}
+    const uint32_t * scan_line(unsigned y) const;
+    uint32_t * scan_line(unsigned y);
+
+    bool save(std::ostream &) const;
+
+private:
+    static const unsigned align = 32;
+    unsigned width, height;
+    std::vector<uint32_t> pixels;
+};
+
+} // End of namespace
+
+#endif

@@ -5,15 +5,15 @@
 static const struct messageloop_test
 {
     messageloop_test()
-        : post_test("messageloop::post", &messageloop_test::post),
-          send_test("messageloop::send", &messageloop_test::send),
-          process_events_test("messageloop::process_events", &messageloop_test::process_events),
-          timer_test("messageloop::timer", &messageloop_test::timer)
+        : post_test(this, "messageloop::post", &messageloop_test::post),
+          send_test(this, "messageloop::send", &messageloop_test::send),
+          process_events_test(this, "messageloop::process_events", &messageloop_test::process_events),
+          timer_test(this, "messageloop::timer", &messageloop_test::timer)
     {
     }
 
     struct test post_test;
-    static void post()
+    void post()
     {
         class platform::messageloop messageloop;
         class platform::messageloop_ref messageloop_ref(messageloop);
@@ -22,7 +22,7 @@ static const struct messageloop_test
     }
 
     struct test send_test;
-    static void send()
+    void send()
     {
         class platform::messageloop messageloop;
 
@@ -39,7 +39,7 @@ static const struct messageloop_test
     }
 
     struct test process_events_test;
-    static void process_events()
+    void process_events()
     {
         class platform::messageloop messageloop;
         class platform::messageloop_ref messageloop_ref(messageloop);
@@ -52,7 +52,7 @@ static const struct messageloop_test
     }
 
     struct test timer_test;
-    static void timer()
+    void timer()
     {
 #if defined(__unix__)
         static const int granularity = 8;
