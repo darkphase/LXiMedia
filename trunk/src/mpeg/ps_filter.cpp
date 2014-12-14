@@ -43,6 +43,7 @@ ps_filter::ps_filter(std::unique_ptr<std::istream> &&input)
     : std::istream(new class streambuf(*this)),
       input(std::move(input)),
       stream_finished(false),
+      end_code_sent(false),
       clock_offset(-1),
       pack_header_interval(max_pack_header_interval - 3000),
       next_pack_header(90000)
@@ -212,7 +213,7 @@ std::list<ps_packet> ps_filter::read_pack()
         {
             filter_packet();
         }
-        else // Stream finished
+        else if (!end_code_sent) // Stream finished
         {
 #ifdef DEBUG_OUTPUT
             std::cout << "finished stream" << std::endl;
@@ -222,10 +223,13 @@ std::list<ps_packet> ps_filter::read_pack()
             buffer[0] = 0x00; buffer[1] = 0x00; buffer[2] = 0x01;
             buffer[3] = uint8_t(stream_type::end_code);
             pack.emplace_back(std::move(buffer));
+            end_code_sent = true;
 
             finish_pack(pack, next_pack_header - pack_header_delay);
             break;
         }
+        else
+            break;
     }
 
     return std::move(pack);
