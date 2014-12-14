@@ -77,6 +77,10 @@ static int run_server(
     };
 
     server::recreate_server();
+
+    if (!settings.was_clean_exit())
+        platform::timer::single_shot(messageloop_ref, std::chrono::seconds(1), server::recreate_server);
+
     if (open_browser)
     {
         auto addresses = server_ptr->bound_addresses();
