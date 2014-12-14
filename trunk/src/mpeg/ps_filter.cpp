@@ -132,7 +132,7 @@ std::list<ps_packet> ps_filter::read_pack()
                         const uint64_t ts = get_timestamp(i.second.front());
                         if (ts != uint64_t(-1))
                             while (!lstream->empty() &&
-                                   ((int64_t(ts) - int64_t(get_timestamp(lstream->front()))) > 15000))
+                                   ((int64_t(ts) - int64_t(get_timestamp(lstream->front()))) > 22500))
                             {
                                 lstream->pop_front();
                             }

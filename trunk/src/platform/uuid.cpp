@@ -92,6 +92,8 @@ uuid::operator std::string() const
 
 }
 #elif defined(WIN32)
+#include <cstdlib>
+#include <ctime>
 #include <stdexcept>
 #include <rpc.h>
 
@@ -120,6 +122,13 @@ static struct uuid convert(const UUID &from)
 
 static struct uuid make_random()
 {
+    static bool seeded = false;
+    if (!seeded)
+    {
+        srand((unsigned int)time(nullptr));
+        seeded = true;
+    }
+
     struct uuid uuid;
 
     for (unsigned i = 0; i < sizeof(uuid.value); i++)
