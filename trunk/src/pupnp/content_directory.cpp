@@ -469,10 +469,8 @@ void content_directory::close(void)
 
     objectid_list.clear();
     objectid_map.clear();
-    objecturl_list.clear();
-    objecturl_map.clear();
-    objectprofile_list.clear();
-    objectprofile_map.clear();
+    object_uuid_to_path.clear();
+    object_path_to_uuid.clear();
 
     objectid_list.push_back(std::string());
     objectid_map[objectid_list.back()] = objectid_list.size() - 1;
@@ -557,10 +555,13 @@ int content_directory::http_request(const upnp::request &request, std::string &c
 {
     if (starts_with(request.url.path, basedir))
     {
-        std::string profile;
-        const std::string path = from_objectpath(request.url.path, profile);
-        if (!path.empty())
+        const std::string combined_path = from_objectpath(request.url.path);
+        const size_t colon = combined_path.find_first_of(':');
+        if (colon != combined_path.npos)
         {
+            const std::string profile = combined_path.substr(0, colon);
+            const std::string path = combined_path.substr(colon + 1);
+
             auto item_source = item_sources.find(path);
             for (std::string i=path; !i.empty() && (item_source == item_sources.end()); i=parentpath(i))
                 item_source = item_sources.find(i);
@@ -694,7 +695,7 @@ void content_directory::add_file(action_browse &action, const std::string &host,
             {
                 upnp::url url;
                 url.host = host;
-                url.path = to_objectpath(path, item.uuid, protocol.profile, protocol.suffix);
+                url.path = to_objectpath(item.uuid, protocol.profile + ':' + path, protocol.suffix);
                 browse_item.files.push_back(std::make_pair(url, protocol));
             }
     }
@@ -789,68 +790,50 @@ std::string content_directory::from_objectid(const std::string &id_str)
     }
 }
 
-std::string content_directory::to_objectpath(const std::string &path, const platform::uuid &uuid, const std::string &profile, const std::string &suffix)
+std::string content_directory::to_objectpath(const platform::uuid &base_uuid, const std::string &path, const std::string &suffix)
 {
-    size_t profile_id = 0;
+    platform::uuid uuid;
     {
-        auto i = objectprofile_map.find(profile);
-        if (i == objectprofile_map.end())
+        auto i = object_path_to_uuid.find(path);
+        if (i == object_path_to_uuid.end())
         {
-            objectprofile_list.push_back(profile);
-            objectprofile_list.back().shrink_to_fit();
-            objectprofile_map[objectprofile_list.back()] = profile_id = objectprofile_list.size() - 1;
+            for (uint16_t i = 0; i != uint16_t(-1); i++)
+            {
+                platform::uuid u = base_uuid;
+                u.value[4] ^= uint8_t(i >> 8);
+                u.value[5] ^= uint8_t(i & 0xFF);
+
+                auto j = object_uuid_to_path.find(u);
+                if (j == object_uuid_to_path.end())
+                {
+                    object_uuid_to_path.emplace(u, path);
+                    uuid = u;
+                    break;
+                }
+            }
         }
         else
-            profile_id = i->second;
+            uuid = i->second;
     }
 
-    size_t path_id = 0;
-    {
-        auto i = objecturl_map.find(path);
-        if (i == objecturl_map.end())
-        {
-            objecturl_list.push_back(path);
-            objecturl_list.back().shrink_to_fit();
-            objecturl_map[objecturl_list.back()] = path_id = objecturl_list.size() - 1;
-        }
-        else
-            path_id = i->second;
-    }
+    if (!uuid.is_null())
+        return basedir + std::string(uuid) + '.' + suffix;
 
-    std::ostringstream str;
-    str << basedir << std::string(uuid) << '/'
-        << std::hex << std::setfill('0')
-        << std::setw(5) << path_id << '-'
-        << std::setw(2) << profile_id << '.' << suffix;
-    return str.str();
+    return std::string();
 }
 
-std::string content_directory::from_objectpath(const std::string &path, std::string &profile)
+std::string content_directory::from_objectpath(const std::string &path)
 {
     const size_t ls = path.find_last_of('/');
     if (ls != path.npos)
     {
-        const size_t dash = path.find_first_of('-', ls);
-        const size_t dot = path.find_first_of('.', dash);
-        if ((dash != path.npos) && (dot != path.npos))
+        const size_t dot = path.find_first_of('.', ls);
+        if (dot != path.npos)
         {
-            const std::string path_id_str = path.substr(ls + 1, dash - ls - 1);
-            const std::string profile_id_str = path.substr(dash + 1, dot - dash - 1);
-
-            try
-            {
-                const size_t path_id = std::stoull(path_id_str, nullptr, 16);
-                const size_t profile_id = std::stoull(profile_id_str, nullptr, 16);
-
-                if (profile_id < objectprofile_list.size())
-                {
-                    profile = objectprofile_list[profile_id];
-                    if (path_id < objecturl_list.size())
-                        return objecturl_list[path_id];
-                }
-            }
-            catch (const std::invalid_argument &) { }
-            catch (const std::out_of_range &) { }
+            const platform::uuid uuid = path.substr(ls + 1, dot - ls - 1);
+            auto i = object_uuid_to_path.find(uuid);
+            if (i != object_uuid_to_path.end())
+                return i->second;
         }
     }
 
