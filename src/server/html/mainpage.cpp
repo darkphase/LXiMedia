@@ -139,9 +139,9 @@ int mainpage::handle_http_request(const struct pupnp::upnp::request &request, st
 
 int mainpage::render_page(const struct pupnp::upnp::request &request, const std::string &content_type, std::ostream &out, const struct page &page)
 {
-    const bool require_welcome_page =
-            (server::setup_mode != setup_mode::disabled) &&
-            (request.url.path != "/welcome");
+    const bool redirect_to_setup_page =
+            setuppage::setup_required() &&
+            (request.url.path != "/setup");
 
     out << "<!DOCTYPE html>\n"
            "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">"
@@ -154,15 +154,15 @@ int mainpage::render_page(const struct pupnp::upnp::request &request, const std:
     if (page.render_headers)
         page.render_headers(request, out);
 
-    if (require_welcome_page)
-        out << "<meta http-equiv=\"Refresh\" content=\"2; url=http://" << request.url.host << "/welcome\" />";
+    if (redirect_to_setup_page)
+        out << "<meta http-equiv=\"Refresh\" content=\"2; url=http://" << request.url.host << "/setup\" />";
 
     out << "</head>"
            "<body>"
            "<div class=\"main_navigator\">"
            "<div class=\"root\">" << page.title << "</div>";
 
-    if (server::setup_mode == setup_mode::disabled)
+    if (!setuppage::setup_required())
     {
         for (const auto &i : page_order)
         {
@@ -182,11 +182,11 @@ int mainpage::render_page(const struct pupnp::upnp::request &request, const std:
 
     const int result = page.render_content(request, out);
 
-    if (require_welcome_page)
+    if (redirect_to_setup_page)
     {
         out << "<div class=\"wait\"><div><p>"
                "<img src=\"/img/running.svg\" />"
-               << tr("Loading Welcome page...") <<
+               << tr("Loading Setup Assistant...") <<
                "</p></div></div>";
     }
 

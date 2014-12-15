@@ -25,7 +25,7 @@
 #include "html/helppage.h"
 #include "html/logpage.h"
 #include "html/settingspage.h"
-#include "html/welcomepage.h"
+#include "html/setuppage.h"
 #include "platform/messageloop.h"
 #include "pupnp/connection_manager.h"
 #include "pupnp/content_directory.h"
@@ -41,13 +41,10 @@ class recommended;
 class setup;
 class test;
 
-enum class setup_mode { disabled, name, network, codecs, high_definition, finish };
-
 class server
 {
 public:
     static std::function<void()> recreate_server;
-    static enum setup_mode setup_mode;
 
 public:
     server(
@@ -92,7 +89,7 @@ private:
     class html::settingspage settingspage;
     class html::logpage logpage;
     class html::helppage helppage;
-    class html::welcomepage welcomepage;
+    class html::setuppage setuppage;
 
     platform::timer republish_timer;
     const std::chrono::seconds republish_timeout;

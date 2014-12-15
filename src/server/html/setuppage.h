@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef HTML_WELCOMEPAGE_H
-#define HTML_WELCOMEPAGE_H
+#ifndef HTML_SETUPPAGE_H
+#define HTML_SETUPPAGE_H
 
 #include "mainpage.h"
 #include <memory>
@@ -27,23 +27,28 @@ class test;
 
 namespace html {
 
-class welcomepage
+enum class setup_mode { disabled, name, network, codecs, high_definition, finish };
+
+class setuppage
 {
 public:
-    welcomepage(
+    setuppage(
             class mainpage &,
             class pupnp::upnp &,
             class settings &,
             const std::unique_ptr<class test> &,
             const std::function<void()> &apply);
 
-    ~welcomepage();
+    ~setuppage();
+
+    static void activate_setup();
+    static enum setup_mode setup_mode();
+    static bool setup_required();
 
 private:
     void render_headers(const struct pupnp::upnp::request &, std::ostream &);
     int render_page(const struct pupnp::upnp::request &, std::ostream &);
 
-    void render_main_page(std::ostream &out);
     void render_setup_name(const struct pupnp::upnp::request &, std::ostream &out);
     void render_setup_network(const struct pupnp::upnp::request &, std::ostream &out);
     void render_setup_codecs(const struct pupnp::upnp::request &, std::ostream &out);
@@ -51,6 +56,7 @@ private:
     void render_setup_finish(const struct pupnp::upnp::request &, std::ostream &out);
 
 private:
+    static enum setup_mode current_setup_mode;
     static std::string device_type;
     static std::string client_name;
 

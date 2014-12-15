@@ -23,7 +23,6 @@
 #include <cassert>
 
 std::function<void()> server::recreate_server;
-enum setup_mode server::setup_mode = ::setup_mode::disabled;
 
 server::server(
         class platform::messageloop_ref &messageloop,
@@ -46,15 +45,15 @@ server::server(
       settingspage(mainpage, settings, std::bind(&server::apply_settings, this)),
       logpage(mainpage, logfilename),
       helppage(mainpage),
-      welcomepage(mainpage, upnp, settings, test, std::bind(&server::force_apply_settings, this)),
+      setuppage(mainpage, upnp, settings, test, std::bind(&server::force_apply_settings, this)),
       republish_timer(messageloop, std::bind(&server::republish_rootdevice, this)),
       republish_timeout(15),
       republish_required(false),
       recreate_server_timer(messageloop, [this] { if (recreate_server) this->messageloop.post(recreate_server); }),
       recreate_server_timeout(500)
 {
-    if ((setup_mode == ::setup_mode::disabled) && settings.is_configure_required())
-        setup_mode = ::setup_mode::name;
+    if (settings.is_configure_required())
+        setuppage.activate_setup();
 }
 
 server::~server()
@@ -78,8 +77,10 @@ bool server::initialize()
         vlc_instance.reset(new class vlc::instance(
                                settings.verbose_logging_enabled()));
 
-        if (setup_mode == ::setup_mode::disabled)
+        switch (html::setuppage::setup_mode())
         {
+        case html::setup_mode::disabled:
+        case html::setup_mode::name:
             recommended.reset(new class recommended(
                                   content_directory));
 
@@ -95,15 +96,19 @@ bool server::initialize()
             setup.reset(new class setup(
                             messageloop,
                             content_directory));
-        }
-        else
-        {
+            break;
+
+        case html::setup_mode::network:
+        case html::setup_mode::codecs:
+        case html::setup_mode::high_definition:
+        case html::setup_mode::finish:
             test.reset(new class test(
                            messageloop,
                            *vlc_instance,
                            connection_manager,
                            content_directory,
                            settings));
+            break;
         }
 
         republish_required = settings.republish_rootdevice();
