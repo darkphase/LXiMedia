@@ -206,8 +206,8 @@ private:
     static std::string parentpath(const std::string &);
     std::string to_objectid(const std::string &path, bool create = true);
     std::string from_objectid(const std::string &id);
-    std::string to_objectpath(const std::string &path, const platform::uuid &, const std::string &profile, const std::string &suffix);
-    std::string from_objectpath(const std::string &path, std::string &profile);
+    std::string to_objectpath(const platform::uuid &, const std::string &path, const std::string &suffix);
+    std::string from_objectpath(const std::string &path);
 
     void num_connections_changed(int num_connections);
     void process_pending_updates(void);
@@ -232,10 +232,8 @@ private:
 
     std::vector<std::string> objectid_list;
     std::map<std::string, size_t> objectid_map;
-    std::vector<std::string> objecturl_list;
-    std::map<std::string, size_t> objecturl_map;
-    std::vector<std::string> objectprofile_list;
-    std::map<std::string, size_t> objectprofile_map;
+    std::map<platform::uuid, std::string> object_uuid_to_path;
+    std::map<std::string, platform::uuid> object_path_to_uuid;
 
     struct root_item_source final : item_source
     {
