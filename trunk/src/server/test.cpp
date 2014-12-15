@@ -21,7 +21,7 @@
 #include "platform/string.h"
 #include "platform/translator.h"
 #include "resources/resources.h"
-#include "server/server.h"
+#include "server/html/setuppage.h"
 #include "vlc/instance.h"
 #include "vlc/transcode_stream.h"
 #include <cmath>
@@ -64,20 +64,27 @@ std::vector<pupnp::content_directory::item> test::list_contentdir_items(
     clients.insert(client);
 
     std::vector<pupnp::content_directory::item> items;
-    if ((server::setup_mode == ::setup_mode::network) ||
-        (server::setup_mode == ::setup_mode::codecs))
+    switch (html::setuppage::setup_mode())
     {
+    case html::setup_mode::disabled:
+    case html::setup_mode::name:
+    case html::setup_mode::finish:
+        break;
+
+    case html::setup_mode::network:
+    case html::setup_mode::codecs:
         items.emplace_back(get_contentdir_item(client, "/pm5544_mp2v_mpg"));
         items.emplace_back(get_contentdir_item(client, "/pm5544_mp2v_m2ts"));
         items.emplace_back(get_contentdir_item(client, "/pm5544_mp2v_ts"));
         items.emplace_back(get_contentdir_item(client, "/pm5544_h264_mpg"));
         items.emplace_back(get_contentdir_item(client, "/pm5544_h264_m2ts"));
         items.emplace_back(get_contentdir_item(client, "/pm5544_h264_ts"));
-    }
-    else if (server::setup_mode == ::setup_mode::high_definition)
-    {
+        break;
+
+    case html::setup_mode::high_definition:
         items.emplace_back(get_contentdir_item(client, "/pm5644_720"));
         items.emplace_back(get_contentdir_item(client, "/pm5644_1080"));
+        break;
     }
 
     std::vector<pupnp::content_directory::item> result;
@@ -191,12 +198,11 @@ int test::play_item(
     if (!protocol.profile.empty() && correct_protocol(item, protocol))
     {
         float rate = 1.0f;
-        std::string transcode_plugin = "#transcode";
         std::ostringstream transcode;
         if (!protocol.acodec.empty() || !protocol.vcodec.empty())
         {
             // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
-            transcode << "{";
+            transcode << "#transcode{";
 
             if (!protocol.vcodec.empty())
             {
@@ -214,10 +220,6 @@ int test::play_item(
 
                 if ((item.width != protocol.width) || (item.height != protocol.height))
                 {
-                    // Workaround for ticket https://trac.videolan.org/vlc/ticket/10148
-                    if (vlc::instance::compare_version(2, 1) == 0)
-                        transcode_plugin = "#lximedia_transcode";
-
                     transcode
                             << ",vfilter=canvas{width=" << protocol.width
                             << ",height=" << protocol.height;
@@ -279,8 +281,8 @@ int test::play_item(
 
             struct vlc::transcode_stream::track_ids track_ids;
             if ((item.chapter > 0)
-                    ? stream->open(item.mrl, item.chapter, track_ids, transcode_plugin + transcode.str(), vlc_mux, rate)
-                    : stream->open(item.mrl, item.position, track_ids, transcode_plugin + transcode.str(), vlc_mux, rate))
+                    ? stream->open(item.mrl, item.chapter, track_ids, transcode.str(), vlc_mux, rate)
+                    : stream->open(item.mrl, item.position, track_ids, transcode.str(), vlc_mux, rate))
             {
                 std::shared_ptr<pupnp::connection_proxy> proxy;
                 if (protocol.mux == "ps")
