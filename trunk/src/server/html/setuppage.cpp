@@ -98,6 +98,7 @@ void setuppage::render_headers(const struct pupnp::upnp::request &request, std::
         {
         case html::setup_mode::disabled:
         case html::setup_mode::name:
+            settings.set_configure_required(true);
             {
                 auto devicename = request.url.query.find("upnp_devicename");
                 if (devicename != request.url.query.end())
@@ -348,7 +349,7 @@ void setuppage::render_setup_high_definition(const struct pupnp::upnp::request &
            "<p><input type=\"checkbox\" name=\"hd_720\" value=\"on\" />High Definition 720p</p>"
            "<p><input type=\"checkbox\" name=\"hd_1080\" value=\"on\" />High Definition 1080p</p>"
            "</td></tr></table></div>"
-           "<p class=\"assist\"><input type=\"submit\" name=\"next\" value=\""
+           "<p class=\"assist\"><input type=\"submit\" name=\"apply\" value=\""
         << tr("Next") << " &gt;&gt;&gt;\" /></p>"
            "</form></fieldset>";
 }
