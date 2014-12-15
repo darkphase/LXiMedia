@@ -313,7 +313,7 @@ static std::map<platform::messageloop *, void(platform::messageloop::*)()> abort
 
 static void signal_handler(int signal)
 {
-    std::clog << "Received \"" << strsignal(signal) << "\" signal" << std::endl;
+    std::clog << "platform::messageloop: received \"" << strsignal(signal) << "\" signal" << std::endl;
 
     if ((signal == SIGINT) || (signal == SIGTERM))
         for (auto &i : abort_handlers) ((i.first)->*(i.second))();
@@ -356,22 +356,22 @@ static BOOL WINAPI console_ctrl_handler(DWORD type)
     switch (type)
     {
     case CTRL_C_EVENT:
-        std::clog << "Received CTRL_C" << std::endl;
+        std::clog << "platform::messageloop: received CTRL_C" << std::endl;
         for (auto &i : abort_handlers) ((i.first)->*(i.second))();
         return TRUE;
 
     case CTRL_BREAK_EVENT:
-        std::clog << "Received CTRL_BREAK" << std::endl;
+        std::clog << "platform::messageloop: received CTRL_BREAK" << std::endl;
         for (auto &i : abort_handlers) ((i.first)->*(i.second))();
         return TRUE;
 
     case CTRL_LOGOFF_EVENT:
-        std::clog << "Received CTRL_LOGOFF" << std::endl;
+        std::clog << "platform::messageloop: received CTRL_LOGOFF" << std::endl;
         for (auto &i : abort_handlers) ((i.first)->*(i.second))();
         return TRUE;
 
     case CTRL_SHUTDOWN_EVENT:
-        std::clog << "Received CTRL_SHUTDOWN" << std::endl;
+        std::clog << "platform::messageloop: received CTRL_SHUTDOWN" << std::endl;
         for (auto &i : abort_handlers) ((i.first)->*(i.second))();
         return TRUE;
 

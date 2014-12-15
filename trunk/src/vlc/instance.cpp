@@ -70,7 +70,7 @@ static libvlc_instance_t * create_instance(bool verbose_logging) noexcept
             (verbose_logging ? 0 : 1);
 
 #if !defined(TEST_H)
-    std::clog << "Creating new libvlc instance (" << libvlc_get_version() << ")";
+    std::clog << "vlc::instance: creating new libvlc instance (" << libvlc_get_version() << ")";
     if (verbose_logging)
     {
         std::clog << " with arguments:";

@@ -270,7 +270,7 @@ int test::play_item(
         response = connection_manager.try_attach_output_connection(protocol, item.mrl, source_address, opt.str());
         if (!response)
         {
-            std::clog << '[' << this << "] Creating new stream " << item.mrl << " transcode=" << transcode.str() << " mux=" << protocol.mux << std::endl;
+            std::clog << "test: creating new stream " << item.mrl << " transcode=" << transcode.str() << " mux=" << protocol.mux << std::endl;
 
             std::unique_ptr<vlc::transcode_stream> stream(new vlc::transcode_stream(messageloop, vlc_instance));
             stream->add_option(":input-slave=" + a440hz_flac_media.mrl());

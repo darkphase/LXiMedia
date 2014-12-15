@@ -409,7 +409,7 @@ bool rootdevice::enable_rootdevice(void)
                 return 0;
             }
 
-            std::clog << "[" << me << "] pupnp::rootdevice: Unsupported eventtype" << eventtype << std::endl;
+            std::clog << "pupnp::rootdevice: unsupported eventtype" << eventtype << std::endl;
             return -1;
         }
     };
@@ -431,7 +431,7 @@ bool rootdevice::enable_rootdevice(void)
 
             if (rc != UPNP_E_SUCCESS)
             {
-                std::clog << "[" << this << "] pupnp::rootdevice: UpnpRegisterRootDevice(\"http://"
+                std::clog << "pupnp::rootdevice: UpnpRegisterRootDevice(\"http://"
                           << host << basedir << devicedescriptionfile << ".xml\") failed:" << rc
                           << std::endl;
             }
@@ -459,7 +459,7 @@ bool rootdevice::enable_rootdevice(void)
         return true;
     }
     else
-        std::clog << "[" << this << "] pupnp::rootdevice: failed to register the rootdevice:" << result << std::endl;
+        std::clog << "pupnp::rootdevice: failed to register the rootdevice:" << result << std::endl;
 
     return false;
 }

@@ -142,7 +142,8 @@ private:
     uint16_t port;
     bool bind_public;
 
-    std::set<std::string> available_addresses;
+    std::set<std::string> available_address_set;
+    std::set<std::string> bound_address_set;
     platform::timer update_interfaces_timer;
     const std::chrono::seconds update_interfaces_interval;
 

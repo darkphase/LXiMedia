@@ -203,7 +203,7 @@ transcode_stream::streambuf::streambuf(
         if (parent.on_playback_progress)
             libvlc_event_attach(event_manager, libvlc_MediaPlayerTimeChanged, &streambuf::callback, this);
 
-        std::clog << '[' << ((void *)this) << "] " << sout.str() << std::endl;
+        std::clog << "vlc::transcode_stream: " << sout.str() << std::endl;
     }
 }
 
@@ -223,7 +223,7 @@ transcode_stream::streambuf::streambuf(
     {
         libvlc_media_player_play(player);
 
-        std::clog << '[' << ((void *)this) << "] opened transcode_stream " << mrl << "@Chapter " << chapter << std::endl;
+        std::clog << "vlc::transcode_stream: opened transcode_stream " << mrl << "@Chapter " << chapter << std::endl;
     }
 }
 
@@ -243,7 +243,7 @@ transcode_stream::streambuf::streambuf(
     {
         libvlc_media_player_play(player);
 
-        std::clog << '[' << ((void *)this) << "] opened transcode_stream " << mrl << '@' << position.count() << std::endl;
+        std::clog << "vlc::transcode_stream: opened transcode_stream " << mrl << '@' << position.count() << std::endl;
     }
 }
 
@@ -251,7 +251,7 @@ transcode_stream::streambuf::~streambuf()
 {
     stop();
 
-    std::clog << '[' << ((void *)this) << "] destroyed transcode_stream " << media.mrl() << std::endl;
+    std::clog << "vlc::transcode_stream: destroyed transcode_stream " << media.mrl() << std::endl;
 }
 
 void transcode_stream::streambuf::started()

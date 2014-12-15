@@ -502,7 +502,7 @@ int files::play_audio_video_item(
     response = connection_manager.try_attach_output_connection(protocol, item.mrl, source_address, opt.str());
     if (!response)
     {
-        std::clog << '[' << this << "] Creating new stream " << item.mrl << " transcode=" << transcode.str() << " mux=" << protocol.mux << std::endl;
+        std::clog << "files: creating new stream " << item.mrl << " transcode=" << transcode.str() << " mux=" << protocol.mux << std::endl;
 
         struct vlc::transcode_stream::track_ids track_ids;
         std::string file_path, track_name;

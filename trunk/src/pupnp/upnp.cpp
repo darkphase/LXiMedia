@@ -162,9 +162,12 @@ bool upnp::initialize(uint16_t port, bool bind_public)
         std::vector<const char *> addresses;
         for (char **i = ::UpnpGetAvailableIpAddresses(); i && *i; i++)
         {
-            available_addresses.insert(*i);
+            available_address_set.insert(*i);
             if (bind_public || !is_public_address(*i))
+            {
+                bound_address_set.insert(*i);
                 addresses.push_back(*i);
+            }
         }
 
         addresses.push_back(nullptr);
@@ -182,7 +185,7 @@ bool upnp::initialize(uint16_t port, bool bind_public)
                 ::UpnpAddVirtualDir(i->first.c_str());
         }
         else
-            std::cerr << "Failed to initialize libupnp:" << result << std::endl;
+            std::cerr << "pupnp::upnp: failed to initialize libupnp:" << result << std::endl;
 
         update_interfaces_timer.start(update_interfaces_interval);
 
@@ -263,12 +266,12 @@ bool upnp::is_my_address(const std::string &address) const
 {
     const size_t colon = address.find_first_of(':');
 
-    return available_addresses.find((colon != address.npos) ? address.substr(0, colon) : address) != available_addresses.end();
+    return available_address_set.find((colon != address.npos) ? address.substr(0, colon) : address) != available_address_set.end();
 }
 
 const std::set<std::string> & upnp::bound_addresses() const
 {
-    return available_addresses;
+    return bound_address_set;
 }
 
 uint16_t upnp::bound_port() const
@@ -303,11 +306,12 @@ void upnp::clear_responses()
 
 void upnp::update_interfaces()
 {
-    if (me->handles.empty())
+    if (handles.empty())
         for (char **i = ::UpnpGetAvailableIpAddresses(); i && *i; i++)
-            if (available_addresses.find(*i) == available_addresses.end())
+            if (available_address_set.find(*i) == available_address_set.end())
                 if (bind_public || !is_public_address(*i))
                 {
+                    std::clog << "pupnp::upnp: found new network interface: " << *i << std::endl;
                     close();
                     initialize(port, bind_public);
                     break;
@@ -350,7 +354,7 @@ void upnp::enable_webserver()
                 return 0;
             }
 
-            std::clog << "[" << me << "] pupnp::upnp: webserver get_info(\"" << url << "\") not found" << std::endl;
+            std::clog << "pupnp::upnp: webserver get_info(\"" << url << "\") not found" << std::endl;
             return -1;
         }
 
@@ -373,7 +377,7 @@ void upnp::enable_webserver()
                 return response.get();
             }
 
-            std::clog << "[" << me << "] pupnp::upnp: webserver open(\"" << url << "\") failed" << std::endl;
+            std::clog << "pupnp::upnp: webserver open(\"" << url << "\") failed" << std::endl;
             return nullptr;
         }
 
@@ -437,10 +441,10 @@ void upnp::enable_webserver()
         if (rc == UPNP_E_SUCCESS)
             webserver_enabled = true;
         else
-            std::cerr << "UpnpSetVirtualDirCallbacks failed:" << rc << std::endl;
+            std::cerr << "pupnp::upnp: UpnpSetVirtualDirCallbacks failed:" << rc << std::endl;
     }
     else
-        std::cerr << "UpnpEnableWebserver() failed:" << rc << std::endl;
+        std::cerr << "pupnp::upnp: UpnpEnableWebserver() failed:" << rc << std::endl;
 }
 
 int upnp::get_response(const struct request &request, std::string &content_type, std::shared_ptr<std::istream> &stream, bool erase)
