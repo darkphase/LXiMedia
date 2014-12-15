@@ -74,11 +74,9 @@ private:
         ~data();
 
         bool uuid_generated;
-        bool media_type_read;
         bool media_info_read;
 
         platform::uuid uuid;
-        enum media_type media_type;
         struct media_info media_info;
     };
 
@@ -87,8 +85,8 @@ public:
     ~media_cache();
 
     platform::uuid uuid(const std::string &) const;
-    enum media_type media_type(class media &) const;
     struct media_info media_info(class media &) const;
+    enum media_type media_type(class media &) const;
 
 private:
     mutable std::mutex mutex;
