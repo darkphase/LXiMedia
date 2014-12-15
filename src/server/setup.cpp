@@ -104,7 +104,7 @@ int setup::play_item(
     return pupnp::upnp::http_not_found;
 }
 
-#if defined(__unix__)
+#if defined(__linux__)
 #include <cstdlib>
 
 static bool shutdown()
@@ -113,7 +113,7 @@ static bool shutdown()
     if (exitcode == 0)
         return true;
 
-    std::clog << "\"/usr/bin/dbus-send\" failed with exit code " << exitcode << '.' << std::endl;
+    std::clog << "setup: \"/usr/bin/dbus-send\" failed with exit code " << exitcode << '.' << std::endl;
     return false;
 }
 #elif defined(__APPLE__)
@@ -125,7 +125,7 @@ static bool shutdown()
     if (exitcode == 0)
         return true;
 
-    std::clog << "\"/sbin/shutdown\" failed with exit code " << exitcode << '.' << std::endl;
+    std::clog << "setup: \"/sbin/shutdown\" failed with exit code " << exitcode << '.' << std::endl;
     return false;
 }
 #elif defined(WIN32)
@@ -162,27 +162,27 @@ static bool shutdown()
     bool result = false;
     if (::GetLastError() != ERROR_SUCCESS)
     {
-        std::clog << "Failed to enable shutdown privilege." << std::endl;
+        std::clog << "setup: failed to enable shutdown privilege." << std::endl;
     }
     else if (::InitiateSystemShutdown(NULL, const_cast<wchar_t *>(message), 30, TRUE, FALSE) == FALSE)
     {
-        std::clog << "InitiateSystemShutdown failed" << ::GetLastError() << " trying WTSShutdownSystem." << std::endl;
+        std::clog << "setup: InitiateSystemShutdown failed" << ::GetLastError() << " trying WTSShutdownSystem." << std::endl;
 
         HMODULE lib = ::LoadLibrary(L"wtsapi32.dll");
         if (lib)
         {
             FARPROC proc = ::GetProcAddress(lib, "WTSShutdownSystem");
             if (proc == NULL)
-                std::clog << "Failed to find WTSShutdownSystem in wtsapi32.dll." << std::endl;
+                std::clog << "setup: failed to find WTSShutdownSystem in wtsapi32.dll." << std::endl;
             else if (((BOOL (WINAPI *)(HANDLE, DWORD))proc)(NULL, 0x00000008) == FALSE)
-                std::clog << "WTSShutdownSystem failed." << std::endl;
+                std::clog << "setup: WTSShutdownSystem failed." << std::endl;
             else
                 result = true;
 
             ::FreeLibrary(lib);
         }
         else
-            std::clog << "Failed to load wtsapi32.dll." << std::endl;
+            std::clog << "setup: failed to load wtsapi32.dll." << std::endl;
     }
     else
         result = true;

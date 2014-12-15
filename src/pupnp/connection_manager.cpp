@@ -46,7 +46,7 @@ void connection_manager::add_source_audio_protocol(
         unsigned sample_rate, unsigned channels,
         const char *acodec, const char *mux)
 {
-    std::clog << "[" << this << "] connection_manager: enabled audio protocol "
+    std::clog << "pupnp::connection_manager: enabled audio protocol "
               << name << " " << sample_rate << "/" << channels
               << std::endl;
 
@@ -70,7 +70,7 @@ void connection_manager::add_source_video_protocol(
         const char *acodec, const char *vcodec, const char *mux,
         const char *fast_encode_options, const char *slow_encode_options)
 {
-    std::clog << "[" << this << "] connection_manager: enabled video protocol "
+    std::clog << "pupnp::connection_manager: enabled video protocol "
               << name << " " << sample_rate << "/" << channels << " "
               << width << "x" << height << "@" << (float(frame_rate_num) / float(frame_rate_den))
               << std::endl;
@@ -96,7 +96,7 @@ void connection_manager::add_source_image_protocol(
         const char *mime, const char *suffix,
         unsigned width, unsigned height)
 {
-    std::clog << "[" << this << "] connection_manager: enabled image protocol "
+    std::clog << "pupnp::connection_manager: enabled image protocol "
               << name << " " << width << "x" << height
               << std::endl;
 

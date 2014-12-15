@@ -288,7 +288,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
 
     if ((item_source == item_sources.end()) || !starts_with(path, item_source->first))
     {
-        std::clog << "[" << this << "] pupnp::content_directory: Could not find item source for path: " << std::endl;
+        std::clog << "pupnp::content_directory: could not find item source for path: " << std::endl;
         return;
     }
 
@@ -385,7 +385,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
         }
     }
     else
-        std::clog << "[" << this << "] pupnp::content_directory: Could not find item " << itemprops[0] << std::endl;
+        std::clog << "pupnp::content_directory: could not find item " << itemprops[0] << std::endl;
 
     auto updateid = system_update_id;
     if (objectid != "0")
@@ -567,7 +567,7 @@ int content_directory::http_request(const upnp::request &request, std::string &c
 
             if ((item_source == item_sources.end()) || !starts_with(path, item_source->first))
             {
-                std::clog << "[" << this << "] pupnp::content_directory: Could not find item source for path: " << std::endl;
+                std::clog << "pupnp::content_directory: could not find item source for path: " << std::endl;
                 return upnp::http_not_found;
             }
 
@@ -591,7 +591,7 @@ void content_directory::add_directory(action_browse &action, item_type type, con
 
     if ((item_source == item_sources.end()) || !starts_with(path, item_source->first))
     {
-        std::clog << "[" << this << "] pupnp::content_directory: Could not find item source for path: " << std::endl;
+        std::clog << "pupnp::content_directory: could not find item source for path: " << std::endl;
         return;
     }
 

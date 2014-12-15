@@ -61,7 +61,9 @@ static int run_server(
     const std::string logfile = platform::config_dir() + "/lximediaserver.log";
     FILE * logfilehandle = logfile_open(logfile);
 
-    std::clog << "Starting LXiMediaServer version " << VERSION << std::endl;
+    std::clog << "starting LXiMediaServer version " << VERSION << std::endl;
+    for (auto &i : upnp.bound_addresses())
+        std::clog << "bound address: " << i << ":" << upnp.bound_port() << std::endl;
 
     class platform::messageloop_ref messageloop_ref(messageloop);
 
@@ -71,15 +73,23 @@ static int run_server(
         server_ptr.reset(new class server(messageloop_ref, settings, upnp, logfile));
         if (!server_ptr->initialize())
         {
-            std::clog << "[" << server_ptr.get() << "] failed to initialize server; stopping." << std::endl;
+            std::clog << "failed to initialize server; stopping." << std::endl;
             messageloop.stop(1);
         }
     };
 
     server::recreate_server();
 
+    // If the last exit was not clean, the server is re-initialized immediately
+    // to make sure all cleints get a bye-bye message followed by an alive
+    // message.
     if (!settings.was_clean_exit())
-        platform::timer::single_shot(messageloop_ref, std::chrono::seconds(1), server::recreate_server);
+    {
+        platform::timer::single_shot(
+                    messageloop_ref,
+                    std::chrono::seconds(1),
+                    server::recreate_server);
+    }
 
     if (open_browser)
     {
