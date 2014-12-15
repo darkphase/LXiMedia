@@ -280,6 +280,9 @@ int test::play_item(
             const std::string vlc_mux = (protocol.mux == "m2ts") ? "ts" : protocol.mux;
 
             struct vlc::transcode_stream::track_ids track_ids;
+            track_ids.audio = 1;
+            track_ids.video = 0;
+
             if ((item.chapter > 0)
                     ? stream->open(item.mrl, item.chapter, track_ids, transcode.str(), vlc_mux, rate)
                     : stream->open(item.mrl, item.position, track_ids, transcode.str(), vlc_mux, rate))
