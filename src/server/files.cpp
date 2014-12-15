@@ -511,7 +511,7 @@ int files::play_audio_video_item(
         auto media = vlc::media::from_file(vlc_instance, system_path.path);
 
         for (auto &track : list_tracks(media_cache.media_info(media)))
-            if (track.first == track_name)
+            if ((track.first == track_name) || (track_ids.audio < 0))
                 for (auto &t : track.second)
                     switch (t.type)
                     {
