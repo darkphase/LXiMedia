@@ -117,65 +117,6 @@ platform::uuid media_cache::uuid(const std::string &mrl) const
     return data.uuid;
 }
 
-static media_type media_type_from_media(
-    class media &media)
-{
-    media_type result = media_type::unknown;
-
-    libvlc_media_parse(media);
-
-    libvlc_media_track_t **track_list = nullptr;
-    const unsigned count = libvlc_media_tracks_get(media, &track_list);
-    if (track_list)
-    {
-        bool has_audio = false, has_video = false;
-        for (unsigned i = 0; (i < count) && track_list[i]; i++)
-            if (track_list[i]->i_codec != 0x66646E75 /*'undf'*/)
-            {
-                switch (track_list[i]->i_type)
-                {
-                case libvlc_track_unknown:  break;
-                case libvlc_track_audio:    has_audio = true;   break;
-                case libvlc_track_video:    has_video = true;   break;
-                case libvlc_track_text:     break;
-                }
-            }
-
-        if (has_audio && has_video)
-            result = media_type::video;
-        else if (has_audio)
-            result = media_type::audio;
-        else if (has_video)
-            result = media_type::picture;
-
-        libvlc_media_tracks_release(track_list, count);
-    }
-
-    return result;
-}
-
-enum media_type media_cache::media_type(class media &media) const
-{
-    std::unique_lock<std::mutex> l(mutex);
-
-    auto &data = cache[media.mrl()];
-    if (!data.media_type_read)
-    {
-        l.unlock();
-
-        const auto media_type = media_type_from_media(media);
-
-        l.lock();
-
-        auto &data = cache[media.mrl()];
-        data.media_type = media_type;
-        data.media_type_read = true;
-        return data.media_type;
-    }
-
-    return data.media_type;
-}
-
 static struct media_cache::media_info media_info_from_media(
     class media &media)
 {
@@ -342,6 +283,30 @@ struct media_cache::media_info media_cache::media_info(class media &media) const
     return data.media_info;
 }
 
+enum media_type media_cache::media_type(class media &media) const
+{
+    vlc::media_type result = vlc::media_type::unknown;
+
+    bool has_audio = false, has_video = false;
+    for (auto &i : media_info(media).tracks)
+        switch (i.type)
+        {
+        case track_type::unknown:  break;
+        case track_type::audio:    has_audio = true;   break;
+        case track_type::video:    has_video = true;   break;
+        case track_type::text:     break;
+        }
+
+    if (has_audio && has_video)
+        result = vlc::media_type::video;
+    else if (has_audio)
+        result = vlc::media_type::audio;
+    else if (has_video)
+        result = vlc::media_type::picture;
+
+    return result;
+}
+
 
 media_cache::track::track()
     : id(0),
@@ -367,9 +332,7 @@ media_cache::media_info::~media_info()
 
 media_cache::data::data()
     : uuid_generated(false),
-      media_type_read(false),
-      media_info_read(false),
-      media_type(vlc::media_type::unknown)
+      media_info_read(false)
 {
 }
 

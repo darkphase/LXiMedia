@@ -797,52 +797,40 @@ pupnp::content_directory::item files::make_item(const std::string &client, const
         const auto media_type = media_cache.media_type(media);
         if (media_type != vlc::media_type::unknown)
         {
-            if (!fast)
+            const auto uuid = media_cache.uuid(media.mrl());
+            item.last_position = watchlist.watched_item(uuid).last_position;
+
+            item.is_dir =
+                    (media_type == vlc::media_type::video) &&
+                    (system_path.type != path_type::music) &&
+                    (system_path.type != path_type::pictures);
+
+            const auto media_info = media_cache.media_info(media);
+            auto tracks = list_tracks(media_info);
+            if (!track_name.empty())
             {
-                const auto uuid = media_cache.uuid(media.mrl());
-                item.last_position = watchlist.watched_item(uuid).last_position;
+                for (auto &track : tracks)
+                    if (track.first == track_name)
+                    {
+                        item.mrl = media.mrl();
+                        item.uuid = uuid;
 
-                const auto media_info = media_cache.media_info(media);
-                auto tracks = list_tracks(media_info);
-                if (!track_name.empty())
-                {
-                    for (auto &track : tracks)
-                        if (track.first == track_name)
-                        {
-                            item.mrl = media.mrl();
-                            item.uuid = uuid;
-
-                            fill_item(item, media_type, media_info, track.second, system_path.type);
-                            break;
-                        }
-                }
-                else if (tracks.size() > 1)
-                {
-                    item.is_dir = true;
-                    item.path = file_path + "//";
-                    item.uuid = uuid;
-                    item.duration = media_info.duration;
-                }
-                else if (tracks.size() == 1)
-                {
-                    item.mrl = media.mrl();
-                    item.uuid = uuid;
-                    fill_item(item, media_type, media_info, tracks.front().second, system_path.type);
-                }
+                        fill_item(item, media_type, media_info, track.second, system_path.type);
+                        break;
+                    }
             }
-            else if ((media_type != vlc::media_type::video) ||
-                     (system_path.type == path_type::music) ||
-                     (system_path.type == path_type::pictures))
-            {
-                const auto media_info = media_cache.media_info(media);
-
-                item.mrl = media.mrl();
-                item.uuid = media_cache.uuid(item.mrl);
-                fill_item(item, media_type, media_info, media_info.tracks, system_path.type);
-            }
-            else
+            else if (tracks.size() > 1)
             {
                 item.is_dir = true;
+                item.path = file_path + "//";
+                item.uuid = uuid;
+                item.duration = media_info.duration;
+            }
+            else if (tracks.size() == 1)
+            {
+                item.mrl = media.mrl();
+                item.uuid = uuid;
+                fill_item(item, media_type, media_info, tracks.front().second, system_path.type);
             }
         }
     }
