@@ -22,15 +22,18 @@ namespace vlc {
 static const struct transcode_stream_test
 {
     const std::string filename;
+    const std::string outfile;
 
     transcode_stream_test()
         : filename(platform::temp_file_path("pm5544.")),
+          outfile(platform::temp_file_path("ps")),
           transcode_test(this, "vlc::transcode_stream::transcode", &transcode_stream_test::transcode)
     {
     }
 
     ~transcode_stream_test()
     {
+        ::remove(outfile.c_str());
         ::remove((filename + "mp4").c_str());
         ::remove((filename + "srt").c_str());
         ::remove((filename + "ts" ).c_str());
@@ -50,7 +53,6 @@ static const struct transcode_stream_test
         class media_cache media_cache;
 
         // Transcode file.
-        const std::string outfile = filename + "ps";
         {
             struct transcode_stream::track_ids track_ids;
             class media media = media::from_file(instance, infile);
@@ -77,9 +79,19 @@ static const struct transcode_stream_test
 
             platform::ofstream out(outfile, std::ios::binary);
             test_assert(out.is_open());
-            std::copy(  std::istreambuf_iterator<char>(transcode_stream),
-                        std::istreambuf_iterator<char>(),
-                        std::ostreambuf_iterator<char>(out));
+
+            bool finished = false;
+            std::thread read_thread([&]
+            {
+                std::copy(  std::istreambuf_iterator<char>(transcode_stream),
+                            std::istreambuf_iterator<char>(),
+                            std::ostreambuf_iterator<char>(out));
+
+                finished = true;
+            });
+
+            while (!finished) messageloop.process_events(std::chrono::milliseconds(16));
+            read_thread.join();
         }
 
         // Check output file.
@@ -103,7 +115,7 @@ static const struct transcode_stream_test
                     break;
 
                 case track_type::video:
-                    test_assert(std::abs(int(track.video.width) - 1024) < 16);
+                    test_assert(std::abs(int(track.video.width) - 768) < 16);
                     test_assert(std::abs(int(track.video.height) - 576) < 16);
                     break;
                 }
