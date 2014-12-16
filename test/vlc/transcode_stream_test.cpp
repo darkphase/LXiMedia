@@ -30,7 +30,7 @@ static const struct transcode_stream_test
             ::remove(outfile.c_str());
     }
 
-    void transcode_base(const char *transcode, const char *mux)
+    void transcode_base(const std::string &transcode, const char *mux)
     {
         class instance instance;
         class media_cache media_cache;
@@ -80,9 +80,12 @@ static const struct transcode_stream_test
 
             const auto media_info = media_cache.media_info(media);
             test_assert(media_info.tracks.size() == 2);
-            test_assert(
-                        (media_info.duration.count() == 0) ||
-                        (std::abs(int(media_info.duration.count()) - 10000) < 1000));
+            if (instance::compare_version(2, 1) != 0)
+            {
+                test_assert(
+                            (media_info.duration.count() == 0) ||
+                            (std::abs(int(media_info.duration.count()) - 10000) < 1000));
+            }
 
             for (const auto &track : media_info.tracks)
             {
@@ -113,40 +116,52 @@ static const struct transcode_stream_test
     struct test transcode_mp2v_ps_test;
     void transcode_mp2v_ps()
     {
-        static const char transcode[] =
-                "#transcode{"
-                "vcodec=mp2v,scale=Auto,fps=25,width=768,height=576,"
-                        "vfilter=canvas{width=768,height=576},soverlay,"
-                "acodec=mpga,samplerate=44100,channels=2"
-                "}";
+        std::ostringstream transcode;
+        transcode << "#transcode{"
+                  << "vcodec=mp2v,scale=Auto,fps=25,width=768,height=576,";
 
-        transcode_base(transcode, "ps");
+        // Workaround for ticket https://trac.videolan.org/vlc/ticket/10148
+        if (instance::compare_version(2, 1) != 0)
+            transcode << "vfilter=canvas{width=768,height=576},soverlay,";
+
+        transcode << "acodec=mpga,samplerate=44100,channels=2"
+                  << "}";
+
+        transcode_base(transcode.str(), "ps");
     }
 
     struct test transcode_mp2v_ts_test;
     void transcode_mp2v_ts()
     {
-        static const char transcode[] =
-                "#transcode{"
-                "vcodec=mp2v,scale=Auto,fps=25,width=768,height=576,"
-                        "vfilter=canvas{width=768,height=576},soverlay,"
-                "acodec=mpga,samplerate=44100,channels=2"
-                "}";
+        std::ostringstream transcode;
+        transcode << "#transcode{"
+                  << "vcodec=mp2v,scale=Auto,fps=25,width=768,height=576,";
 
-        transcode_base(transcode, "ts");
+        // Workaround for ticket https://trac.videolan.org/vlc/ticket/10148
+        if (instance::compare_version(2, 1) != 0)
+            transcode << "vfilter=canvas{width=768,height=576},soverlay,";
+
+        transcode << "acodec=mpga,samplerate=44100,channels=2"
+                  << "}";
+
+        transcode_base(transcode.str(), "ts");
     }
 
     struct test transcode_h264_ts_test;
     void transcode_h264_ts()
     {
-        static const char transcode[] =
-                "#transcode{"
-                "vcodec=h264,scale=Auto,fps=25,width=768,height=576,"
-                        "vfilter=canvas{width=768,height=576},soverlay,"
-                "acodec=a52,samplerate=44100,channels=2"
-                "}";
+        std::ostringstream transcode;
+        transcode << "#transcode{"
+                  << "vcodec=h264,scale=Auto,fps=25,width=768,height=576,";
 
-        transcode_base(transcode, "ts");
+        // Workaround for ticket https://trac.videolan.org/vlc/ticket/10148
+        if (instance::compare_version(2, 1) != 0)
+            transcode << "vfilter=canvas{width=768,height=576},soverlay,";
+
+        transcode << "acodec=a52,samplerate=44100,channels=2"
+                  << "}";
+
+        transcode_base(transcode.str(), "ts");
     }
 } transcode_stream_test;
 
