@@ -21,8 +21,6 @@
 
 namespace vlc {
 
-static const char * const argv[] = { "--avcodec-hw", "disable", "-vvv" };
-
 int instance::compare_version(int major, int minor, int patch)
 {
     static const char number[] = "0123456789";
