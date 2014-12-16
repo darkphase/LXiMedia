@@ -213,7 +213,8 @@ int test::play_item(
 
                 transcode << ",width=" << protocol.width << ",height=" << protocol.height;
 
-                if ((item.width != protocol.width) || (item.height != protocol.height))
+                if (settings.canvas_mode_enabled() &&
+                    ((item.width != protocol.width) || (item.height != protocol.height)))
                 {
                     transcode
                             << ",vfilter=canvas{width=" << protocol.width
