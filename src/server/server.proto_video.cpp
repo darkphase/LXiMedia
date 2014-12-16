@@ -255,7 +255,7 @@ void server::add_video_protocols()
                     48000, 6,
                     720, 576, 1.06667f,
                     25000, 1000,
-                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "acodec=a52,ab=448", "vcodec=mp2v", "ps",
                     !vlc_2_1 ? "vb=6144,scale=Auto,venc=ffmpeg{keyint=0}"  : "vb=12288,venc=ffmpeg{keyint=0}",
                     !vlc_2_1 ? "vb=6144,scale=Auto,venc=ffmpeg{bframes=0}" : "vb=12288,venc=ffmpeg{bframes=0}");
 
@@ -265,7 +265,7 @@ void server::add_video_protocols()
                     48000, 6,
                     720, 576, 1.42222f,
                     25000, 1000,
-                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "acodec=a52,ab=448", "vcodec=mp2v", "ps",
                     !vlc_2_1 ? "vb=6144,scale=Auto,venc=ffmpeg{keyint=0}"  : "vb=12288,venc=ffmpeg{keyint=0}",
                     !vlc_2_1 ? "vb=6144,scale=Auto,venc=ffmpeg{bframes=0}" : "vb=12288,venc=ffmpeg{bframes=0}");
 
@@ -275,7 +275,7 @@ void server::add_video_protocols()
                     48000, 6,
                     640, 480, 1.0f,
                     30000, 1001,
-                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "acodec=a52,ab=448", "vcodec=mp2v", "ps",
                     !vlc_2_1 ? "vb=6144,scale=Auto,venc=ffmpeg{keyint=0}"  : "vb=12288,venc=ffmpeg{keyint=0}",
                     !vlc_2_1 ? "vb=6144,scale=Auto,venc=ffmpeg{bframes=0}" : "vb=12288,venc=ffmpeg{bframes=0}");
 
@@ -285,7 +285,7 @@ void server::add_video_protocols()
                     48000, 6,
                     704, 480, 1.21212f,
                     30000, 1001,
-                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "acodec=a52,ab=448", "vcodec=mp2v", "ps",
                     !vlc_2_1 ? "vb=6144,scale=Auto,venc=ffmpeg{keyint=0}"  : "vb=12288,venc=ffmpeg{keyint=0}",
                     !vlc_2_1 ? "vb=6144,scale=Auto,venc=ffmpeg{bframes=0}" : "vb=12288,venc=ffmpeg{bframes=0}");
     }
@@ -313,7 +313,7 @@ void server::add_video_protocols()
                         name, has_mpeg2_format,
                         48000, 6,
                         width_sd, height_sd, aspect_sd,
-                        "acodec=a52,ab=640", "vcodec=mp2v",
+                        "acodec=a52,ab=448", "vcodec=mp2v",
                         !vlc_2_1 ? "vb=6144,scale=Auto,venc=ffmpeg{keyint=0}"  : "vb=12288,venc=ffmpeg{keyint=0}",
                         !vlc_2_1 ? "vb=6144,scale=Auto,venc=ffmpeg{bframes=0}" : "vb=12288,venc=ffmpeg{bframes=0}");
     }
@@ -341,7 +341,7 @@ void server::add_video_protocols()
                         name, has_mpeg2_format,
                         48000, 6,
                         width_720, height_720, aspect_720,
-                        "acodec=a52,ab=640", "vcodec=mp2v",
+                        "acodec=a52,ab=504", "vcodec=mp2v",
                         !vlc_2_1 ? "vb=8192,scale=Auto,venc=ffmpeg{keyint=0}"  : "vb=16384,venc=ffmpeg{keyint=0}",
                         !vlc_2_1 ? "vb=8192,scale=Auto,venc=ffmpeg{bframes=0}" : "vb=16384,venc=ffmpeg{bframes=0}");
 
@@ -361,7 +361,7 @@ void server::add_video_protocols()
                         name, has_mpeg2_format,
                         48000, 6,
                         width_1080, height_1080, aspect_1080,
-                        "acodec=a52,ab=640", "vcodec=mp2v",
+                        "acodec=a52,ab=504", "vcodec=mp2v",
                         !vlc_2_1 ? "vb=12288,scale=Auto,venc=ffmpeg{keyint=0}"  : "vb=24576,venc=ffmpeg{keyint=0}",
                         !vlc_2_1 ? "vb=12288,scale=Auto,venc=ffmpeg{bframes=0}" : "vb=24576,venc=ffmpeg{bframes=0}");
     }
@@ -381,7 +381,7 @@ void server::add_video_protocols()
                     name, has_mpeg4_format,
                     48000, 2,
                     width, height, aspect,
-                    "acodec=a52,ab=128", "vcodec=h264",
+                    "acodec=a52,ab=192", "vcodec=h264",
                     "vb=2048,scale=Auto,venc=x264{keyint=1,bframes=0}",
                     "vb=2048,scale=Auto,venc=x264{keyint=25,bframes=3}");
     }
@@ -399,7 +399,7 @@ void server::add_video_protocols()
                     name, has_mpeg4_format,
                     48000, 2,
                     width_sd, height_sd, aspect_sd,
-                    "acodec=a52,ab=128", "vcodec=h264",
+                    "acodec=a52,ab=192", "vcodec=h264",
                     "vb=2048,scale=Auto,venc=x264{keyint=1,bframes=0}",
                     "vb=2048,scale=Auto,venc=x264{keyint=25,bframes=3}");
     }
@@ -415,7 +415,7 @@ void server::add_video_protocols()
                     name, has_mpeg4_format,
                     48000, 6,
                     width_sd, height_sd, aspect_sd,
-                    "acodec=a52,ab=640", "vcodec=h264",
+                    "acodec=a52,ab=504", "vcodec=h264",
                     "vb=2048,scale=Auto,venc=x264{keyint=1,bframes=0}",
                     "vb=2048,scale=Auto,venc=x264{keyint=25,bframes=3}");
     }
@@ -433,7 +433,7 @@ void server::add_video_protocols()
                         name_ac3, has_mpeg4_format,
                         48000, 2,
                         width_720, height_720, aspect_720,
-                        "acodec=a52,ab=128", "vcodec=h264",
+                        "acodec=a52,ab=192", "vcodec=h264",
                         "vb=4096,scale=Auto,venc=x264{keyint=1,bframes=0}",
                         "vb=4096,scale=Auto,venc=x264{keyint=25,bframes=3}");
 
@@ -443,7 +443,7 @@ void server::add_video_protocols()
                         name_ac3, has_mpeg4_format,
                         48000, 6,
                         width_720, height_720, aspect_720,
-                        "acodec=a52,ab=640", "vcodec=h264",
+                        "acodec=a52,ab=504", "vcodec=h264",
                         "vb=4096,scale=Auto,venc=x264{keyint=1,bframes=0}",
                         "vb=4096,scale=Auto,venc=x264{keyint=25,bframes=3}");
 
@@ -453,7 +453,7 @@ void server::add_video_protocols()
                         name_ac3, has_mpeg4_format,
                         48000, 2,
                         width_1080, height_1080, aspect_1080,
-                        "acodec=a52,ab=128", "vcodec=h264",
+                        "acodec=a52,ab=192", "vcodec=h264",
                         "vb=8192,scale=Auto,venc=x264{keyint=1,bframes=0}",
                         "vb=8192,scale=Auto,venc=x264{keyint=25,bframes=3}");
 
@@ -463,7 +463,7 @@ void server::add_video_protocols()
                         name_ac3, has_mpeg4_format,
                         48000, 6,
                         width_1080, height_1080, aspect_1080,
-                        "acodec=a52,ab=640", "vcodec=h264",
+                        "acodec=a52,ab=504", "vcodec=h264",
                         "vb=8192,scale=Auto,venc=x264{keyint=1,bframes=0}",
                         "vb=8192,scale=Auto,venc=x264{keyint=25,bframes=3}");
     }

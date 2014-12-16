@@ -46,11 +46,18 @@ void server::add_audio_protocols()
                 "acodec=mp3,ab=160",
                 "dummy");
 
+    connection_manager.add_source_audio_protocol(
+                "AC3",
+                pupnp::upnp::mime_audio_ac3, "ac3",
+                48000, 2,
+                "acodec=a52,ab=192",
+                "dummy");
+
     if (has_surround51)
         connection_manager.add_source_audio_protocol(
                     "AC3",
                     pupnp::upnp::mime_audio_ac3, "ac3",
                     48000, 6,
-                    "acodec=a52,ab=640",
+                    "acodec=a52,ab=504",
                     "dummy");
 }
