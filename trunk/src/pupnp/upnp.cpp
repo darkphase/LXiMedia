@@ -19,7 +19,6 @@
 #include "upnp.h"
 #include "platform/string.h"
 #include <algorithm>
-#include <atomic>
 #include <cassert>
 #include <cstring>
 #include <iostream>
@@ -215,9 +214,9 @@ void upnp::close(void)
         }
 
         // Ugly, but needed as UpnpFinish waits for callbacks from the HTTP server.
-        std::atomic<bool> finished(false);
+        bool finished = false;
         std::thread finish([&finished] { ::UpnpFinish(); finished = true; });
-        while (!finished) messageloop.process_events(std::chrono::milliseconds(16));
+        do messageloop.process_events(std::chrono::milliseconds(16)); while (!finished);
         finish.join();
 
         clear_responses();
