@@ -27,7 +27,6 @@
 #include "watchlist.h"
 #include <algorithm>
 #include <cmath>
-#include <future>
 #include <iomanip>
 #include <iostream>
 #include <map>
@@ -203,17 +202,19 @@ std::vector<pupnp::content_directory::item> files::list_contentdir_items(
         else
             break;
 
-    std::vector<std::future<pupnp::content_directory::item>> futures;
+    std::vector<vlc::media> media;
     for (auto &path : paths)
     {
-        futures.emplace_back(std::async(
-            std::launch::async,
-            std::bind(&files::make_item, this, client, path, true)));
+        std::string file_path, track_name;
+        split_path(path, file_path, track_name);
+        media.emplace_back(vlc::media::from_file(vlc_instance, to_system_path(file_path).path));
     }
 
+    media_cache.scan_all(media);
+
     std::vector<pupnp::content_directory::item> result;
-    for (auto &future : futures)
-        result.emplace_back(future.get());
+    for (auto &path : paths)
+        result.emplace_back(make_item(client, path));
 
     count = files.size();
     return result;
@@ -307,15 +308,13 @@ std::vector<pupnp::content_directory::item> files::list_recommended_items(
             recommended_paths.emplace(last_score, std::move(last_path));
     }
 
-    std::vector<std::future<pupnp::content_directory::item>> futures;
+    std::vector<std::string> paths;
     for (auto &path : recommended_paths)
         if (return_all || (count > 0))
         {
             if (start == 0)
             {
-                futures.emplace_back(std::async(
-                    std::launch::async,
-                    std::bind(&files::make_item, this, client, path.second, true)));
+                paths.emplace_back(path.second);
 
                 if (count > 0)
                     count--;
@@ -324,9 +323,19 @@ std::vector<pupnp::content_directory::item> files::list_recommended_items(
                 start--;
         }
 
+    std::vector<vlc::media> media;
+    for (auto &path : paths)
+    {
+        std::string file_path, track_name;
+        split_path(path, file_path, track_name);
+        media.emplace_back(vlc::media::from_file(vlc_instance, to_system_path(file_path).path));
+    }
+
+    media_cache.scan_all(media);
+
     std::vector<pupnp::content_directory::item> result;
-    for (auto &future : futures)
-        result.emplace_back(future.get());
+    for (auto &path : paths)
+        result.emplace_back(make_item(client, path));
 
     count = recommended_paths.size();
     return result;
@@ -334,7 +343,7 @@ std::vector<pupnp::content_directory::item> files::list_recommended_items(
 
 pupnp::content_directory::item files::get_contentdir_item(const std::string &client, const std::string &path)
 {
-    return make_item(client, path, false);
+    return make_item(client, path);
 }
 
 static unsigned codec_block(const std::string &codec)
@@ -771,7 +780,7 @@ const std::vector<std::string> & files::list_files(const std::string &path, bool
     return files_cache_item->second;
 }
 
-pupnp::content_directory::item files::make_item(const std::string &client, const std::string &path, bool fast) const
+pupnp::content_directory::item files::make_item(const std::string &client, const std::string &path) const
 {
     std::string file_path, track_name;
     split_path(path, file_path, track_name);
