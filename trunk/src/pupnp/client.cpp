@@ -19,6 +19,7 @@
 #include "client.h"
 #include <cstring>
 #include <sstream>
+#include <thread>
 
 namespace pupnp {
 
@@ -48,7 +49,12 @@ void client::close(void)
     if (client_enabled)
     {
         client_enabled = false;
-        ::UpnpUnRegisterClient(client_handle);
+
+        // Ugly, but needed as UpnpUnRegisterClient waits for callbacks.
+        bool finished = false;
+        std::thread finish([this, &finished] { ::UpnpUnRegisterClient(client_handle); finished = true; });
+        do messageloop.process_events(std::chrono::milliseconds(16)); while (!finished);
+        finish.join();
     }
 }
 
