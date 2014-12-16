@@ -99,7 +99,8 @@ namespace platform {
 process::process(
         const std::function<void(std::ostream &)> &function,
         bool background_task)
-    : child(0)
+    : std::istream(nullptr),
+      child(0)
 {
     if (pipe(pipe_desc) != 0)
         throw std::runtime_error("Creating pipe failed");
@@ -139,9 +140,9 @@ process::process(
 }
 
 process::process(process &&from)
-    : child(from.child)
+    : std::istream(from.rdbuf(nullptr)),
+      child(from.child)
 {
-    std::istream::rdbuf(from.rdbuf(nullptr));
     from.child = 0;
 }
 

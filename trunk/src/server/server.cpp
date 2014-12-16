@@ -45,7 +45,7 @@ server::server(
       settingspage(mainpage, settings, std::bind(&server::apply_settings, this)),
       logpage(mainpage, logfilename),
       helppage(mainpage),
-      setuppage(mainpage, upnp, settings, test, std::bind(&server::force_apply_settings, this)),
+      setuppage(mainpage, settings, test, std::bind(&server::force_apply_settings, this)),
       republish_timer(messageloop, std::bind(&server::republish_rootdevice, this)),
       republish_timeout(15),
       republish_required(false),

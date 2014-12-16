@@ -34,7 +34,6 @@ class setuppage
 public:
     setuppage(
             class mainpage &,
-            class pupnp::upnp &,
             class settings &,
             const std::unique_ptr<class test> &,
             const std::function<void()> &apply);
@@ -61,7 +60,6 @@ private:
     static std::string client_name;
 
     class mainpage &mainpage;
-    class pupnp::upnp &upnp;
     class settings &settings;
     const std::unique_ptr<class test> &test;
     const std::function<void()> apply;

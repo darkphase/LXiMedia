@@ -39,12 +39,10 @@ std::string setuppage::client_name;
 
 setuppage::setuppage(
         class mainpage &mainpage,
-        class pupnp::upnp &upnp,
         class settings &settings,
         const std::unique_ptr<class test> &test,
         const std::function<void()> &apply)
     : mainpage(mainpage),
-      upnp(upnp),
       settings(settings),
       test(test),
       apply(apply),
