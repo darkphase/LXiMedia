@@ -622,7 +622,7 @@ int files::play_item(
 static void fill_item(
         pupnp::content_directory::item &item,
         vlc::media_type media_type,
-        const class vlc::media_cache::media_info &media_info,
+        const struct vlc::media_cache::media_info &media_info,
         const std::vector<vlc::media_cache::track> &tracks,
         ::path_type path_type)
 {
