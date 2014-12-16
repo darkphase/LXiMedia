@@ -19,6 +19,7 @@
 #include "vlc/instance.h"
 #include "vlc/media.h"
 #include "platform/fstream.h"
+#include "platform/process.h"
 #include "platform/string.h"
 #include <sha1/sha1.h>
 #include <vlc/vlc.h>
@@ -272,7 +273,9 @@ struct media_cache::media_info media_cache::media_info(class media &media) const
 {
     std::unique_lock<std::mutex> l(mutex);
 
-    auto &data = cache[media.mrl()];
+    const auto mrl = media.mrl();
+
+    auto &data = cache[mrl];
     if (!data.media_info_read)
     {
         l.unlock();
@@ -281,7 +284,7 @@ struct media_cache::media_info media_cache::media_info(class media &media) const
 
         l.lock();
 
-        auto &data = cache[media.mrl()];
+        auto &data = cache[mrl];
         data.media_info = media_info;
         data.media_info_read = true;
         return data.media_info;
@@ -312,6 +315,60 @@ enum media_type media_cache::media_type(class media &media) const
         result = vlc::media_type::picture;
 
     return result;
+}
+
+void media_cache::scan_all(std::vector<class media> &media)
+{
+    std::vector<std::pair<std::string, class media *>> tasks;
+    {
+        std::lock_guard<std::mutex> _(mutex);
+
+        for (auto &i : media)
+        {
+            const auto mrl = i.mrl();
+            if (cache.find(mrl) == cache.end())
+                tasks.emplace_back(std::make_pair(mrl, &i));
+        }
+    }
+
+    std::vector<platform::process> processes;
+    for (auto &i : tasks)
+    {
+        processes.emplace_back(platform::process([this, &i](std::ostream &out)
+        {
+#if defined(__unix__) || defined(__APPLE__)
+            if (starts_with(i.first, "file://"))
+                out << uuid_from_file(from_percent(i.first.substr(7))) << ' ' << std::flush;
+#elif defined(WIN32)
+            if (starts_with(i.first, "file:"))
+                out << uuid_from_file(from_percent(i.first.substr(5))) << ' ' << std::flush;
+#endif
+            else
+                out << "00000000-0000-0000-0000-000000000000 " << std::flush;
+
+            out << media_info_from_media(*i.second) << std::flush;
+        }, true));
+    }
+
+    for (size_t i = 0, n = std::min(tasks.size(), processes.size()); i < n; i++)
+    {
+        platform::uuid uuid;
+        processes[i] >> uuid;
+        struct media_info media_info;
+        processes[i] >> media_info;
+
+        {
+            std::lock_guard<std::mutex> _(mutex);
+
+            auto &data = cache[tasks[i].first];
+            data.uuid = uuid;
+            data.uuid_generated = true;
+            data.media_info = media_info;
+            data.media_info_read = true;
+        }
+
+        processes[i].join();
+    }
 }
 
 
@@ -345,6 +402,105 @@ media_cache::data::data()
 
 media_cache::data::~data()
 {
+}
+
+
+std::ostream & operator<<(std::ostream &str, const struct media_cache::track &track)
+{
+    str << track.id << ' '
+        << '"' << to_percent(track.language) << '"' << ' '
+        << '"' << to_percent(track.description) << '"' << ' '
+        << int(track.type);
+
+    switch (track.type)
+    {
+    case track_type::audio:
+        str << ' ' << track.audio.sample_rate << ' ' << track.audio.channels;
+        break;
+
+    case track_type::video:
+        str << ' ' << track.video.width << ' ' << track.video.height << ' ' << track.video.frame_rate;
+        break;
+
+    case track_type::unknown:
+    case track_type::text:
+        break;
+    }
+
+    return str;
+}
+
+std::istream & operator>>(std::istream &str, struct media_cache::track &track)
+{
+    str >> track.id;
+
+    std::string language;
+    str >> language;
+    if (language.length() >= 2)
+        track.language = from_percent(language.substr(1, language.length() - 2));
+
+    std::string description;
+    str >> description;
+    if (description.length() >= 2)
+        track.description = from_percent(description.substr(1, description.length() - 2));
+
+    int type;
+    str >> type;
+    track.type = track_type(type);
+
+    switch (track.type)
+    {
+    case track_type::audio:
+        str >> track.audio.sample_rate >> track.audio.channels;
+        break;
+
+    case track_type::video:
+        str >> track.video.width >> track.video.height >> track.video.frame_rate;
+        break;
+
+    case track_type::unknown:
+    case track_type::text:
+        break;
+    }
+
+    return str;
+}
+
+std::ostream & operator<<(std::ostream &str, const struct media_cache::media_info &media_info)
+{
+    str << '{' << ' ';
+    for (auto &i : media_info.tracks) str << i << ' ';
+    str << '}' << ' ';
+
+    str << media_info.duration.count() << ' ';
+    str << media_info.chapter_count;
+
+    return str;
+}
+
+std::istream & operator>>(std::istream &str, struct media_cache::media_info &media_info)
+{
+    std::string i;
+    str >> i;
+    if (i == "{")
+    {
+        while (str && (str.get() == ' ') && (str.peek() != '}'))
+        {
+            struct media_cache::track track;
+            str >> track;
+            if (str) media_info.tracks.emplace_back(track);
+        }
+
+        str >> i; // '}'
+    }
+
+    long long duration = 0;
+    str >> duration;
+    media_info.duration = std::chrono::milliseconds(duration);
+
+    str >> media_info.chapter_count;
+
+    return str;
 }
 
 } // End of namespace

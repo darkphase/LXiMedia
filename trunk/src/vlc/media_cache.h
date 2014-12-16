@@ -84,6 +84,8 @@ public:
     media_cache();
     ~media_cache();
 
+    void scan_all(std::vector<class media> &);
+
     platform::uuid uuid(const std::string &) const;
     struct media_info media_info(class media &) const;
     enum media_type media_type(class media &) const;
@@ -92,6 +94,11 @@ private:
     mutable std::mutex mutex;
     mutable std::map<std::string, data> cache;
 };
+
+std::ostream & operator<<(std::ostream &, const struct media_cache::track &);
+std::ostream & operator<<(std::ostream &, const struct media_cache::media_info &);
+std::istream & operator>>(std::istream &, struct media_cache::track &);
+std::istream & operator>>(std::istream &, struct media_cache::media_info &);
 
 } // End of namespace
 

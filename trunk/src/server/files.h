@@ -61,7 +61,7 @@ private: // From recommended::item_source
 
 private:
     const std::vector<std::string> & list_files(const std::string &, bool flush_cache);
-    pupnp::content_directory::item make_item(const std::string &, const std::string &, bool) const;
+    pupnp::content_directory::item make_item(const std::string &, const std::string &) const;
     root_path to_system_path(const std::string &) const;
     std::string to_virtual_path(const std::string &) const;
 
