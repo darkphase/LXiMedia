@@ -85,14 +85,6 @@ int process::pipe_streambuf::overflow(int value)
     return traits_type::not_eof(value);
 }
 
-int process::pipe_streambuf::sync()
-{
-    int result = overflow(traits_type::eof());
-    ::fsync(fd);
-
-    return traits_type::eq_int_type(result, traits_type::eof()) ? -1 : 0;
-}
-
 } // End of namespace
 
 #if defined(__unix__) || defined(__APPLE__)
@@ -188,9 +180,18 @@ void process::join()
         throw std::runtime_error("Process not joinable.");
 }
 
+int process::pipe_streambuf::sync()
+{
+    int result = overflow(traits_type::eof());
+    ::fsync(fd);
+
+    return traits_type::eq_int_type(result, traits_type::eof()) ? -1 : 0;
+}
+
 } // End of namespace
 #elif defined(WIN32)
 #include <fcntl.h>
+#include <windows.h>
 
 namespace platform {
 
@@ -236,6 +237,14 @@ process::~process()
 void process::join()
 {
     thread.join();
+}
+
+int process::pipe_streambuf::sync()
+{
+    int result = overflow(traits_type::eof());
+    ::FlushFileBuffers(HANDLE(_get_osfhandle(fd)));
+
+    return traits_type::eq_int_type(result, traits_type::eof()) ? -1 : 0;
 }
 
 } // End of namespace
