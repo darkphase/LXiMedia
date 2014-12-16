@@ -111,6 +111,7 @@ pupnp::content_directory::item test::get_contentdir_item(const std::string &, co
     if (starts_with(path, "/pm5544_"))
     {
         item.mrl = pm5544_png_media.mrl();
+        item.uuid = platform::uuid("fe23d774-4956-4608-aa17-78fb4af8b5a4");
         item.width = 768;
         item.height = 576;
 
@@ -124,6 +125,7 @@ pupnp::content_directory::item test::get_contentdir_item(const std::string &, co
     else if (starts_with(path, "/pm5644_"))
     {
         item.mrl = pm5644_png_media.mrl();
+        item.uuid = platform::uuid("b6a79f3c-b6ad-457b-b47a-35827d8f171c");
 
         if (path == "/pm5644_720")
         {
@@ -158,15 +160,15 @@ bool test::correct_protocol(const pupnp::content_directory::item &item, pupnp::c
     }
     if (item.path == "/pm5544_h264_mpg")
     {
-        return protocol.profile == "AVC_PS_MP_SD_MPEG1_L3_NONSTD";
+        return protocol.profile == "AVC_PS_MP_SD_AC3_NONSTD";
     }
     else if (item.path == "/pm5544_h264_m2ts")
     {
-        return protocol.profile == "AVC_TS_MP_SD_MPEG1_L3";
+        return protocol.profile == "AVC_TS_MP_SD_AC3";
     }
     else if (item.path == "/pm5544_h264_ts")
     {
-        return protocol.profile == "AVC_TS_MP_SD_MPEG1_L3_ISO";
+        return protocol.profile == "AVC_TS_MP_SD_AC3_ISO";
     }
     else if (starts_with(item.path, "/pm5644_"))
     {

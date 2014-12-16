@@ -370,17 +370,17 @@ void server::add_video_protocols()
     if (has_mpeg4 && has_vcd)
     {
         static const char * const name[] = {
-            "AVC_TS_BL_CIF30_MPEG1_L3", "AVC_TS_BL_CIF30_MPEG1_L3_ISO", "AVC_PS_BL_CIF30_MPEG1_L3_NONSTD",
-            "AVC_TS_BL_CIF30_MPEG1_L3", "AVC_TS_BL_CIF30_MPEG1_L3_ISO", "AVC_PS_BL_CIF30_MPEG1_L3_NONSTD" };
+            "AVC_TS_BL_CIF30_AC3", "AVC_TS_BL_CIF30_AC3_ISO", "AVC_PS_BL_CIF30_AC3_NONSTD",
+            "AVC_TS_BL_CIF30_AC3", "AVC_TS_BL_CIF30_AC3_ISO", "AVC_PS_BL_CIF30_AC3_NONSTD" };
         static const unsigned width[] = { 352, 320 }, height[] = { 288, 240 };
         static const float aspect[] = { 1.0f, 1.0f };
 
         add_source_video_protocols(
                     connection_manager,
                     name, has_format,
-                    44100, 2,
+                    48000, 2,
                     width, height, aspect,
-                    "acodec=mp3,ab=128", "vcodec=h264",
+                    "acodec=a52,ab=128", "vcodec=h264",
                     "vb=2048,scale=Auto,venc=x264{keyint=1,bframes=0}",
                     "vb=2048,scale=Auto,venc=x264{keyint=25,bframes=3}");
     }
@@ -390,15 +390,15 @@ void server::add_video_protocols()
     if (has_mpeg4 && has_dvd)
     {
         static const char * const name[] = {
-            "AVC_TS_MP_SD_MPEG1_L3", "AVC_TS_MP_SD_MPEG1_L3_ISO", "AVC_PS_MP_SD_MPEG1_L3_NONSTD",
-            "AVC_TS_MP_SD_MPEG1_L3", "AVC_TS_MP_SD_MPEG1_L3_ISO", "AVC_PS_MP_SD_MPEG1_L3_NONSTD" };
+            "AVC_TS_MP_SD_AC3", "AVC_TS_MP_SD_AC3_ISO", "AVC_PS_MP_SD_AC3_NONSTD",
+            "AVC_TS_MP_SD_AC3", "AVC_TS_MP_SD_AC3_ISO", "AVC_PS_MP_SD_AC3_NONSTD" };
 
         add_source_video_protocols(
                     connection_manager,
                     name, has_format,
-                    44100, 2,
+                    48000, 2,
                     width_sd, height_sd, aspect_sd,
-                    "acodec=mp3,ab=128", "vcodec=h264",
+                    "acodec=a52,ab=128", "vcodec=h264",
                     "vb=2048,scale=Auto,venc=x264{keyint=1,bframes=0}",
                     "vb=2048,scale=Auto,venc=x264{keyint=25,bframes=3}");
     }
@@ -422,10 +422,6 @@ void server::add_video_protocols()
     /////////////////////////////////////////////////////////////////////////////
     // MPEG4 HD
     {
-        static const char * const name_mp3[] = {
-            "AVC_TS_MP_HD_MPEG1_L3", "AVC_TS_MP_HD_MPEG1_L3_ISO", "AVC_PS_MP_HD_MPEG1_L3_NONSTD",
-            "AVC_TS_MP_HD_MPEG1_L3", "AVC_TS_MP_HD_MPEG1_L3_ISO", "AVC_PS_MP_HD_MPEG1_L3_NONSTD" };
-
         static const char * const name_ac3[] = {
             "AVC_TS_MP_HD_AC3", "AVC_TS_MP_HD_AC3_ISO", "AVC_PS_MP_HD_AC3_NONSTD",
             "AVC_TS_MP_HD_AC3", "AVC_TS_MP_HD_AC3_ISO", "AVC_PS_MP_HD_AC3_NONSTD" };
@@ -433,10 +429,10 @@ void server::add_video_protocols()
         if (has_mpeg4 && has_hdtv_720)
             add_source_video_protocols(
                         connection_manager,
-                        name_mp3, has_format,
-                        44100, 2,
+                        name_ac3, has_format,
+                        48000, 2,
                         width_720, height_720, aspect_720,
-                        "acodec=mp3,ab=128", "vcodec=h264",
+                        "acodec=a52,ab=128", "vcodec=h264",
                         "vb=4096,scale=Auto,venc=x264{keyint=1,bframes=0}",
                         "vb=4096,scale=Auto,venc=x264{keyint=25,bframes=3}");
 
@@ -453,10 +449,10 @@ void server::add_video_protocols()
         if (has_mpeg4 && has_hdtv_1080)
             add_source_video_protocols(
                         connection_manager,
-                        name_mp3, has_format,
-                        44100, 2,
+                        name_ac3, has_format,
+                        48000, 2,
                         width_1080, height_1080, aspect_1080,
-                        "acodec=mp3,ab=128", "vcodec=h264",
+                        "acodec=a52,ab=128", "vcodec=h264",
                         "vb=8192,scale=Auto,venc=x264{keyint=1,bframes=0}",
                         "vb=8192,scale=Auto,venc=x264{keyint=25,bframes=3}");
 
