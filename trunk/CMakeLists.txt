@@ -104,22 +104,15 @@ add_library(sha1 STATIC ${SHA1_SRC_LIST})
 
 #######################################
 # lximediaserver
-aux_source_directory(src/mpeg/ MPEG_SRC_LIST)
-aux_source_directory(src/platform/ PLATFORM_SRC_LIST)
-aux_source_directory(src/pupnp/ PUPNP_SRC_LIST)
-aux_source_directory(src/vlc/ VLC_SRC_LIST)
+file(GLOB_RECURSE SRC_LIST src/*.cpp)
 
 set_source_files_properties(
-    ${MPEG_SRC_LIST} ${PLATFORM_SRC_LIST} ${PUPNP_SRC_LIST} ${VLC_SRC_LIST}
-    PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -DUPNP_STATIC_LIB")
+    ${SRC_LIST}
+    PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -DUPNP_STATIC_LIB -DVERSION=\\\"${VERSION}\\\"")
 
-aux_source_directory(src/server/ SERVER_SRC_LIST)
-aux_source_directory(src/server/html/ SERVER_HTML_SRC_LIST)
-aux_source_directory(src/resources/ RESOURCES_SRC_LIST)
-
-set_source_files_properties(
-    ${SERVER_SRC_LIST} ${SERVER_HTML_SRC_LIST} ${RESOURCES_SRC_LIST}
-    PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -DVERSION=\\\"${VERSION}\\\"")
+if(${CMAKE_BUILD_TYPE} STREQUAL Debug)
+    set_property(SOURCE ${SRC_LIST} APPEND_STRING PROPERTY COMPILE_FLAGS " -Werror")
+endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
     SET(SERVER_RESOURCES ${CMAKE_SOURCE_DIR}/deploy/win32/lximediaserver.rc)
@@ -127,10 +120,7 @@ else()
     SET(SERVER_RESOURCES)
 endif()
 
-add_executable(
-    lximediaserver
-    ${MPEG_SRC_LIST} ${PLATFORM_SRC_LIST} ${PUPNP_SRC_LIST} ${VLC_SRC_LIST}
-    ${SERVER_SRC_LIST} ${SERVER_HTML_SRC_LIST} ${RESOURCES_SRC_LIST} ${SERVER_RESOURCES})
+add_executable(lximediaserver ${SRC_LIST} ${SERVER_RESOURCES})
 
 target_include_directories(
     lximediaserver PRIVATE
@@ -151,7 +141,11 @@ endif()
 # test
 if(${CMAKE_BUILD_TYPE} STREQUAL Debug)
     file(GLOB_RECURSE TEST_SRC_LIST test/*.cpp)
-    set_source_files_properties(${TEST_SRC_LIST} PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall")
+
+    set_source_files_properties(
+        ${TEST_SRC_LIST}
+        PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -Werror")
+
     add_executable(lximediaserver_test ${TEST_SRC_LIST})
 
     target_include_directories(
