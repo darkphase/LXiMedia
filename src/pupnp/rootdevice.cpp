@@ -19,7 +19,6 @@
 #include "rootdevice.h"
 #include "ixml_structures.h"
 #include "platform/string.h"
-#include <atomic>
 #include <cstring>
 #include <iostream>
 #include <set>
@@ -415,7 +414,7 @@ bool rootdevice::enable_rootdevice(void)
     };
 
     // Ugly, but needed as UpnpRegisterRootDevice retrieves files from the HTTP server.
-    std::atomic<bool> finished(false);
+    bool finished = false;
     int result = UPNP_E_INTERNAL_ERROR;
     char **addresses = ::UpnpGetServerIpAddresses();
     const std::string port = std::to_string(::UpnpGetServerPort());
@@ -443,7 +442,7 @@ bool rootdevice::enable_rootdevice(void)
         finished = true;
     });
 
-    while (!finished) messageloop.process_events(std::chrono::milliseconds(16));
+    do messageloop.process_events(std::chrono::milliseconds(16)); while (!finished);
     start.join();
 
     if (result == UPNP_E_SUCCESS)
