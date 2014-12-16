@@ -76,7 +76,6 @@ std::vector<pupnp::content_directory::item> test::list_contentdir_items(
         items.emplace_back(get_contentdir_item(client, "/pm5544_mp2v_mpg"));
         items.emplace_back(get_contentdir_item(client, "/pm5544_mp2v_m2ts"));
         items.emplace_back(get_contentdir_item(client, "/pm5544_mp2v_ts"));
-        items.emplace_back(get_contentdir_item(client, "/pm5544_h264_mpg"));
         items.emplace_back(get_contentdir_item(client, "/pm5544_h264_m2ts"));
         items.emplace_back(get_contentdir_item(client, "/pm5544_h264_ts"));
         break;
@@ -118,7 +117,6 @@ pupnp::content_directory::item test::get_contentdir_item(const std::string &, co
         if      (path == "/pm5544_mp2v_mpg")    item.title = "MPEG 2 Program Stream";
         else if (path == "/pm5544_mp2v_m2ts")   item.title = "MPEG 2 BDAV Transport Stream";
         else if (path == "/pm5544_mp2v_ts")     item.title = "MPEG 2 Transport Stream";
-        else if (path == "/pm5544_h264_mpg")    item.title = "MPEG 4 AVC Program Stream";
         else if (path == "/pm5544_h264_m2ts")   item.title = "MPEG 4 AVC BDAV Transport Stream";
         else if (path == "/pm5544_h264_ts")     item.title = "MPEG 4 AVC Transport Stream";
     }
@@ -158,10 +156,6 @@ bool test::correct_protocol(const pupnp::content_directory::item &item, pupnp::c
     {
         return (protocol.profile == "MPEG_TS_SD_EU_ISO") || (protocol.profile == "MPEG_TS_SD_NA_ISO");
     }
-    if (item.path == "/pm5544_h264_mpg")
-    {
-        return protocol.profile == "AVC_PS_MP_SD_AC3_NONSTD";
-    }
     else if (item.path == "/pm5544_h264_m2ts")
     {
         return protocol.profile == "AVC_TS_MP_SD_AC3";
@@ -176,8 +170,7 @@ bool test::correct_protocol(const pupnp::content_directory::item &item, pupnp::c
             (protocol.profile == "MPEG_TS_HD_EU_ISO") || (protocol.profile == "MPEG_TS_HD_NA_ISO") ||
             (protocol.profile == "MPEG_PS_HD_EU_NONSTD") || (protocol.profile == "MPEG_PS_HD_NA_NONSTD") ||
             (protocol.profile == "AVC_TS_MP_HD_MPEG1_L3") ||
-            (protocol.profile == "AVC_TS_MP_HD_MPEG1_L3_ISO") ||
-            (protocol.profile == "AVC_PS_MP_HD_MPEG1_L3_NONSTD"))
+            (protocol.profile == "AVC_TS_MP_HD_MPEG1_L3_ISO"))
         {
             if (item.path == "/pm5644_720")
                 return protocol.height == 720;

@@ -130,7 +130,6 @@ void setuppage::render_headers(const struct pupnp::upnp::request &request, std::
                 const bool mp2v_mpg = request.url.query.find("mp2v_mpg") != request.url.query.end();
                 const bool mp2v_ts = request.url.query.find("mp2v_ts") != request.url.query.end();
                 const bool mp2v_m2ts = request.url.query.find("mp2v_m2ts") != request.url.query.end();
-                const bool h264_mpg = request.url.query.find("h264_mpg") != request.url.query.end();
                 const bool h264_ts = request.url.query.find("h264_ts") != request.url.query.end();
                 const bool h264_m2ts = request.url.query.find("h264_m2ts") != request.url.query.end();
 
@@ -143,10 +142,10 @@ void setuppage::render_headers(const struct pupnp::upnp::request &request, std::
                     settings.set_video_mode(video_mode::auto_);
                     current_setup_mode = html::setup_mode::high_definition;
                 }
-                else if (h264_mpg || h264_ts || h264_m2ts)
+                else if (h264_ts || h264_m2ts)
                 {
                     settings.set_mpeg2_enabled(false);
-                    settings.set_video_mpeg_enabled(h264_mpg);
+                    settings.set_video_mpeg_enabled(false);
                     settings.set_video_mpegts_enabled(h264_ts);
                     settings.set_video_mpegm2ts_enabled(h264_m2ts);
                     settings.set_video_mode(video_mode::auto_);
@@ -325,7 +324,6 @@ void setuppage::render_setup_codecs(const struct pupnp::upnp::request &, std::os
            "<p><input type=\"checkbox\" name=\"mp2v_mpg\" value=\"on\" />MPEG 2 Program Stream</p>"
            "<p><input type=\"checkbox\" name=\"mp2v_m2ts\" value=\"on\" />MPEG 2 BDAV Transport Stream</p>"
            "<p><input type=\"checkbox\" name=\"mp2v_ts\" value=\"on\" />MPEG 2 Transport Stream</p>"
-           "<p><input type=\"checkbox\" name=\"h264_mpg\" value=\"on\" />MPEG 4 AVC Program Stream</p>"
            "<p><input type=\"checkbox\" name=\"h264_m2ts\" value=\"on\" />MPEG 4 AVC BDAV Transport Stream</p>"
            "<p><input type=\"checkbox\" name=\"h264_ts\" value=\"on\" />MPEG 4 AVC Transport Stream</p>"
            "</td></tr></table></div>"

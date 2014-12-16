@@ -136,6 +136,8 @@ static struct media_cache::media_info media_info_from_media(
 
                 if (e->type == libvlc_MediaPlayerTimeChanged)
                     t->new_time = e->u.media_player_time_changed.new_time;
+                else if (e->type == libvlc_MediaPlayerLengthChanged)
+                    t->new_length = e->u.media_player_length_changed.new_length;
                 else if (e->type == libvlc_MediaPlayerPlaying)
                     t->playing = true;
                 else if (e->type == libvlc_MediaPlayerEndReached)
@@ -160,14 +162,16 @@ static struct media_cache::media_info media_info_from_media(
             std::mutex mutex;
             bool playing, stopped;
             libvlc_time_t new_time;
+            libvlc_time_t new_length;
             std::vector<uint8_t> pixel_buffer;
         } t;
 
         t.stopped = t.playing = false;
         t.new_time = -1;
+        t.new_length = -1;
         t.pixel_buffer.resize((width * height * sizeof(uint32_t)) + align);
 
-        libvlc_media_player_set_rate(player, 10.0f);
+        libvlc_media_player_set_rate(player, 30.0f);
 
         libvlc_audio_set_callbacks(player, &T::play, nullptr, nullptr, nullptr, nullptr, &t);
         libvlc_audio_set_format(player, "S16N", 44100, 2);
@@ -178,6 +182,7 @@ static struct media_cache::media_info media_info_from_media(
         libvlc_event_attach(event_manager, libvlc_MediaPlayerPlaying, T::callback, &t);
         libvlc_event_attach(event_manager, libvlc_MediaPlayerEndReached, T::callback, &t);
         libvlc_event_attach(event_manager, libvlc_MediaPlayerEncounteredError, T::callback, &t);
+        libvlc_event_attach(event_manager, libvlc_MediaPlayerLengthChanged, T::callback, &t);
         libvlc_event_attach(event_manager, libvlc_MediaPlayerTimeChanged, T::callback, &t);
 
         if (libvlc_media_player_play(player) == 0)
@@ -198,11 +203,15 @@ static struct media_cache::media_info media_info_from_media(
         }
 
         libvlc_event_detach(event_manager, libvlc_MediaPlayerTimeChanged, T::callback, &t);
+        libvlc_event_detach(event_manager, libvlc_MediaPlayerLengthChanged, T::callback, &t);
         libvlc_event_detach(event_manager, libvlc_MediaPlayerEncounteredError, T::callback, &t);
         libvlc_event_detach(event_manager, libvlc_MediaPlayerEndReached, T::callback, &t);
         libvlc_event_detach(event_manager, libvlc_MediaPlayerPlaying, T::callback, &t);
 
         libvlc_media_player_release(player);
+
+        media_info.duration = std::chrono::milliseconds(
+                    std::max(libvlc_media_get_duration(media), t.new_length));
     }
 
     libvlc_media_track_t **track_list = nullptr;
@@ -255,8 +264,6 @@ static struct media_cache::media_info media_info_from_media(
 
         libvlc_media_tracks_release(track_list, count);
     }
-
-    media_info.duration = std::chrono::milliseconds(libvlc_media_get_duration(media));
 
     return media_info;
 }

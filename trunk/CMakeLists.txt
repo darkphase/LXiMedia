@@ -150,19 +150,9 @@ endif()
 #######################################
 # test
 if(${CMAKE_BUILD_TYPE} STREQUAL Debug)
-    aux_source_directory(test/ext/ TEST_EXT_SRC_LIST)
-    aux_source_directory(test/platform/ TEST_PLATFORM_SRC_LIST)
-    aux_source_directory(test/vlc/ TEST_VLC_SRC_LIST)
-    aux_source_directory(test/ TEST_SRC_LIST)
-
-    set_source_files_properties(
-        ${TEST_EXT_SRC_LIST} ${TEST_PLATFORM_SRC_LIST} ${TEST_VLC_SRC_LIST} ${TEST_SRC_LIST}
-        PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall")
-
-    add_executable(
-        lximediaserver_test
-        ${TEST_EXT_SRC_LIST} ${TEST_PLATFORM_SRC_LIST}
-        ${TEST_VLC_SRC_LIST} ${TEST_SRC_LIST})
+    file(GLOB_RECURSE TEST_SRC_LIST test/*.cpp)
+    set_source_files_properties(${TEST_SRC_LIST} PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall")
+    add_executable(lximediaserver_test ${TEST_SRC_LIST})
 
     target_include_directories(
         lximediaserver_test PRIVATE

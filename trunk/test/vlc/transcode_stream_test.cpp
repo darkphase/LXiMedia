@@ -3,79 +3,59 @@
 #include "vlc/media_cache.h"
 #include "platform/fstream.h"
 #include "platform/path.h"
+#include "resources/resource_file.h"
+#include "resources/resources.h"
 #include <algorithm>
-
-extern const uint8_t pm5544_mp4[191961];
-extern const uint8_t pm5544_srt[88];
-
-static std::string write_file(const std::string &filename, const uint8_t *data, size_t size)
-{
-    platform::ofstream str(filename, std::ios::binary);
-    test_assert(str.is_open());
-    str.write(reinterpret_cast<const char *>(data), size);
-
-    return filename;
-}
 
 namespace vlc {
 
 static const struct transcode_stream_test
 {
-    const std::string filename;
-    const std::string outfile;
+    const resources::resource_file a440hz_flac;
+    const resources::resource_file pm5544_png;
+    std::string outfile;
 
     transcode_stream_test()
-        : filename(platform::temp_file_path("pm5544.")),
-          outfile(platform::temp_file_path("ps")),
-          transcode_test(this, "vlc::transcode_stream::transcode", &transcode_stream_test::transcode)
+        : a440hz_flac(resources::a440hz_flac, "flac"),
+          pm5544_png(resources::pm5544_png, "png"),
+          transcode_mp2v_ps_test(this, "vlc::transcode_stream::transcode_mp2v_ps", &transcode_stream_test::transcode_mp2v_ps),
+          transcode_mp2v_ts_test(this, "vlc::transcode_stream::transcode_mp2v_ts", &transcode_stream_test::transcode_mp2v_ts),
+          transcode_h264_ts_test(this, "vlc::transcode_stream::transcode_h264_ts", &transcode_stream_test::transcode_h264_ts)
     {
     }
 
     ~transcode_stream_test()
     {
-        ::remove(outfile.c_str());
-        ::remove((filename + "mp4").c_str());
-        ::remove((filename + "srt").c_str());
-        ::remove((filename + "ts" ).c_str());
+        if (!outfile.empty())
+            ::remove(outfile.c_str());
     }
 
-    struct test transcode_test;
-    void transcode()
+    void transcode_base(const char *transcode, const char *mux)
     {
-        // VLC 2.2.0-pre2 crashes in this test.
-        if (instance::compare_version(2, 2, 0) == 0)
-            return;
-
-        const std::string infile = write_file(filename + "mp4", pm5544_mp4, sizeof(pm5544_mp4));
-        write_file(filename + "srt", pm5544_srt, sizeof(pm5544_srt));
-
         class instance instance;
         class media_cache media_cache;
 
+        if (!outfile.empty())
+            ::remove(outfile.c_str());
+
+        outfile = platform::temp_file_path(mux);
+
         // Transcode file.
         {
-            struct transcode_stream::track_ids track_ids;
-            class media media = media::from_file(instance, infile);
-            for (auto &track : media_cache.media_info(media).tracks)
-                switch (track.type)
-                {
-                case track_type::unknown:   break;
-                case track_type::audio:     track_ids.audio = track.id; break;
-                case track_type::video:     track_ids.video = track.id; break;
-                case track_type::text:      track_ids.text  = track.id; break;
-                }
-
             class platform::messageloop messageloop;
             class platform::messageloop_ref messageloop_ref(messageloop);
             class transcode_stream transcode_stream(messageloop_ref, instance);
 
-            static const char transcode_nocroppadd[] =
-                        "#transcode{"
-                        "vcodec=mp2v,fps=25,soverlay,canvas{width=768,height=576},"
-                        "acodec=mpga"
-                        "}";
+            class media a440hz_flac_media = media::from_file(instance, a440hz_flac);
+            transcode_stream.add_option(":input-slave=" + a440hz_flac_media.mrl());
 
-            test_assert(transcode_stream.open(media.mrl(), 0, track_ids, transcode_nocroppadd, "ps"));
+            class media pm5544_png_media = media::from_file(instance, pm5544_png);
+
+            struct vlc::transcode_stream::track_ids track_ids;
+            track_ids.audio = 1;
+            track_ids.video = 0;
+
+            test_assert(transcode_stream.open(pm5544_png_media.mrl(), 0, track_ids, transcode, mux));
 
             platform::ofstream out(outfile, std::ios::binary);
             test_assert(out.is_open());
@@ -100,6 +80,10 @@ static const struct transcode_stream_test
 
             const auto media_info = media_cache.media_info(media);
             test_assert(media_info.tracks.size() == 2);
+            test_assert(
+                        (media_info.duration.count() == 0) ||
+                        (std::abs(int(media_info.duration.count()) - 10000) < 1000));
+
             for (const auto &track : media_info.tracks)
             {
                 switch (track.type)
@@ -121,6 +105,48 @@ static const struct transcode_stream_test
                 }
             }
         }
+
+        ::remove(outfile.c_str());
+        outfile.clear();
+    }
+
+    struct test transcode_mp2v_ps_test;
+    void transcode_mp2v_ps()
+    {
+        static const char transcode[] =
+                "#transcode{"
+                "vcodec=mp2v,scale=Auto,fps=25,width=768,height=576,"
+                        "vfilter=canvas{width=768,height=576},soverlay,"
+                "acodec=mpga,samplerate=44100,channels=2"
+                "}";
+
+        transcode_base(transcode, "ps");
+    }
+
+    struct test transcode_mp2v_ts_test;
+    void transcode_mp2v_ts()
+    {
+        static const char transcode[] =
+                "#transcode{"
+                "vcodec=mp2v,scale=Auto,fps=25,width=768,height=576,"
+                        "vfilter=canvas{width=768,height=576},soverlay,"
+                "acodec=mpga,samplerate=44100,channels=2"
+                "}";
+
+        transcode_base(transcode, "ts");
+    }
+
+    struct test transcode_h264_ts_test;
+    void transcode_h264_ts()
+    {
+        static const char transcode[] =
+                "#transcode{"
+                "vcodec=h264,scale=Auto,fps=25,width=768,height=576,"
+                        "vfilter=canvas{width=768,height=576},soverlay,"
+                "acodec=a52,samplerate=44100,channels=2"
+                "}";
+
+        transcode_base(transcode, "ts");
     }
 } transcode_stream_test;
 
