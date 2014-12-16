@@ -328,9 +328,9 @@ void transcode_stream::streambuf::select_tracks()
 {
     std::lock_guard<std::mutex> _(mutex);
 
-    libvlc_video_set_track(player, -1);
-    if (track_ids.video >= 0)
-        libvlc_video_set_track(player, track_ids.video);
+//    libvlc_video_set_track(player, -1);
+//    if (track_ids.video > 0)
+//        libvlc_video_set_track(player, track_ids.video);
 
     libvlc_audio_set_track(player, -1);
     if (track_ids.audio >= 0)
