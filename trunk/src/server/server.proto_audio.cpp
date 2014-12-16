@@ -46,13 +46,6 @@ void server::add_audio_protocols()
                 "acodec=mp3,ab=160",
                 "dummy");
 
-    connection_manager.add_source_audio_protocol(
-                "AAC_ADTS",
-                pupnp::upnp::mime_audio_aac, "aac",
-                48000, 2,
-                "acodec=mp4a,ab=128",
-                "dummy");
-
     if (has_surround51)
         connection_manager.add_source_audio_protocol(
                     "AC3",
