@@ -226,10 +226,9 @@ std::vector<pupnp::content_directory::item> files::list_recommended_items(
 {
     const bool return_all = count == 0;
 
-    const auto watched_items = watchlist.watched_items();
-    std::unordered_map<std::string, const watchlist::entry &> watched_by_mrl;
-    std::map<std::chrono::system_clock::time_point, const watchlist::entry &> watched_by_last_seen;
-    for (auto &i : watched_items)
+    std::unordered_map<std::string, watchlist::entry> watched_by_mrl;
+    std::map<std::chrono::system_clock::time_point, watchlist::entry> watched_by_last_seen;
+    for (auto &i : watchlist.watched_items())
     {
         watched_by_mrl.emplace(i.mrl, i);
         watched_by_last_seen.emplace(i.last_seen, i);

@@ -48,13 +48,7 @@ static std::string to_string(const struct watchlist::entry &entry)
 
 static watchlist::entry to_entry(const std::string &str)
 {
-    watchlist::entry result =
-    {
-        std::chrono::system_clock::time_point(),
-        std::chrono::milliseconds(0),
-        std::chrono::milliseconds(0),
-        std::string()
-    };
+    watchlist::entry result;
 
     const size_t comma1 = str.find_first_of(',');
     if (comma1 != str.npos)
@@ -93,7 +87,7 @@ std::vector<struct watchlist::entry> watchlist::watched_items() const
     const auto section = inifile.open_section();
 
     std::vector<watchlist::entry> result;
-    for (auto uuid : section.names())
+    for (auto &uuid : section.names())
         result.emplace_back(to_entry(section.read(uuid)));
 
     return result;
@@ -125,4 +119,29 @@ bool watchlist::watched_till_end(std::chrono::milliseconds last_position, std::c
 bool watchlist::watched_till_end(const struct entry &entry)
 {
     return watched_till_end(entry.last_position, entry.duration);
+}
+
+
+watchlist::entry::entry()
+    : last_seen(),
+      last_position(0),
+      duration(0),
+      mrl()
+{
+}
+
+watchlist::entry::entry(
+        std::chrono::system_clock::time_point last_seen,
+        std::chrono::milliseconds last_position,
+        std::chrono::milliseconds duration,
+        const std::string &mrl)
+    : last_seen(last_seen),
+      last_position(last_position),
+      duration(duration),
+      mrl(mrl)
+{
+}
+
+watchlist::entry::~entry()
+{
 }

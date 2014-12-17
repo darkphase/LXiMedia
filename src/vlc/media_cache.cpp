@@ -319,7 +319,9 @@ enum media_type media_cache::media_type(class media &media) const
 void media_cache::scan_all(std::vector<class media> &media)
 {
     static const unsigned num_queues = std::max(1u, std::thread::hardware_concurrency());
-    std::list<std::pair<std::string, class media *>> tasks[num_queues];
+    std::vector<std::list<std::pair<std::string, class media *>>> tasks;
+    tasks.resize(num_queues);
+
     {
         std::lock_guard<std::mutex> _(mutex);
 
@@ -334,7 +336,9 @@ void media_cache::scan_all(std::vector<class media> &media)
 
     for (bool more = true; more;)
     {
-        platform::process processes[num_queues];
+        std::vector<platform::process> processes;
+        processes.resize(num_queues);
+
         for (unsigned i = 0; i < num_queues; i++)
         {
             if (!tasks[i].empty())
