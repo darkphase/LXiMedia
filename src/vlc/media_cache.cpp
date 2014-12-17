@@ -23,10 +23,9 @@
 #include "platform/string.h"
 #include <sha1/sha1.h>
 #include <vlc/vlc.h>
-#include <stdexcept>
 #include <cstring>
 #include <sstream>
-#include <iostream>
+#include <thread>
 
 namespace vlc {
 
@@ -319,55 +318,79 @@ enum media_type media_cache::media_type(class media &media) const
 
 void media_cache::scan_all(std::vector<class media> &media)
 {
-    std::vector<std::pair<std::string, class media *>> tasks;
+    static const unsigned num_queues = std::max(1u, std::thread::hardware_concurrency());
+    std::list<std::pair<std::string, class media *>> tasks[num_queues];
     {
         std::lock_guard<std::mutex> _(mutex);
 
+        unsigned index = 0;
         for (auto &i : media)
         {
             const auto mrl = i.mrl();
             if (cache.find(mrl) == cache.end())
-                tasks.emplace_back(std::make_pair(mrl, &i));
+                tasks[index++ % num_queues].emplace_back(std::make_pair(mrl, &i));
         }
     }
 
-    std::vector<platform::process> processes;
-    for (auto &i : tasks)
+    for (bool more = true; more;)
     {
-        processes.emplace_back(platform::process([this, &i](std::ostream &out)
+        platform::process processes[num_queues];
+        for (unsigned i = 0; i < num_queues; i++)
         {
+            if (!tasks[i].empty())
+            {
+                processes[i] = platform::process([&tasks, i](std::ostream &out)
+                {
+                    for (auto &task : tasks[i])
+                    {
 #if defined(__unix__) || defined(__APPLE__)
-            if (starts_with(i.first, "file://"))
-                out << uuid_from_file(from_percent(i.first.substr(7))) << ' ' << std::flush;
+                        if (starts_with(task.first, "file://"))
+                            out << uuid_from_file(from_percent(task.first.substr(7))) << ' ' << std::flush;
 #elif defined(WIN32)
-            if (starts_with(i.first, "file:"))
-                out << uuid_from_file(from_percent(i.first.substr(5))) << ' ' << std::flush;
+                        if (starts_with(task.first, "file:"))
+                            out << uuid_from_file(from_percent(task.first.substr(5))) << ' ' << std::flush;
 #endif
-            else
-                out << "00000000-0000-0000-0000-000000000000 " << std::flush;
+                        else
+                            out << platform::uuid::generate() << ' ' << std::flush;
 
-            out << media_info_from_media(*i.second) << std::flush;
-        }, true));
-    }
-
-    for (size_t i = 0, n = std::min(tasks.size(), processes.size()); i < n; i++)
-    {
-        platform::uuid uuid;
-        processes[i] >> uuid;
-        struct media_info media_info;
-        processes[i] >> media_info;
-
-        {
-            std::lock_guard<std::mutex> _(mutex);
-
-            auto &data = cache[tasks[i].first];
-            data.uuid = uuid;
-            data.uuid_generated = true;
-            data.media_info = media_info;
-            data.media_info_read = true;
+                        out << media_info_from_media(*task.second) << std::endl;
+                    }
+                }, true);
+            }
         }
 
-        processes[i].join();
+        for (unsigned i = 0; i < num_queues; i++)
+        {
+            while (!tasks[i].empty())
+            {
+                platform::uuid uuid;
+                processes[i] >> uuid;
+                struct media_info media_info;
+                processes[i] >> media_info;
+
+                {
+                    std::lock_guard<std::mutex> _(mutex);
+
+                    auto &data = cache[tasks[i].front().first];
+                    data.uuid = uuid;
+                    data.uuid_generated = true;
+                    data.media_info = media_info;
+                    data.media_info_read = true;
+                }
+
+                tasks[i].pop_front();
+
+                if (!processes[i])
+                    break; // Process crashed while parsing this file.
+            }
+
+            if (processes[i].joinable())
+                processes[i].join();
+        }
+
+        more = false;
+        for (unsigned i = 0; (i < num_queues) && !more; i++)
+            more |= !tasks[i].empty();
     }
 }
 

@@ -96,6 +96,12 @@ int process::pipe_streambuf::overflow(int value)
 
 namespace platform {
 
+process::process()
+    : std::istream(nullptr),
+      child(0)
+{
+}
+
 process::process(
         const std::function<void(std::ostream &)> &function,
         bool background_task)
@@ -167,6 +173,11 @@ process::~process()
         throw std::runtime_error("Process still running while destructing.");
 }
 
+bool process::joinable() const
+{
+    return child != 0;
+}
+
 void process::join()
 {
     if (child != 0)
@@ -196,10 +207,17 @@ int process::pipe_streambuf::sync()
 
 namespace platform {
 
+process::process()
+    : std::istream(nullptr),
+      thread()
+{
+}
+
 process::process(
         const std::function<void(std::ostream &)> &function,
         bool background_task)
-    : thread()
+    : std::istream(nullptr),
+      thread()
 {
     if (_pipe(pipe_desc, 4096, _O_BINARY) != 0)
         throw std::runtime_error("Creating pipe failed");
@@ -216,9 +234,9 @@ process::process(
 }
 
 process::process(process &&from)
-    : thread(std::move(from.thread))
+    : std::istream(from.rdbuf(nullptr)),
+      thread(std::move(from.thread))
 {
-    std::istream::rdbuf(from.rdbuf(nullptr));
 }
 
 process & process::operator=(process &&from)
@@ -233,6 +251,11 @@ process & process::operator=(process &&from)
 process::~process()
 {
     delete std::istream::rdbuf(nullptr);
+}
+
+bool process::joinable() const
+{
+    return thread.joinable();
 }
 
 void process::join()
