@@ -29,6 +29,15 @@ class watchlist
 public:
     struct entry
     {
+        entry();
+        entry(
+                std::chrono::system_clock::time_point last_seen,
+                std::chrono::milliseconds last_position,
+                std::chrono::milliseconds duration,
+                const std::string &mrl);
+
+        ~entry();
+
         std::chrono::system_clock::time_point last_seen;
         std::chrono::milliseconds last_position;
         std::chrono::milliseconds duration;
