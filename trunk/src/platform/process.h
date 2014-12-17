@@ -33,6 +33,7 @@ namespace platform {
 class process : public std::istream
 {
 public:
+    process();
     process(
             const std::function<void(std::ostream &)> &,
             bool background_task = false);
@@ -45,6 +46,7 @@ public:
     process(const process &) = delete;
     process & operator=(const process &) = delete;
 
+    bool joinable() const;
     void join();
 
 private:
