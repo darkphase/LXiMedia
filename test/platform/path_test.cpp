@@ -5,8 +5,8 @@
 static const struct path_test
 {
     path_test()
-        : list_root_directories_test(this, "path::list_root_directories", &path_test::list_root_directories),
-          list_files_test(this, "path::list_files", &path_test::list_files)
+        : list_root_directories_test(this, "platform::path::list_root_directories", &path_test::list_root_directories),
+          list_files_test(this, "platform::path::list_files", &path_test::list_files)
     {
     }
 

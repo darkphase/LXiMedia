@@ -18,13 +18,17 @@
 #ifndef PLATFORM_PROCESS_H
 #define PLATFORM_PROCESS_H
 
+#if defined(WIN32)
+# define PROCESS_USES_THREAD
+#endif
+
 #include <cstdint>
 #include <functional>
 #include <istream>
 #include <ostream>
-#if defined(__unix__) || defined(__APPLE__)
+#ifndef PROCESS_USES_THREAD
 # include <sys/types.h>
-#elif defined(WIN32)
+#else
 # include <thread>
 #endif
 
@@ -61,9 +65,9 @@ public:
 private:
     int pipe_desc[2];
 
-#if defined(__unix__) || defined(__APPLE__)
+#ifndef PROCESS_USES_THREAD
     pid_t child;
-#elif defined(WIN32)
+#else
     std::thread thread;
     volatile bool term_received;
 #endif

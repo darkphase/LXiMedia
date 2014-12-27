@@ -10,7 +10,7 @@ static const struct fstream_test
 
     fstream_test()
         : filename(platform::temp_file_path("txt")),
-          loopback_test(this, "fstream::loopback", &fstream_test::loopback)
+          loopback_test(this, "platform::fstream::loopback", &fstream_test::loopback)
     {
     }
 
