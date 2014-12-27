@@ -40,6 +40,19 @@ private:
     char buffer[4096];
 };
 
+process::process(
+        const std::function<void(std::ostream &)> &function,
+        bool background_task)
+    : process([function](int fd)
+        {
+            pipe_streambuf streambuf(fd);
+            std::ostream stream(&streambuf);
+
+            function(stream);
+        }, background_task)
+{
+}
+
 process::pipe_streambuf::pipe_streambuf(int fd)
     : fd(fd)
 {
@@ -145,19 +158,6 @@ process::process(
         throw std::runtime_error("Failed to fork process.");
 }
 
-process::process(
-        const std::function<void(std::ostream &)> &function,
-        bool background_task)
-    : process([function](int fd)
-        {
-            pipe_streambuf streambuf(fd);
-            std::ostream stream(&streambuf);
-
-            function(stream);
-        }, background_task)
-{
-}
-
 process::process(process &&from)
     : std::istream(from.rdbuf(nullptr)),
       child(from.child)
@@ -227,7 +227,7 @@ process::process()
 }
 
 process::process(
-        const std::function<void(std::ostream &)> &function,
+        const std::function<void(int)> &function,
         bool background_task)
     : std::istream(nullptr),
       thread()
@@ -237,10 +237,7 @@ process::process(
 
     thread = std::thread([this, function]
     {
-        pipe_streambuf streambuf(pipe_desc[1]);
-        std::ostream stream(&streambuf);
-
-        function(stream);
+        function(pipe_desc[1]);
     });
 
     std::istream::rdbuf(new pipe_streambuf(pipe_desc[0]));
