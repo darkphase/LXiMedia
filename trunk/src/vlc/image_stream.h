@@ -22,7 +22,8 @@
 #include <istream>
 #include <memory>
 #include <string>
-#include <sstream>
+
+namespace platform { class process; }
 
 namespace vlc {
 
@@ -44,7 +45,7 @@ public:
 private:
     class instance &instance;
 
-    std::unique_ptr<std::stringstream> stream;
+    std::unique_ptr<platform::process> process;
 };
 
 } // End of namespace
