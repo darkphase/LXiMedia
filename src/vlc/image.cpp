@@ -108,7 +108,7 @@ bool vlc::image::save_jpeg(std::ostream &out) const
 #if defined(__unix__)
 # include <endian.h>
 #else
-#define __bswap_16(x) \
+# define __bswap_16(x) \
      ((((x) >> 8) & 0x00FFu) | (((x) & 0x00FFu) << 8))
 
 # define htobe16(x) __bswap_16 (x)
@@ -116,7 +116,7 @@ bool vlc::image::save_jpeg(std::ostream &out) const
 # define be16toh(x) __bswap_16 (x)
 # define le16toh(x) (x)
 
-#define __bswap_32(x) \
+# define __bswap_32(x) \
      ((((x) & 0xFF000000u) >> 24) | (((x) & 0x00FF0000u) >>  8) | \
       (((x) & 0x0000FF00u) <<  8) | (((x) & 0x000000FFu) << 24))
 
