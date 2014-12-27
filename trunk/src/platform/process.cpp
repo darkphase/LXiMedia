@@ -17,10 +17,14 @@
 
 #include "process.h"
 
+#ifndef PLATFORM_PROCESS_PIPE_STREAMBUF_CPP
+#define PLATFORM_PROCESS_PIPE_STREAMBUF_CPP
+
 #if defined(__unix__) || defined(__APPLE__)
 # include <unistd.h>
 #elif defined(WIN32)
 # include <io.h>
+# include <windows.h>
 #endif
 
 namespace {
@@ -86,7 +90,20 @@ int pipe_streambuf::overflow(int value)
     return traits_type::not_eof(value);
 }
 
+int pipe_streambuf::sync()
+{
+    int result = overflow(traits_type::eof());
+#if defined(WIN32)
+    ::FlushFileBuffers(HANDLE(_get_osfhandle(fd)));
+#else
+    ::fsync(fd);
+#endif
+
+    return traits_type::eq_int_type(result, traits_type::eof()) ? -1 : 0;
 }
+
+}
+#endif
 
 namespace platform {
 
@@ -110,7 +127,7 @@ void process::close()
 
 } // End of namespace
 
-#if defined(__unix__) || defined(__APPLE__)
+#ifndef PROCESS_USES_THREAD
 #include <sys/wait.h>
 #include <signal.h>
 #include <stdexcept>
@@ -126,14 +143,6 @@ volatile bool term_received = false;
 void signal_handler(int /*signal*/)
 {
     term_received = true;
-}
-
-int pipe_streambuf::sync()
-{
-    int result = overflow(traits_type::eof());
-    ::fsync(fd);
-
-    return traits_type::eq_int_type(result, traits_type::eof()) ? -1 : 0;
 }
 
 }
@@ -258,21 +267,8 @@ void process::join()
 }
 
 } // End of namespace
-#elif defined(WIN32)
+#else // PROCESS_USES_THREAD
 #include <fcntl.h>
-#include <windows.h>
-
-namespace {
-
-int pipe_streambuf::sync()
-{
-    int result = overflow(traits_type::eof());
-    ::FlushFileBuffers(HANDLE(_get_osfhandle(fd)));
-
-    return traits_type::eq_int_type(result, traits_type::eof()) ? -1 : 0;
-}
-
-}
 
 namespace platform {
 
@@ -290,8 +286,14 @@ process::process(
       thread(),
       term_received(false)
 {
+#if defined(WIN32)
     if (_pipe(pipe_desc, 4096, _O_BINARY) != 0)
+#else
+    if (pipe(pipe_desc) != 0)
+#endif
+    {
         throw std::runtime_error("Creating pipe failed");
+    }
 
     thread = std::thread([this, function]
     {

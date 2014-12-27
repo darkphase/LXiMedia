@@ -9,7 +9,7 @@ static const struct inifile_test
 
     inifile_test()
         : filename(platform::temp_file_path("ini")),
-          loopback_test(this, "inifile::loopback", &inifile_test::loopback)
+          loopback_test(this, "platform::inifile::loopback", &inifile_test::loopback)
     {
     }
 

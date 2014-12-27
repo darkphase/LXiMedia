@@ -5,10 +5,10 @@
 static const struct messageloop_test
 {
     messageloop_test()
-        : post_test(this, "messageloop::post", &messageloop_test::post),
-          send_test(this, "messageloop::send", &messageloop_test::send),
-          process_events_test(this, "messageloop::process_events", &messageloop_test::process_events),
-          timer_test(this, "messageloop::timer", &messageloop_test::timer)
+        : post_test(this, "platform::messageloop::post", &messageloop_test::post),
+          send_test(this, "platform::messageloop::send", &messageloop_test::send),
+          process_events_test(this, "platform::messageloop::process_events", &messageloop_test::process_events),
+          timer_test(this, "platform::messageloop::timer", &messageloop_test::timer)
     {
     }
 
