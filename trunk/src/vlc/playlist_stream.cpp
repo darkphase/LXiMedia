@@ -90,8 +90,7 @@ std::unique_ptr<std::istream> playlist_stream::streambuf::open_next()
         const std::string mrl = std::move(parent.items.front());
         parent.items.pop();
 
-        struct vlc::transcode_stream::track_ids track_ids;
-        if (stream->open(mrl, std::chrono::milliseconds(0), track_ids, parent.transcode, parent.mux))
+        if (stream->open(mrl, parent.transcode, parent.mux))
             return std::move(stream);
     }
 

@@ -275,13 +275,17 @@ int test::play_item(
 
             const std::string vlc_mux = (protocol.mux == "m2ts") ? "ts" : protocol.mux;
 
-            struct vlc::transcode_stream::track_ids track_ids;
+            if (item.chapter > 0)
+                stream->set_chapter(item.chapter);
+            else if (item.position.count() > 0)
+                stream->set_position(item.position);
+
+            struct vlc::track_ids track_ids;
             track_ids.audio = 1;
             track_ids.video = 0;
+            stream->set_track_ids(track_ids);
 
-            if ((item.chapter > 0)
-                    ? stream->open(item.mrl, item.chapter, track_ids, transcode.str(), vlc_mux, rate)
-                    : stream->open(item.mrl, item.position, track_ids, transcode.str(), vlc_mux, rate))
+            if (stream->open(item.mrl, transcode.str(), vlc_mux, rate))
             {
                 std::shared_ptr<pupnp::connection_proxy> proxy;
                 if (protocol.mux == "ps")

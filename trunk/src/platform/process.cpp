@@ -23,9 +23,9 @@
 # include <io.h>
 #endif
 
-namespace platform {
+namespace {
 
-class process::pipe_streambuf : public std::streambuf
+class pipe_streambuf : public std::streambuf
 {
 public:
     explicit pipe_streambuf(int fd);
@@ -37,41 +37,29 @@ public:
 
 private:
     const int fd;
+    static const size_t putback = 8;
     char buffer[4096];
 };
 
-process::process(
-        const std::function<void(std::ostream &)> &function,
-        bool background_task)
-    : process([function](int fd)
-        {
-            pipe_streambuf streambuf(fd);
-            std::ostream stream(&streambuf);
-
-            function(stream);
-        }, background_task)
-{
-}
-
-process::pipe_streambuf::pipe_streambuf(int fd)
+pipe_streambuf::pipe_streambuf(int fd)
     : fd(fd)
 {
 }
 
-process::pipe_streambuf::~pipe_streambuf()
+pipe_streambuf::~pipe_streambuf()
 {
     ::close(fd);
 }
 
-int process::pipe_streambuf::underflow()
+int pipe_streambuf::underflow()
 {
     if ((gptr() != nullptr) && (gptr() < egptr())) // buffer not exhausted
         return traits_type::to_int_type(*this->gptr());
 
-    const int rc = ::read(fd, &buffer[0], sizeof(buffer));
-    if (rc > 0)
+    const int rc = ::read(fd, &buffer[putback], sizeof(buffer) - putback);
+    if ((rc > 0) && (rc <= int(sizeof(buffer) - putback)))
     {
-        setg(&buffer[0], &buffer[0], &buffer[rc]);
+        setg(&buffer[0], &buffer[putback], &buffer[putback] + rc);
 
         return traits_type::to_int_type(*gptr());
     }
@@ -79,7 +67,7 @@ int process::pipe_streambuf::underflow()
     return traits_type::eof();
 }
 
-int process::pipe_streambuf::overflow(int value)
+int pipe_streambuf::overflow(int value)
 {
     const int size = pptr() - pbase();
     for (int pos = 0; pos < size; )
@@ -98,15 +86,57 @@ int process::pipe_streambuf::overflow(int value)
     return traits_type::not_eof(value);
 }
 
+}
+
+namespace platform {
+
+process::process(
+        const std::function<void(process &, std::ostream &)> &function,
+        bool background_task)
+    : process([function](class process &process, int fd)
+        {
+            pipe_streambuf streambuf(fd);
+            std::ostream stream(&streambuf);
+
+            function(process, stream);
+        }, background_task)
+{
+}
+
+void process::close()
+{
+    delete std::istream::rdbuf(nullptr);
+}
+
 } // End of namespace
 
 #if defined(__unix__) || defined(__APPLE__)
 #include <sys/wait.h>
+#include <signal.h>
 #include <stdexcept>
 #ifdef __linux__
 # include <sys/prctl.h>
 # include <sys/syscall.h>
 #endif
+
+namespace {
+
+volatile bool term_received = false;
+
+void signal_handler(int /*signal*/)
+{
+    term_received = true;
+}
+
+int pipe_streambuf::sync()
+{
+    int result = overflow(traits_type::eof());
+    ::fsync(fd);
+
+    return traits_type::eq_int_type(result, traits_type::eof()) ? -1 : 0;
+}
+
+}
 
 namespace platform {
 
@@ -117,7 +147,7 @@ process::process()
 }
 
 process::process(
-        const std::function<void(int)> &function,
+        const std::function<void(process &, int)> &function,
         bool background_task)
     : std::istream(nullptr),
       child(0)
@@ -135,21 +165,30 @@ process::process(
             prctl(PR_SET_PDEATHSIG, SIGKILL);
 #endif
 
+            struct sigaction act;
+            act.sa_handler = &signal_handler;
+            sigemptyset(&act.sa_mask);
+            act.sa_flags = 0;
+
+            ::sigaction(SIGHUP, &act, nullptr);
+            ::sigaction(SIGTERM, &act, nullptr);
+            ::sigaction(SIGINT, &act, nullptr);
+
             if (background_task)
             {
-                nice(5);
+                ::nice(5);
 #ifdef __linux__
-                syscall(SYS_ioprio_set, 1, getpid(), 0x6007);
+                ::syscall(SYS_ioprio_set, 1, getpid(), 0x6007);
 #endif
             }
 
-            close(pipe_desc[0]);
-            function(pipe_desc[1]);
-            _exit(0);
+            ::close(pipe_desc[0]);
+            function(*this, pipe_desc[1]);
+            ::_exit(0);
         }
         else
         {   // Parent process
-            close(pipe_desc[1]);
+            ::close(pipe_desc[1]);
 
             std::istream::rdbuf(new pipe_streambuf(pipe_desc[0]));
         }
@@ -186,6 +225,19 @@ process::~process()
         throw std::runtime_error("Process still running while destructing.");
 }
 
+void process::send_term()
+{
+    if (child != 0)
+        ::kill(child, SIGTERM);
+    else
+        throw std::runtime_error("Process not started.");
+}
+
+bool process::term_pending() const
+{
+    return term_received;
+}
+
 bool process::joinable() const
 {
     return child != 0;
@@ -205,39 +257,45 @@ void process::join()
         throw std::runtime_error("Process not joinable.");
 }
 
-int process::pipe_streambuf::sync()
-{
-    int result = overflow(traits_type::eof());
-    ::fsync(fd);
-
-    return traits_type::eq_int_type(result, traits_type::eof()) ? -1 : 0;
-}
-
 } // End of namespace
 #elif defined(WIN32)
 #include <fcntl.h>
 #include <windows.h>
 
+namespace {
+
+int pipe_streambuf::sync()
+{
+    int result = overflow(traits_type::eof());
+    ::FlushFileBuffers(HANDLE(_get_osfhandle(fd)));
+
+    return traits_type::eq_int_type(result, traits_type::eof()) ? -1 : 0;
+}
+
+}
+
 namespace platform {
 
 process::process()
     : std::istream(nullptr),
-      thread()
+      thread(),
+      term_received(false)
 {
 }
 
 process::process(
-        const std::function<void(int)> &function,
+        const std::function<void(process &, int)> &function,
         bool background_task)
     : std::istream(nullptr),
-      thread()
+      thread(),
+      term_received(false)
 {
     if (_pipe(pipe_desc, 4096, _O_BINARY) != 0)
         throw std::runtime_error("Creating pipe failed");
 
     thread = std::thread([this, function]
     {
-        function(pipe_desc[1]);
+        function(*this, pipe_desc[1]);
     });
 
     std::istream::rdbuf(new pipe_streambuf(pipe_desc[0]));
@@ -245,7 +303,8 @@ process::process(
 
 process::process(process &&from)
     : std::istream(from.rdbuf(nullptr)),
-      thread(std::move(from.thread))
+      thread(std::move(from.thread)),
+      term_received(from.term_received)
 {
 }
 
@@ -254,6 +313,7 @@ process & process::operator=(process &&from)
     delete std::istream::rdbuf(from.rdbuf(nullptr));
 
     thread = std::move(from.thread);
+    term_received = from.term_received;
 
     return *this;
 }
@@ -261,6 +321,16 @@ process & process::operator=(process &&from)
 process::~process()
 {
     delete std::istream::rdbuf(nullptr);
+}
+
+void process::send_term()
+{
+    term_received = true;
+}
+
+bool process::term_pending() const
+{
+    return term_received;
 }
 
 bool process::joinable() const
@@ -271,14 +341,6 @@ bool process::joinable() const
 void process::join()
 {
     thread.join();
-}
-
-int process::pipe_streambuf::sync()
-{
-    int result = overflow(traits_type::eof());
-    ::FlushFileBuffers(HANDLE(_get_osfhandle(fd)));
-
-    return traits_type::eq_int_type(result, traits_type::eof()) ? -1 : 0;
 }
 
 } // End of namespace

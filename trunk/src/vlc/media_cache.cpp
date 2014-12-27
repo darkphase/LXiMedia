@@ -353,7 +353,7 @@ void media_cache::scan_all(std::vector<class media> &media)
         {
             if (!tasks[i].empty())
             {
-                processes[i] = platform::process([&tasks, i](std::ostream &out)
+                processes[i] = platform::process([&tasks, i](platform::process &, std::ostream &out)
                 {
                     for (auto &task : tasks[i])
                     {
