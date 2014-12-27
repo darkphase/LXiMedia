@@ -512,7 +512,14 @@ int files::play_audio_video_item(
     {
         std::clog << "files: creating new stream " << item.mrl << " transcode=" << transcode.str() << " mux=" << protocol.mux << std::endl;
 
-        struct vlc::transcode_stream::track_ids track_ids;
+        std::unique_ptr<vlc::transcode_stream> stream(new vlc::transcode_stream(messageloop, vlc_instance));
+
+        if (item.chapter > 0)
+            stream->set_chapter(item.chapter);
+        else if (item.position.count() > 0)
+            stream->set_position(item.position);
+
+        struct vlc::track_ids track_ids;
         std::string file_path, track_name;
         split_path(item.path, file_path, track_name);
         const auto system_path = to_system_path(file_path);
@@ -529,15 +536,14 @@ int files::play_audio_video_item(
                     case vlc::track_type::text:     track_ids.text  = t.id; break;
                     }
 
-        std::unique_ptr<vlc::transcode_stream> stream(new vlc::transcode_stream(messageloop, vlc_instance));
+        stream->set_track_ids(track_ids);
+
         const auto started = std::chrono::system_clock::now();
         stream->on_playback_progress = std::bind(&files::playback_progress, this, item, started, _1);
 
         const std::string vlc_mux = (protocol.mux == "m2ts") ? "ts" : protocol.mux;
 
-        if ((item.chapter > 0)
-                ? stream->open(item.mrl, item.chapter, track_ids, transcode.str(), vlc_mux, rate)
-                : stream->open(item.mrl, item.position, track_ids, transcode.str(), vlc_mux, rate))
+        if (stream->open(item.mrl, transcode.str(), vlc_mux, rate))
         {
             std::shared_ptr<pupnp::connection_proxy> proxy;
             if (protocol.mux == "ps")

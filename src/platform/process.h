@@ -36,11 +36,11 @@ public:
     process();
 
     process(
-            const std::function<void(int)> &,
+            const std::function<void(process &, int)> &,
             bool background_task = false);
 
     process(
-            const std::function<void(std::ostream &)> &,
+            const std::function<void(process &, std::ostream &)> &,
             bool background_task = false);
 
     process(process &&);
@@ -51,17 +51,21 @@ public:
     process(const process &) = delete;
     process & operator=(const process &) = delete;
 
+    void send_term();
+    bool term_pending() const;
+    void close();
+
     bool joinable() const;
     void join();
 
 private:
-    class pipe_streambuf;
     int pipe_desc[2];
 
 #if defined(__unix__) || defined(__APPLE__)
     pid_t child;
 #elif defined(WIN32)
     std::thread thread;
+    volatile bool term_received;
 #endif
 };
 

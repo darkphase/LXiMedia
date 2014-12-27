@@ -2,6 +2,7 @@
 #include "platform/process.cpp"
 #include <algorithm>
 #include <cstring>
+#include <thread>
 
 static const struct process_test
 {
@@ -14,9 +15,12 @@ static const struct process_test
     void run_process()
     {
         const std::string test = "hello_world";
-        platform::process process([&](std::ostream &out)
+        platform::process process([&](platform::process &process, std::ostream &out)
         {
-            out << test << std::flush;
+            out << test << ' ' << std::flush;
+
+            while (!process.term_pending())
+                std::this_thread::yield();
         }, true);
 
         // Get data from the pipe.
@@ -24,6 +28,10 @@ static const struct process_test
         process >> result;
         test_assert(process);
         test_assert(result == test);
+
+        // Terminate process
+        test_assert(process.joinable());
+        process.send_term();
 
         // The pipe should be closed now.
         process >> result;

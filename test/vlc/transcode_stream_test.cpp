@@ -51,11 +51,12 @@ static const struct transcode_stream_test
 
             class media pm5544_png_media = media::from_file(instance, pm5544_png);
 
-            struct vlc::transcode_stream::track_ids track_ids;
+            struct vlc::track_ids track_ids;
             track_ids.audio = 1;
             track_ids.video = 0;
+            transcode_stream.set_track_ids(track_ids);
 
-            test_assert(transcode_stream.open(pm5544_png_media.mrl(), 0, track_ids, transcode, mux));
+            test_assert(transcode_stream.open(pm5544_png_media.mrl(), transcode, mux));
 
             platform::ofstream out(outfile, std::ios::binary);
             test_assert(out.is_open());
