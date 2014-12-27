@@ -34,6 +34,11 @@ class process : public std::istream
 {
 public:
     process();
+
+    process(
+            const std::function<void(int)> &,
+            bool background_task = false);
+
     process(
             const std::function<void(std::ostream &)> &,
             bool background_task = false);
