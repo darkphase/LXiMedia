@@ -91,6 +91,7 @@ int process::pipe_streambuf::overflow(int value)
 #include <sys/wait.h>
 #include <stdexcept>
 #ifdef __linux__
+# include <sys/prctl.h>
 # include <sys/syscall.h>
 #endif
 
@@ -103,7 +104,7 @@ process::process()
 }
 
 process::process(
-        const std::function<void(std::ostream &)> &function,
+        const std::function<void(int)> &function,
         bool background_task)
     : std::istream(nullptr),
       child(0)
@@ -116,6 +117,11 @@ process::process(
     {
         if (child == 0)
         {   // Child process
+#ifdef __linux__
+            // Kill this process when the parent dies.
+            prctl(PR_SET_PDEATHSIG, SIGKILL);
+#endif
+
             if (background_task)
             {
                 nice(5);
@@ -125,13 +131,7 @@ process::process(
             }
 
             close(pipe_desc[0]);
-            {
-                pipe_streambuf streambuf(pipe_desc[1]);
-                std::ostream stream(&streambuf);
-
-                function(stream);
-            }
-
+            function(pipe_desc[1]);
             _exit(0);
         }
         else
@@ -143,6 +143,19 @@ process::process(
     }
     else
         throw std::runtime_error("Failed to fork process.");
+}
+
+process::process(
+        const std::function<void(std::ostream &)> &function,
+        bool background_task)
+    : process([function](int fd)
+        {
+            pipe_streambuf streambuf(fd);
+            std::ostream stream(&streambuf);
+
+            function(stream);
+        }, background_task)
+{
 }
 
 process::process(process &&from)
