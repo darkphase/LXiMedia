@@ -231,35 +231,45 @@ static struct media_cache::media_info media_info_from_media(
                 {
                 case libvlc_track_unknown:
                     track.type = track_type::unknown;
+
+                    media_info.tracks.emplace_back(std::move(track));
                     break;
 
                 case libvlc_track_audio:
                     track.type = track_type::audio;
-                    if (track_list[i]->audio)
+                    if (track_list[i]->audio &&
+                        (track_list[i]->audio->i_rate > 0) &&
+                        (track_list[i]->audio->i_channels > 0))
                     {
                         track.audio.sample_rate = track_list[i]->audio->i_rate;
                         track.audio.channels = track_list[i]->audio->i_channels;
+
+                        media_info.tracks.emplace_back(std::move(track));
                     }
                     break;
 
                 case libvlc_track_video:
                     track.type = track_type::video;
-                    if (track_list[i]->video)
+                    if (track_list[i]->video &&
+                        (track_list[i]->video->i_width > 0) &&
+                        (track_list[i]->video->i_height > 0))
                     {
                         track.video.width = track_list[i]->video->i_width;
                         track.video.height = track_list[i]->video->i_height;
                         track.video.frame_rate =
                                 float(track_list[i]->video->i_frame_rate_num) /
                                 float(track_list[i]->video->i_frame_rate_den);
+
+                        media_info.tracks.emplace_back(std::move(track));
                     }
                     break;
 
                 case libvlc_track_text:
                     track.type = track_type::text;
+
+                    media_info.tracks.emplace_back(std::move(track));
                     break;
                 }
-
-                media_info.tracks.emplace_back(std::move(track));
             }
 
         libvlc_media_tracks_release(track_list, count);
