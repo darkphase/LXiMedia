@@ -120,11 +120,6 @@ process::process(
 {
 }
 
-void process::close()
-{
-    delete std::istream::rdbuf(nullptr);
-}
-
 } // End of namespace
 
 #ifndef PROCESS_USES_THREAD
