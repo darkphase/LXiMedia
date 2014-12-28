@@ -36,8 +36,6 @@ struct track_ids { int audio, video, text; track_ids() : audio(-1), video(-1), t
 class transcode_stream : public std::istream
 {
 public:
-
-public:
     transcode_stream(class platform::messageloop_ref &, class instance &);
     ~transcode_stream();
 
@@ -54,10 +52,14 @@ public:
 
     void close();
 
-    std::function<void(std::chrono::milliseconds)> on_playback_progress;
+    std::chrono::milliseconds playback_position() const;
+    std::function<void(std::chrono::milliseconds)> on_playback_position_changed;
 
 private:
-    class streambuf;
+    void update_info();
+
+private:
+    struct shared_info;
 
     class platform::messageloop_ref messageloop;
     class instance &instance;
@@ -68,6 +70,8 @@ private:
     struct track_ids track_ids;
 
     std::unique_ptr<platform::process> process;
+    std::shared_ptr<shared_info> info, last_info;
+    platform::timer update_info_timer;
 };
 
 } // End of namespace

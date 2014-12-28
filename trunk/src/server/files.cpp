@@ -539,7 +539,7 @@ int files::play_audio_video_item(
         stream->set_track_ids(track_ids);
 
         const auto started = std::chrono::system_clock::now();
-        stream->on_playback_progress = std::bind(&files::playback_progress, this, item, started, _1);
+        stream->on_playback_position_changed = std::bind(&files::playback_position_changed, this, item, started, _1);
 
         const std::string vlc_mux = (protocol.mux == "m2ts") ? "ts" : protocol.mux;
 
@@ -886,7 +886,7 @@ std::string files::to_virtual_path(const std::string &system_path) const
     return std::string();
 }
 
-void files::playback_progress(
+void files::playback_position_changed(
         const pupnp::content_directory::item &item,
         std::chrono::system_clock::time_point started,
         std::chrono::milliseconds time)

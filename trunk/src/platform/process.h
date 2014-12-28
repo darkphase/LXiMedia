@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <functional>
 #include <istream>
+#include <memory>
 #include <ostream>
 #ifndef PROCESS_USES_THREAD
 # include <sys/types.h>
@@ -37,6 +38,9 @@ namespace platform {
 class process : public std::istream
 {
 public:
+    template <typename _Type>
+    static std::shared_ptr<_Type> make_shared();
+
     process();
 
     process(
@@ -63,6 +67,10 @@ public:
     void join();
 
 private:
+    static void * map(size_t);
+    static void unmap(void *, size_t);
+
+private:
     int pipe_desc[2];
 
 #ifndef PROCESS_USES_THREAD
@@ -72,6 +80,27 @@ private:
     volatile bool term_received;
 #endif
 };
+
+template <typename _Type>
+std::shared_ptr<_Type> process::make_shared()
+{
+    struct
+    {
+        void operator()(_Type *obj)
+        {
+            if (obj)
+            {
+                obj->~_Type();
+                unmap(obj, size);
+            }
+        }
+
+        _Type *obj;
+        size_t size;
+    } d = { reinterpret_cast<_Type *>(map(sizeof(_Type))), sizeof(_Type) };
+
+    return std::shared_ptr<_Type>(reinterpret_cast<_Type *>(d.obj), d);
+}
 
 } // End of namespace
 

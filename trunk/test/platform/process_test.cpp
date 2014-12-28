@@ -6,13 +6,23 @@
 #undef PLATFORM_PROCESS_H
 #define process process_thread
 #include "platform/process.cpp"
-#undef process_thread
+#undef process
 #undef PROCESS_USES_THREAD
 #endif
 
 #include <algorithm>
 #include <cstring>
 #include <thread>
+
+static std::shared_ptr<int> make_shared(const platform::process &)
+{
+    return platform::process::make_shared<int>();
+}
+
+static std::shared_ptr<int> make_shared(const platform::process_thread &)
+{
+    return platform::process_thread::make_shared<int>();
+}
 
 static const struct process_test
 {
@@ -31,10 +41,15 @@ static const struct process_test
     template <class _Process>
     void run_process()
     {
+        auto value = make_shared(_Process());
+        test_assert(value);
+        *value = 0;
+
         const std::string test = "hello_world";
         _Process process([&](_Process &process, std::ostream &out)
         {
             out << test << ' ' << std::flush;
+            *value = 1234;
 
             while (!process.term_pending())
                 std::this_thread::yield();
@@ -55,5 +70,8 @@ static const struct process_test
         test_assert(!process);
 
         process.join();
+
+        // The shared memory value should be updated now.
+        test_assert(*value == 1234);
     }
 } process_test;
