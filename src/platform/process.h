@@ -61,7 +61,6 @@ public:
 
     void send_term();
     bool term_pending() const;
-    void close();
 
     bool joinable() const;
     void join();

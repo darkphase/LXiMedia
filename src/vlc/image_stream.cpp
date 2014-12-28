@@ -18,14 +18,12 @@
 #include "image_stream.h"
 #include "media.h"
 #include "instance.h"
-#include "platform/fstream.h"
-#include "platform/path.h"
 #include "platform/process.h"
-#include "platform/uuid.h"
 #include "vlc/image.h"
 #include <vlc/vlc.h>
 #include <condition_variable>
 #include <mutex>
+#include <thread>
 
 namespace vlc {
 
@@ -146,9 +144,13 @@ void image_stream::close()
     {
         if (process->joinable())
         {
+            // Flush pipe to prevent deadlock while stopping player.
+            std::thread flush([this] { while (*process) process->get(); });
+
             process->send_term();
-            process->close();
             process->join();
+
+            flush.join();
         }
 
         process = nullptr;

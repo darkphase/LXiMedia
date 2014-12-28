@@ -20,18 +20,13 @@
 #include "instance.h"
 #include "platform/process.h"
 #include <vlc/vlc.h>
-#include <cassert>
 #include <cmath>
 #include <condition_variable>
 #include <cstring>
 #include <iostream>
-#include <memory>
 #include <mutex>
-#include <set>
 #include <sstream>
-#include <streambuf>
 #include <thread>
-#include <vector>
 
 namespace vlc {
 
@@ -213,9 +208,13 @@ void transcode_stream::close()
     {
         if (process->joinable())
         {
+            // Flush pipe to prevent deadlock while stopping player.
+            std::thread flush([this] { while (*process) process->get(); });
+
             process->send_term();
-            process->close();
             process->join();
+
+            flush.join();
         }
 
         process = nullptr;
