@@ -33,17 +33,9 @@ void server::add_image_protocols()
     if (has_dvd)
     {
         connection_manager.add_source_image_protocol(
-                    "JPEG_SM",
-                    pupnp::upnp::mime_image_jpeg, "jpeg",
-                    768, 576);
-    }
-
-    if (has_hdtv_720)
-    {
-        connection_manager.add_source_image_protocol(
                     "JPEG_MED",
                     pupnp::upnp::mime_image_jpeg, "jpeg",
-                    1280, 720);
+                    768, 576);
     }
 
     if (has_hdtv_1080)
@@ -52,6 +44,13 @@ void server::add_image_protocols()
                     "JPEG_LRG",
                     pupnp::upnp::mime_image_jpeg, "jpeg",
                     1920, 1080);
+    }
+    else if (has_hdtv_720)
+    {
+        connection_manager.add_source_image_protocol(
+                    "JPEG_LRG",
+                    pupnp::upnp::mime_image_jpeg, "jpeg",
+                    1280, 720);
     }
 
     connection_manager.add_source_image_protocol(
