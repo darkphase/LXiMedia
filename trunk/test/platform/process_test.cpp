@@ -19,10 +19,12 @@ static std::shared_ptr<int> make_shared(const platform::process &)
     return platform::process::make_shared<int>();
 }
 
+#if !defined(PROCESS_USES_THREAD)
 static std::shared_ptr<int> make_shared(const platform::process_thread &)
 {
     return platform::process_thread::make_shared<int>();
 }
+#endif
 
 static const struct process_test
 {
