@@ -35,12 +35,20 @@
 
 namespace vlc {
 
+struct transcode_stream::shared_info
+{
+    libvlc_time_t time;
+};
+
 transcode_stream::transcode_stream(class platform::messageloop_ref &messageloop, class instance &instance)
     : std::istream(nullptr),
       messageloop(messageloop),
       instance(instance),
       chapter(-1),
-      position(-1)
+      position(-1),
+      info(platform::process::make_shared<shared_info>()),
+      last_info(std::make_shared<shared_info>()),
+      update_info_timer(messageloop, std::bind(&transcode_stream::update_info, this))
 {
 }
 
@@ -101,7 +109,12 @@ bool transcode_stream::open(
                 T * const t = reinterpret_cast<T *>(opaque);
                 std::lock_guard<std::mutex> _(t->mutex);
 
-                if (e->type == libvlc_MediaPlayerPlaying)
+                if (e->type == libvlc_MediaPlayerTimeChanged)
+                {
+                    if (t->me->info)
+                        t->me->info->time = e->u.media_player_time_changed.new_time;
+                }
+                else if (e->type == libvlc_MediaPlayerPlaying)
                 {
                     t->started = true;
 
@@ -146,8 +159,8 @@ bool transcode_stream::open(
         if (t.player)
         {
             auto event_manager = libvlc_media_player_event_manager(t.player);
-            libvlc_event_attach(event_manager, libvlc_MediaPlayerPlaying, &T::callback, &t);
             libvlc_event_attach(event_manager, libvlc_MediaPlayerTimeChanged, &T::callback, &t);
+            libvlc_event_attach(event_manager, libvlc_MediaPlayerPlaying, &T::callback, &t);
             libvlc_event_attach(event_manager, libvlc_MediaPlayerEndReached, &T::callback, &t);
             libvlc_event_attach(event_manager, libvlc_MediaPlayerEncounteredError, &T::callback, &t);
 
@@ -177,12 +190,14 @@ bool transcode_stream::open(
 
             libvlc_event_detach(event_manager, libvlc_MediaPlayerEncounteredError, &T::callback, &t);
             libvlc_event_detach(event_manager, libvlc_MediaPlayerEndReached, &T::callback, &t);
-            libvlc_event_detach(event_manager, libvlc_MediaPlayerTimeChanged, &T::callback, &t);
             libvlc_event_detach(event_manager, libvlc_MediaPlayerPlaying, &T::callback, &t);
+            libvlc_event_detach(event_manager, libvlc_MediaPlayerTimeChanged, &T::callback, &t);
 
             libvlc_media_player_release(t.player);
         }
     }));
+
+    update_info_timer.start(std::chrono::seconds(5));
 
     std::istream::rdbuf(process->rdbuf());
     return true;
@@ -191,6 +206,8 @@ bool transcode_stream::open(
 void transcode_stream::close()
 {
     std::istream::rdbuf(nullptr);
+
+    update_info_timer.stop();
 
     if (process)
     {
@@ -202,6 +219,25 @@ void transcode_stream::close()
         }
 
         process = nullptr;
+    }
+}
+
+std::chrono::milliseconds transcode_stream::playback_position() const
+{
+    if (info)
+        return std::chrono::milliseconds(info->time);
+
+    return std::chrono::milliseconds(0);
+}
+
+void transcode_stream::update_info()
+{
+    if (info && last_info)
+    {
+        if (info->time != last_info->time)
+            on_playback_position_changed(playback_position());
+
+        *last_info = *info;
     }
 }
 

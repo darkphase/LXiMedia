@@ -78,7 +78,7 @@ private:
             std::string &content_type,
             std::shared_ptr<std::istream> &response);
 
-    void playback_progress(
+    void playback_position_changed(
             const pupnp::content_directory::item &item,
             std::chrono::system_clock::time_point,
             std::chrono::milliseconds);

@@ -128,6 +128,7 @@ void process::close()
 } // End of namespace
 
 #ifndef PROCESS_USES_THREAD
+#include <sys/mman.h>
 #include <sys/wait.h>
 #include <signal.h>
 #include <stdexcept>
@@ -148,6 +149,20 @@ void signal_handler(int /*signal*/)
 }
 
 namespace platform {
+
+void * process::map(size_t size)
+{
+    return ::mmap(
+                nullptr, size,
+                PROT_READ | PROT_WRITE,
+                MAP_SHARED | MAP_ANONYMOUS,
+                -1, 0);
+}
+
+void process::unmap(void *addr, size_t size)
+{
+    ::munmap(addr, size);
+}
 
 process::process()
     : std::istream(nullptr),
@@ -271,6 +286,16 @@ void process::join()
 #include <fcntl.h>
 
 namespace platform {
+
+void * process::map(size_t size)
+{
+    return new char[size];
+}
+
+void process::unmap(void *addr, size_t)
+{
+    delete [] reinterpret_cast<char *>(addr);
+}
 
 process::process()
     : std::istream(nullptr),
