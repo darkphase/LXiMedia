@@ -128,6 +128,8 @@ bool image_stream::open(
 
                 if      (mime == "image/png") t.pixel_buffer.save_png(out);
                 else if (mime == "image/jpeg") t.pixel_buffer.save_jpeg(out);
+
+                out << std::flush;
             }
         }
     }));

@@ -123,6 +123,7 @@ process::process(
 } // End of namespace
 
 #ifndef PROCESS_USES_THREAD
+#include <cstdio>
 #include <sys/mman.h>
 #include <sys/wait.h>
 #include <signal.h>
@@ -174,6 +175,9 @@ process::process(
     if (pipe(pipe_desc) != 0)
         throw std::runtime_error("Creating pipe failed");
 
+    ::fflush(::stdout);
+    ::fflush(::stderr);
+
     child = fork();
     if (child >= 0)
     {
@@ -203,6 +207,10 @@ process::process(
 
             ::close(pipe_desc[0]);
             function(*this, pipe_desc[1]);
+
+            ::fflush(::stdout);
+            ::fflush(::stderr);
+
             ::_exit(0);
         }
         else
