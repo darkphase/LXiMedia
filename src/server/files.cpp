@@ -410,7 +410,6 @@ int files::play_audio_video_item(
 {
     using namespace std::placeholders;
 
-    float rate = 1.0f;
     std::ostringstream transcode;
     if (!protocol.acodec.empty() || !protocol.vcodec.empty())
     {
@@ -422,12 +421,7 @@ int files::play_audio_video_item(
             transcode << protocol.vcodec;
 
             const float frame_rate = float(protocol.frame_rate_num) / float(protocol.frame_rate_den);
-            if (std::abs(frame_rate - item.frame_rate) > 0.3f)
-            {
-                transcode << ",fps=" << frame_rate;
-                //                    if (std::abs(protocol.frame_rate - item.frame_rate) < 1.5f)
-                //                        rate = protocol.frame_rate / item.frame_rate;
-            }
+            transcode << ",fps=" << std::setprecision(3) << frame_rate;
 
             unsigned width = 0, height = 0;
             switch (settings.canvas_mode())
@@ -543,7 +537,7 @@ int files::play_audio_video_item(
 
         const std::string vlc_mux = (protocol.mux == "m2ts") ? "ts" : protocol.mux;
 
-        if (stream->open(item.mrl, transcode.str(), vlc_mux, rate))
+        if (stream->open(item.mrl, transcode.str(), vlc_mux))
         {
             std::shared_ptr<pupnp::connection_proxy> proxy;
             if (protocol.mux == "ps")
