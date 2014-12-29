@@ -29,7 +29,7 @@ class connection_proxy : public std::istream
 {
 public:
     connection_proxy();
-    connection_proxy(std::unique_ptr<std::istream> &&input);
+    connection_proxy(std::unique_ptr<std::istream> &&input, bool buffer_all);
 
     ~connection_proxy();
 

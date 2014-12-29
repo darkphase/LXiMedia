@@ -73,6 +73,7 @@ private:
             std::shared_ptr<std::istream> &response);
 
     int get_image_item(
+            const std::string &source_address,
             const pupnp::content_directory::item &,
             const pupnp::connection_manager::protocol &,
             std::string &content_type,
