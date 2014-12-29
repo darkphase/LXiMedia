@@ -27,37 +27,19 @@
 
 namespace pupnp {
 
-const char  upnp::mime_application_octetstream[]  = "application/octet-stream";
-const char  upnp::mime_audio_aac[]                = "audio/aac";
-const char  upnp::mime_audio_ac3[]                = "audio/x-ac3";
-const char  upnp::mime_audio_lpcm[]               = "audio/L16; rate=48000; channels=2";
-const char  upnp::mime_audio_mp3[]                = "audio/mp3";
-const char  upnp::mime_audio_mpeg[]               = "audio/mpeg";
-const char  upnp::mime_audio_mpegurl[]            = "audio/x-mpegurl";
-const char  upnp::mime_audio_ogg[]                = "audio/ogg";
-const char  upnp::mime_audio_wave[]               = "audio/wave";
-const char  upnp::mime_audio_wma[]                = "audio/x-ms-wma";
-const char  upnp::mime_image_jpeg[]               = "image/jpeg";
-const char  upnp::mime_image_png[]                = "image/png";
-const char  upnp::mime_image_svg[]                = "image/svg+xml";
-const char  upnp::mime_image_tiff[]               = "image/tiff";
-const char  upnp::mime_video_3g2[]                = "video/3gpp";
-const char  upnp::mime_video_asf[]                = "video/x-ms-asf";
-const char  upnp::mime_video_avi[]                = "video/avi";
-const char  upnp::mime_video_flv[]                = "video/x-flv";
-const char  upnp::mime_video_matroska[]           = "video/x-matroska";
-const char  upnp::mime_video_mpeg[]               = "video/mpeg";
-const char  upnp::mime_video_mpegm2ts[]           = "video/vnd.dlna.mpeg-tts";
-const char  upnp::mime_video_mpegts[]             = "video/x-mpegts";
-const char  upnp::mime_video_mp4[]                = "video/mp4";
-const char  upnp::mime_video_ogg[]                = "video/ogg";
-const char  upnp::mime_video_qt[]                 = "video/quicktime";
-const char  upnp::mime_video_wmv[]                = "video/x-ms-wmv";
-const char  upnp::mime_text_css[]                 = "text/css; charset=utf-8";
-const char  upnp::mime_text_html[]                = "text/html; charset=utf-8";
-const char  upnp::mime_text_js[]                  = "text/javascript; charset=utf-8";
-const char  upnp::mime_text_plain[]               = "text/plain; charset=utf-8";
-const char  upnp::mime_text_xml[]                 = "text/xml; charset=utf-8";
+const char  upnp::mime_audio_ac3[]          = "audio/x-ac3";
+const char  upnp::mime_audio_lpcm_48000_2[] = "audio/L16; rate=48000; channels=2";
+const char  upnp::mime_audio_mp3[]          = "audio/mp3";
+const char  upnp::mime_audio_mpeg[]         = "audio/mpeg";
+const char  upnp::mime_image_jpeg[]         = "image/jpeg";
+const char  upnp::mime_image_png[]          = "image/png";
+const char  upnp::mime_image_svg[]          = "image/svg+xml";
+const char  upnp::mime_video_mpeg[]         = "video/mpeg";
+const char  upnp::mime_video_mpegm2ts[]     = "video/vnd.dlna.mpeg-tts";
+const char  upnp::mime_video_mpegts[]       = "video/x-mpegts";
+const char  upnp::mime_text_css_utf8[]      = "text/css; charset=utf-8";
+const char  upnp::mime_text_html_utf8[]     = "text/html; charset=utf-8";
+const char  upnp::mime_text_xml_utf8[]      = "text/xml; charset=utf-8";
 
 upnp * upnp::me = nullptr;
 
@@ -484,61 +466,6 @@ int upnp::get_response(const struct request &request, std::string &content_type,
     }
 
     return result;
-}
-
-/*! Returns the MIME type for the specified filename, based on the extension.
- */
-const char * upnp::mime_type(const std::string &filename)
-{
-    const size_t dot = filename.find_last_of('.');
-    if (dot != filename.npos)
-    {
-        std::string ext = filename.substr(dot + 1);
-        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-
-        if      (ext == "js")     return mime_text_js;
-        else if (ext == "aac")    return mime_audio_aac;
-        else if (ext == "ac3")    return mime_audio_ac3;
-        else if (ext == "lpcm")   return mime_audio_lpcm;
-        else if (ext == "m3u")    return mime_audio_mpegurl;
-        else if (ext == "mpa")    return mime_audio_mpeg;
-        else if (ext == "mp2")    return mime_audio_mpeg;
-        else if (ext == "mp3")    return mime_audio_mp3;
-        else if (ext == "ac3")    return mime_audio_mpeg;
-        else if (ext == "dts")    return mime_audio_mpeg;
-        else if (ext == "oga")    return mime_audio_ogg;
-        else if (ext == "wav")    return mime_audio_wave;
-        else if (ext == "wma")    return mime_audio_wma;
-        else if (ext == "jpeg")   return mime_image_jpeg;
-        else if (ext == "jpg")    return mime_image_jpeg;
-        else if (ext == "png")    return mime_image_png;
-        else if (ext == "svg")    return mime_image_svg;
-        else if (ext == "tiff")   return mime_image_tiff;
-        else if (ext == "css")    return mime_text_css;
-        else if (ext == "html")   return mime_text_html;
-        else if (ext == "htm")    return mime_text_html;
-        else if (ext == "txt")    return mime_text_plain;
-        else if (ext == "log")    return mime_text_plain;
-        else if (ext == "xml")    return mime_text_xml;
-        else if (ext == "3g2")    return mime_video_3g2;
-        else if (ext == "asf")    return mime_video_asf;
-        else if (ext == "avi")    return mime_video_avi;
-        else if (ext == "m2ts")   return mime_video_mpegts;
-        else if (ext == "mkv")    return mime_video_matroska;
-        else if (ext == "mpeg")   return mime_video_mpeg;
-        else if (ext == "mpg")    return mime_video_mpeg;
-        else if (ext == "mp4")    return mime_video_mp4;
-        else if (ext == "ts")     return mime_video_mpeg;
-        else if (ext == "ogg")    return mime_video_ogg;
-        else if (ext == "ogv")    return mime_video_ogg;
-        else if (ext == "ogx")    return mime_video_ogg;
-        else if (ext == "spx")    return mime_video_ogg;
-        else if (ext == "qt")     return mime_video_qt;
-        else if (ext == "flv")    return mime_video_flv;
-        else if (ext == "wmv")    return mime_video_wmv;
-    }
-
-    return "application/octet-stream";
 }
 
 

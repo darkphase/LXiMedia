@@ -41,7 +41,7 @@ settingspage::settingspage(
 {
     using namespace std::placeholders;
 
-    mainpage.add_file("/css/settings.css", mainpage::file { pupnp::upnp::mime_text_css, settings_css, sizeof(settings_css) });
+    mainpage.add_file("/css/settings.css", mainpage::file { pupnp::upnp::mime_text_css_utf8, settings_css, sizeof(settings_css) });
     mainpage.add_file("/img/settings.svg", mainpage::file { pupnp::upnp::mime_image_svg, settings_svg, sizeof(settings_svg) });
 
     mainpage.add_page("/settings", mainpage::page

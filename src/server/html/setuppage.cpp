@@ -50,7 +50,7 @@ setuppage::setuppage(
 {
     using namespace std::placeholders;
 
-    mainpage.add_file("/css/setup.css", mainpage::file { pupnp::upnp::mime_text_css, setup_css, sizeof(setup_css) });
+    mainpage.add_file("/css/setup.css", mainpage::file { pupnp::upnp::mime_text_css_utf8, setup_css, sizeof(setup_css) });
     mainpage.add_file("/img/video-display.svg", mainpage::file { pupnp::upnp::mime_image_svg, video_display_svg, sizeof(video_display_svg) });
     mainpage.add_file("/img/pm5544.png", mainpage::bin_file { pupnp::upnp::mime_image_png, resources::pm5544_png, sizeof(resources::pm5544_png) });
     mainpage.add_file("/img/pm5644.png", mainpage::bin_file { pupnp::upnp::mime_image_png, resources::pm5644_png, sizeof(resources::pm5644_png) });

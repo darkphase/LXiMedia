@@ -49,8 +49,8 @@ mainpage::mainpage(class platform::messageloop_ref &messageloop, class pupnp::up
     upnp.http_callback_register("/css", std::bind(&mainpage::handle_http_request, this, _1, _2, _3));
     upnp.http_callback_register("/img", std::bind(&mainpage::handle_http_request, this, _1, _2, _3));
 
-    add_file("/css/base.css"    , file { pupnp::upnp::mime_text_css , base_css      , sizeof(base_css       ) });
-    add_file("/css/main.css"    , file { pupnp::upnp::mime_text_css , main_css      , sizeof(main_css       ) });
+    add_file("/css/base.css"    , file { pupnp::upnp::mime_text_css_utf8 , base_css      , sizeof(base_css       ) });
+    add_file("/css/main.css"    , file { pupnp::upnp::mime_text_css_utf8 , main_css      , sizeof(main_css       ) });
     add_file("/img/lximedia.svg", file { pupnp::upnp::mime_image_svg, lximedia_svg  , sizeof(lximedia_svg   ) });
     add_file("/img/main.svg"    , file { pupnp::upnp::mime_image_svg, main_svg      , sizeof(main_svg       ) });
     add_file("/img/running.svg" , file { pupnp::upnp::mime_image_svg, running_svg   , sizeof(running_svg    ) });
@@ -114,7 +114,7 @@ int mainpage::handle_http_request(const struct pupnp::upnp::request &request, st
     if (page != pages.end())
     {
         auto stream = std::make_shared<std::stringstream>();
-        content_type = pupnp::upnp::mime_text_html;
+        content_type = pupnp::upnp::mime_text_html_utf8;
         response = stream;
         return render_page(request, content_type, *stream, page->second);
     }

@@ -27,7 +27,7 @@ void server::add_audio_protocols()
 
     connection_manager.add_source_audio_protocol(
                 "LPCM",
-                pupnp::upnp::mime_audio_lpcm, "lpcm",
+                pupnp::upnp::mime_audio_lpcm_48000_2, "lpcm",
                 48000, 2,
                 "acodec=lpcm",
                 "dummy");
