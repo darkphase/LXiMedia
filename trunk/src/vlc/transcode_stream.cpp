@@ -233,7 +233,7 @@ void transcode_stream::update_info()
 {
     if (info && last_info)
     {
-        if (info->time != last_info->time)
+        if (on_playback_position_changed && (info->time != last_info->time))
             on_playback_position_changed(playback_position());
 
         *last_info = *info;
