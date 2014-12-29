@@ -41,7 +41,7 @@ helppage::helppage(class mainpage &mainpage)
 {
     using namespace std::placeholders;
 
-    mainpage.add_file("/css/help.css", mainpage::file { pupnp::upnp::mime_text_css, help_css, sizeof(help_css) });
+    mainpage.add_file("/css/help.css", mainpage::file { pupnp::upnp::mime_text_css_utf8, help_css, sizeof(help_css) });
     mainpage.add_file("/img/help.svg", mainpage::file { pupnp::upnp::mime_image_svg, help_svg, sizeof(help_svg) });
 
     mainpage.add_file("/img/help.connect-direct.png"    , mainpage::bin_file { pupnp::upnp::mime_image_png, help_connect_direct_png, sizeof(help_connect_direct_png) });

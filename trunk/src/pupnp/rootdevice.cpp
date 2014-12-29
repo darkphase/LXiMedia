@@ -201,7 +201,7 @@ int rootdevice::http_request(const upnp::request &request, std::string &content_
         DOMString s = ixmlDocumenttoString(desc.doc);
         *buffer << s;
         ixmlFreeDOMString(s);
-        content_type = upnp::mime_text_xml;
+        content_type = upnp::mime_text_xml_utf8;
         response = buffer;
 
         return upnp::http_ok;
@@ -223,7 +223,7 @@ int rootdevice::http_request(const upnp::request &request, std::string &content_
                 DOMString s = ixmlDocumenttoString(desc.doc);
                 *buffer << s;
                 ixmlFreeDOMString(s);
-                content_type = upnp::mime_text_xml;
+                content_type = upnp::mime_text_xml_utf8;
                 response = buffer;
 
                 return upnp::http_ok;

@@ -98,38 +98,19 @@ private:
     int get_response(const struct request &, std::string &, std::shared_ptr<std::istream> &, bool);
 
 public:
-    static const char           * mime_type(const std::string &);
-    static const char             mime_application_octetstream[];
-    static const char             mime_audio_aac[];
     static const char             mime_audio_ac3[];
-    static const char             mime_audio_lpcm[];
+    static const char             mime_audio_lpcm_48000_2[];
     static const char             mime_audio_mp3[];
     static const char             mime_audio_mpeg[];
-    static const char             mime_audio_mpegurl[];
-    static const char             mime_audio_ogg[];
-    static const char             mime_audio_wave[];
-    static const char             mime_audio_wma[];
     static const char             mime_image_jpeg[];
     static const char             mime_image_png[];
     static const char             mime_image_svg[];
-    static const char             mime_image_tiff[];
-    static const char             mime_video_3g2[];
-    static const char             mime_video_asf[];
-    static const char             mime_video_avi[];
-    static const char             mime_video_flv[];
-    static const char             mime_video_matroska[];
     static const char             mime_video_mpeg[];
     static const char             mime_video_mpegm2ts[];
     static const char             mime_video_mpegts[];
-    static const char             mime_video_mp4[];
-    static const char             mime_video_ogg[];
-    static const char             mime_video_qt[];
-    static const char             mime_video_wmv[];
-    static const char             mime_text_css[];
-    static const char             mime_text_html[];
-    static const char             mime_text_js[];
-    static const char             mime_text_plain[];
-    static const char             mime_text_xml[];
+    static const char             mime_text_css_utf8[];
+    static const char             mime_text_html_utf8[];
+    static const char             mime_text_xml_utf8[];
 
 private:
     static upnp * me;

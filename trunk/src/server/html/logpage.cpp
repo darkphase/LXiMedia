@@ -37,7 +37,7 @@ logpage::logpage(class mainpage &mainpage, const std::string &logfilename)
 
     if (!logfilename.empty())
     {
-        mainpage.add_file("/css/log.css", mainpage::file { pupnp::upnp::mime_text_css, log_css, sizeof(log_css) });
+        mainpage.add_file("/css/log.css", mainpage::file { pupnp::upnp::mime_text_css_utf8, log_css, sizeof(log_css) });
         mainpage.add_file("/img/log.svg", mainpage::file { pupnp::upnp::mime_image_svg, log_svg, sizeof(log_svg) });
 
         mainpage.add_page("/log", mainpage::page
