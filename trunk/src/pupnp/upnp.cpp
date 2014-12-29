@@ -336,12 +336,13 @@ void upnp::enable_webserver()
                 if (response)
                 {
                     auto i = response->tellg();
-                    if (i != decltype(i)(-1))
+                    if ((i != decltype(i)(-1)) && response->seekg(0, std::ios_base::end))
                     {
-                        response->seekg(0, std::ios_base::end);
                         info->file_length = response->tellg();
                         response->seekg(i);
                     }
+
+                    response->clear();
                 }
 
                 info->last_modified = 0;

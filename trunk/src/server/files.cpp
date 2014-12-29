@@ -350,7 +350,7 @@ static unsigned codec_block(const std::string &codec)
     if      (codec.find("mp1v") != codec.npos) return 16;
     else if (codec.find("mp2v") != codec.npos) return 8;
     else if (codec.find("h264") != codec.npos) return 8;
-    else                                       return 16;
+    else                                       return 8;
 }
 
 static void min_scale(const std::string &codec, unsigned srcw, unsigned srch, unsigned dstw, unsigned dsth, unsigned &w, unsigned &h)
@@ -549,15 +549,15 @@ int files::play_audio_video_item(
             if (protocol.mux == "ps")
             {
                 std::unique_ptr<mpeg::ps_filter> filter(new mpeg::ps_filter(std::move(stream)));
-                proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter));
+                proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter), false);
             }
             else if (protocol.mux == "m2ts")
             {
                 std::unique_ptr<mpeg::m2ts_filter> filter(new mpeg::m2ts_filter(std::move(stream)));
-                proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter));
+                proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter), false);
             }
             else
-                proxy = std::make_shared<pupnp::connection_proxy>(std::move(stream));
+                proxy = std::make_shared<pupnp::connection_proxy>(std::move(stream), false);
 
             connection_manager.add_output_connection(proxy, protocol, item.mrl, source_address, opt.str());
             response = proxy;
@@ -574,21 +574,32 @@ int files::play_audio_video_item(
 }
 
 int files::get_image_item(
+        const std::string &source_address,
         const pupnp::content_directory::item &item,
         const pupnp::connection_manager::protocol &protocol,
         std::string &content_type,
         std::shared_ptr<std::istream> &response)
 {
-    auto stream = std::make_shared<vlc::image_stream>(vlc_instance);
-    if (stream->open(
-                item.mrl,
-                protocol.content_format,
-                protocol.width,
-                protocol.height))
+    response = connection_manager.try_attach_output_connection(protocol, item.mrl, source_address);
+    if (!response)
+    {
+        std::unique_ptr<vlc::image_stream> stream(new vlc::image_stream(vlc_instance));
+        if (stream->open(
+                    item.mrl,
+                    protocol.content_format,
+                    protocol.width,
+                    protocol.height))
+        {
+            auto proxy = std::make_shared<pupnp::connection_proxy>(std::move(stream), true);
+
+            connection_manager.add_output_connection(proxy, protocol, item.mrl, source_address);
+            response = proxy;
+        }
+    }
+
+    if (response)
     {
         content_type = protocol.content_format;
-        response = stream;
-
         return pupnp::upnp::http_ok;
     }
 
@@ -618,7 +629,7 @@ int files::play_item(
     {
         auto protocol = connection_manager.get_protocol(profile, item.width, item.height);
         if (!protocol.profile.empty() && correct_protocol(item, protocol))
-            return get_image_item(item, protocol, content_type, response);
+            return get_image_item(source_address, item, protocol, content_type, response);
     }
 
     return pupnp::upnp::http_not_found;

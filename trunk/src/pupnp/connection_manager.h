@@ -170,13 +170,13 @@ public:
             const struct protocol &protocol,
             const std::string &mrl,
             const std::string &endpoint,
-            const std::string &opt);
+            const std::string &opt = std::string());
 
     std::shared_ptr<class connection_proxy> try_attach_output_connection(
             const struct protocol &protocol,
             const std::string &mrl,
             const std::string &endpoint,
-            const std::string &opt);
+            const std::string &opt = std::string());
 
     std::vector<connection_info> output_connections() const;
 

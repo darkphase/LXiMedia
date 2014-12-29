@@ -291,15 +291,15 @@ int test::play_item(
                 if (protocol.mux == "ps")
                 {
                     std::unique_ptr<mpeg::ps_filter> filter(new mpeg::ps_filter(std::move(stream)));
-                    proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter));
+                    proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter), false);
                 }
                 else if (protocol.mux == "m2ts")
                 {
                     std::unique_ptr<mpeg::m2ts_filter> filter(new mpeg::m2ts_filter(std::move(stream)));
-                    proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter));
+                    proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter), false);
                 }
                 else
-                    proxy = std::make_shared<pupnp::connection_proxy>(std::move(stream));
+                    proxy = std::make_shared<pupnp::connection_proxy>(std::move(stream), false);
 
                 connection_manager.add_output_connection(proxy, protocol, item.mrl, source_address, opt.str());
                 response = proxy;

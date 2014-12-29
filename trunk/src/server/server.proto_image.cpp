@@ -30,27 +30,17 @@ void server::add_image_protocols()
                 pupnp::upnp::mime_image_jpeg, "jpeg",
                 160, 160);
 
-    if (has_dvd)
-    {
-        connection_manager.add_source_image_protocol(
-                    "JPEG_MED",
-                    pupnp::upnp::mime_image_jpeg, "jpeg",
-                    768, 576);
-    }
+    connection_manager.add_source_image_protocol(
+                "JPEG_MED",
+                pupnp::upnp::mime_image_jpeg, "jpeg",
+                768, 576);
 
-    if (has_hdtv_1080)
+    if (has_hdtv_1080 | has_hdtv_720)
     {
         connection_manager.add_source_image_protocol(
                     "JPEG_LRG",
                     pupnp::upnp::mime_image_jpeg, "jpeg",
                     1920, 1080);
-    }
-    else if (has_hdtv_720)
-    {
-        connection_manager.add_source_image_protocol(
-                    "JPEG_LRG",
-                    pupnp::upnp::mime_image_jpeg, "jpeg",
-                    1280, 720);
     }
 
     connection_manager.add_source_image_protocol(
@@ -58,19 +48,12 @@ void server::add_image_protocols()
                 pupnp::upnp::mime_image_png, "png",
                 160, 160);
 
-    if (has_hdtv_1080)
+    if (has_hdtv_1080 | has_hdtv_720)
     {
         connection_manager.add_source_image_protocol(
                     "PNG_LRG",
                     pupnp::upnp::mime_image_png, "png",
                     1920, 1080);
-    }
-    else if (has_hdtv_720)
-    {
-        connection_manager.add_source_image_protocol(
-                    "PNG_LRG",
-                    pupnp::upnp::mime_image_png, "png",
-                    1280, 720);
     }
     else if (has_dvd)
     {
