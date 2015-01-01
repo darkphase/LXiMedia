@@ -163,10 +163,12 @@ void setuppage::render_headers(const struct pupnp::upnp::request &request, std::
             break;
 
         case html::setup_mode::high_definition:
-            if (request.url.query.find("hd_1080") != request.url.query.end())
-                settings.set_video_mode(video_mode::hdtv_1080);
-            else if (request.url.query.find("hd_720") != request.url.query.end())
+            // Prefer 720p over 1080p as it generally performs better in CPU
+            // usage and image quality (as 1080p is often interpreted ans 1080i)
+            if (request.url.query.find("hd_720") != request.url.query.end())
                 settings.set_video_mode(video_mode::hdtv_720);
+            else if (request.url.query.find("hd_1080") != request.url.query.end())
+                settings.set_video_mode(video_mode::hdtv_1080);
             else
                 settings.set_video_mode(video_mode::dvd);
 
@@ -352,13 +354,8 @@ void setuppage::render_setup_high_definition(const struct pupnp::upnp::request &
 
 void setuppage::render_setup_finish(const struct pupnp::upnp::request &, std::ostream &out)
 {
-    const std::string device_name = tr_device_name(device_type);
-
     out << "<p><img class=\"logo\" src=\"/img/lximedia.svg\" alt=\"LXiMedia\" /></p>"
            "<h1>" << tr("Finished") << "</h1>"
-           "<p>" << tr("Try to play the available files on your " + device_name + " and select "
-                       "the files below that you were able to play.") << "</p><p>"
-        << tr("Please consult the manual of the " + device_name + " if you need more information.") << "</p>"
            "<form name=\"setup\" action=\"/setup\" method=\"get\">"
            "<p class=\"assist\"><input type=\"submit\" name=\"apply\" value=\""
         << tr("Done") << "\" /></p>"
