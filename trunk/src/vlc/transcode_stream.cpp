@@ -28,6 +28,12 @@
 #include <sstream>
 #include <thread>
 
+#if defined(__unix__) || defined(__APPLE__)
+# include <unistd.h>
+#elif defined(WIN32)
+# include <io.h>
+#endif
+
 namespace vlc {
 
 struct transcode_stream::shared_info
@@ -190,6 +196,8 @@ bool transcode_stream::open(
 
             libvlc_media_player_release(t.player);
         }
+
+        ::close(fd);
     }));
 
     update_info_timer.start(std::chrono::seconds(5));
