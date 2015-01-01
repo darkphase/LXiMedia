@@ -33,7 +33,7 @@ static const struct transcode_stream_test
     void transcode_base(const std::string &transcode, const char *mux)
     {
         class instance instance;
-        class media_cache media_cache;
+        class media_cache media_cache(instance);
 
         if (!outfile.empty())
             ::remove(outfile.c_str());

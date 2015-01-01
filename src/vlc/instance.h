@@ -35,8 +35,12 @@ public:
      */
     static int compare_version(int major, int minor = -1, int patch = -1);
 
-    explicit instance(const std::vector<std::string> &options = std::vector<std::string>()) noexcept;
+    instance() noexcept;
+    explicit instance(const std::vector<std::string> &options) noexcept;
+    instance(instance &&) noexcept;
     ~instance() noexcept;
+
+    instance & operator=(instance &&);
 
     instance(const instance &) = delete;
     instance & operator=(const instance &) = delete;
@@ -44,7 +48,7 @@ public:
     inline operator libvlc_instance_t *() noexcept { return libvlc_instance; }
 
 private:
-    libvlc_instance_t * const libvlc_instance;
+    libvlc_instance_t * libvlc_instance;
 };
 
 } // End of namespace

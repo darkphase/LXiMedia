@@ -28,7 +28,7 @@ static const struct media_cache_test
         test_assert(static_cast< ::libvlc_media_t *>(media) != nullptr);
         test_assert(!media.mrl().empty());
 
-        class media_cache media_cache;
+        class media_cache media_cache(instance);
 
         static const platform::uuid ref_uuid("6c9a8849-dbd4-5b7e-8f50-0916d1294251");
         test_assert(media_cache.uuid(media.mrl()) == ref_uuid);
