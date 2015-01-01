@@ -336,6 +336,46 @@ void settings::set_surround_mode(enum surround_mode surround_mode)
         return general.erase(surround_mode_name);
 }
 
+static const char font_size_name[] = "font_size";
+
+static const char * to_string(font_size e)
+{
+    switch (e)
+    {
+    case font_size::small   : return "small";
+    case font_size::normal  : return "normal";
+    case font_size::large   : return "large";
+    }
+
+    assert(false);
+    return nullptr;
+}
+
+static font_size to_font_size(const std::string &e)
+{
+    if      (e == to_string(font_size::small))  return font_size::small;
+    else if (e == to_string(font_size::normal)) return font_size::normal;
+    else if (e == to_string(font_size::large))  return font_size::large;
+
+    assert(false);
+    return font_size::normal;
+}
+
+static enum font_size default_font_size = font_size::normal;
+
+enum font_size settings::font_size() const
+{
+    return to_font_size(general.read(font_size_name, to_string(default_font_size)));
+}
+
+void settings::set_font_size(enum font_size font_size)
+{
+    if (font_size != default_font_size)
+        return general.write(font_size_name, to_string(font_size));
+    else
+        return general.erase(font_size_name);
+}
+
 static const char share_removable_media_name[] = "share_removable_media";
 
 bool settings::share_removable_media() const

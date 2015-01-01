@@ -74,8 +74,20 @@ bool server::initialize()
 
     if (upnp.initialize(settings.http_port(), settings.bind_all_networks()))
     {
-        vlc_instance.reset(new class vlc::instance(
-                               settings.verbose_logging_enabled()));
+        std::vector<std::string> options;
+
+        if (settings.verbose_logging_enabled())
+            options.push_back("-vvv");
+
+        options.push_back("--freetype-rel-fontsize");
+        switch (settings.font_size())
+        {
+        case font_size::small:  options.push_back("20"); break;
+        case font_size::normal: options.push_back("18"); break;
+        case font_size::large:  options.push_back("16"); break;
+        }
+
+        vlc_instance.reset(new class vlc::instance(options));
 
         switch (html::setuppage::setup_mode())
         {

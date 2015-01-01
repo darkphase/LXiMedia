@@ -163,6 +163,13 @@ static void render_dlna_settings(const class settings &settings, std::ostream &o
                "<a href=\"https://trac.videolan.org/vlc/ticket/1897\">bug</a> in the current VLC version.</p>";
     }
 
+    out << "<p>" << tr("Subtitle settings") << ":</p>"
+           "<p><select name=\"font_size\">"
+           "<option value=\"small\""                << is_selected(settings.font_size() == font_size::small ) << ">" << tr("Small font") << "</option>"
+           "<option value=\"normal\""               << is_selected(settings.font_size() == font_size::normal) << ">" << tr("Normal font") << "</option>"
+           "<option value=\"large\""                << is_selected(settings.font_size() == font_size::large ) << ">" << tr("Large font") << "</option>"
+           "</select></p>";
+
     out << "<p class=\"advanced\" id=\"dlna_expand\"><input type=\"button\" value=\"" << tr("Advanced") << "\" onclick=\""
                "document.getElementById('dlna_details').style.display='';"
                "document.getElementById('dlna_expand').style.display='none';\" /></p>"
@@ -217,6 +224,14 @@ static void save_dlna_settings(class settings &settings, const std::map<std::str
     {
         if      (surround_mode->second == "stereo"      ) settings.set_surround_mode(::surround_mode::stereo      );
         else if (surround_mode->second == "surround51"  ) settings.set_surround_mode(::surround_mode::surround51  );
+    }
+
+    auto font_size = query.find("font_size");
+    if (font_size != query.end())
+    {
+        if      (font_size->second == "small"       ) settings.set_font_size(::font_size::small         );
+        else if (font_size->second == "normal"      ) settings.set_font_size(::font_size::normal        );
+        else if (font_size->second == "large"       ) settings.set_font_size(::font_size::large         );
     }
 
     settings.set_mpeg2_enabled(query.find("mpeg2") != query.end());
