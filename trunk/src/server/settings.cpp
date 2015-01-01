@@ -318,7 +318,7 @@ bool settings::surround_mode_enabled() const
     return vlc::instance::compare_version(2, 2) >= 0;
 }
 
-static enum surround_mode default_surround_mode = surround_mode::surround51;
+static enum surround_mode default_surround_mode = surround_mode::stereo;
 
 enum surround_mode settings::surround_mode() const
 {
