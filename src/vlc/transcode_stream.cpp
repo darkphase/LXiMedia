@@ -149,8 +149,6 @@ bool transcode_stream::open(
             libvlc_media_player_t *player;
         } t;
 
-        std::unique_lock<std::mutex> l(t.mutex);
-
         t.me = this;
         t.started = false;
         t.end_reached = false;
@@ -165,29 +163,35 @@ bool transcode_stream::open(
             libvlc_event_attach(event_manager, libvlc_MediaPlayerEndReached, &T::callback, &t);
             libvlc_event_attach(event_manager, libvlc_MediaPlayerEncounteredError, &T::callback, &t);
 
-            libvlc_media_player_play(t.player);
-
-            while (!t.end_reached && !t.encountered_error && !process.term_pending())
+            if (libvlc_media_player_play(t.player) == 0)
             {
-                if (t.started)
+                std::unique_lock<std::mutex> l(t.mutex);
+
+                while (!t.end_reached && !t.encountered_error && !process.term_pending())
                 {
-                    if (chapter >= 0)
-                        libvlc_media_player_set_chapter(t.player, chapter);
+                    if (t.started)
+                    {
+                        l.unlock();
 
-                    if (position.count() > 0)
-                        libvlc_media_player_set_time(t.player, position.count());
+                        if (chapter >= 0)
+                            libvlc_media_player_set_chapter(t.player, chapter);
 
-                    if (std::abs(rate - 1.0f) > 0.01f)
-                        libvlc_media_player_set_rate(t.player, rate);
+                        if (position.count() > 0)
+                            libvlc_media_player_set_time(t.player, position.count());
 
-                    t.started = false;
+                        if (std::abs(rate - 1.0f) > 0.01f)
+                            libvlc_media_player_set_rate(t.player, rate);
+
+                        l.lock();
+                        t.started = false;
+                    }
+
+                    t.condition.wait(l);
                 }
 
-                t.condition.wait(l);
+                l.unlock();
+                libvlc_media_player_stop(t.player);
             }
-
-            l.unlock();
-            libvlc_media_player_stop(t.player);
 
             libvlc_event_detach(event_manager, libvlc_MediaPlayerEncounteredError, &T::callback, &t);
             libvlc_event_detach(event_manager, libvlc_MediaPlayerEndReached, &T::callback, &t);
