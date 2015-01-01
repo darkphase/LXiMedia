@@ -46,7 +46,7 @@ files::files(
         class watchlist &watchlist)
     : messageloop(messageloop),
       vlc_instance(vlc_instance),
-      media_cache(),
+      media_cache(vlc_instance),
       connection_manager(connection_manager),
       content_directory(content_directory),
       recommended(recommended),
@@ -202,15 +202,16 @@ std::vector<pupnp::content_directory::item> files::list_contentdir_items(
         else
             break;
 
-    std::vector<vlc::media> media;
+    std::vector<std::string> scan_files;
     for (auto &path : paths)
     {
         std::string file_path, track_name;
         split_path(path, file_path, track_name);
-        media.emplace_back(vlc::media::from_file(vlc_instance, to_system_path(file_path).path));
+        if (!ends_with(file_path, "/"))
+            scan_files.emplace_back(to_system_path(file_path).path);
     }
 
-    media_cache.scan_all(media);
+    media_cache.scan_files(scan_files);
 
     std::vector<pupnp::content_directory::item> result;
     for (auto &path : paths)
@@ -322,15 +323,16 @@ std::vector<pupnp::content_directory::item> files::list_recommended_items(
                 start--;
         }
 
-    std::vector<vlc::media> media;
+    std::vector<std::string> scan_files;
     for (auto &path : paths)
     {
         std::string file_path, track_name;
         split_path(path, file_path, track_name);
-        media.emplace_back(vlc::media::from_file(vlc_instance, to_system_path(file_path).path));
+        if (!ends_with(file_path, "/"))
+            scan_files.emplace_back(to_system_path(file_path).path);
     }
 
-    media_cache.scan_all(media);
+    media_cache.scan_files(scan_files);
 
     std::vector<pupnp::content_directory::item> result;
     for (auto &path : paths)

@@ -29,7 +29,8 @@
 
 namespace vlc {
 
-media_cache::media_cache()
+media_cache::media_cache(class instance &instance)
+    : instance(instance)
 {
 }
 
@@ -323,21 +324,35 @@ enum media_type media_cache::media_type(class media &media) const
     return result;
 }
 
-void media_cache::scan_all(std::vector<class media> &media)
+void media_cache::scan_files(std::vector<std::string> &files)
 {
     static const unsigned num_queues = std::max(1u, std::thread::hardware_concurrency());
-    std::vector<std::list<std::pair<std::string, class media *>>> tasks;
+    std::vector<std::list<std::pair<std::string, media>>> tasks;
     tasks.resize(num_queues);
+
+#ifdef PROCESS_USES_THREAD
+    std::vector<vlc::instance> instances;
+    instances.resize(num_queues);
+#endif
 
     {
         std::lock_guard<std::mutex> _(mutex);
 
         unsigned index = 0;
-        for (auto &i : media)
+        for (auto &i : files)
         {
-            const auto mrl = i.mrl();
-            if (cache.find(mrl) == cache.end())
-                tasks[index++ % num_queues].emplace_back(std::make_pair(mrl, &i));
+            const auto queue_index = index % num_queues;
+#ifdef PROCESS_USES_THREAD
+            auto media = media::from_file(instances[queue_index], i);
+#else
+            auto media = media::from_file(instance, i);
+#endif
+
+            if (cache.find(media.mrl()) == cache.end())
+            {
+                tasks[queue_index].emplace_back(std::make_pair(i, std::move(media)));
+                index++;
+            }
         }
     }
 
@@ -350,21 +365,16 @@ void media_cache::scan_all(std::vector<class media> &media)
         {
             if (!tasks[i].empty())
             {
-                processes[i] = platform::process([&tasks, i](platform::process &, std::ostream &out)
+#ifdef PROCESS_USES_THREAD
+                processes[i] = platform::process([this, tasks, i](platform::process &, std::ostream &out)
+#else
+                processes[i] = platform::process([this, &tasks, i](platform::process &, std::ostream &out)
+#endif
                 {
                     for (auto &task : tasks[i])
                     {
-#if defined(__unix__) || defined(__APPLE__)
-                        if (starts_with(task.first, "file://"))
-                            out << uuid_from_file(from_percent(task.first.substr(7))) << ' ' << std::flush;
-#elif defined(WIN32)
-                        if (starts_with(task.first, "file:"))
-                            out << uuid_from_file(from_percent(task.first.substr(5))) << ' ' << std::flush;
-#endif
-                        else
-                            out << platform::uuid::generate() << ' ' << std::flush;
-
-                        out << media_info_from_media(*task.second) << std::endl;
+                        out << uuid_from_file(task.first) << ' ' << std::flush;
+                        out << media_info_from_media(const_cast<class media &>(task.second)) << std::endl;
                     }
                 }, true);
             }

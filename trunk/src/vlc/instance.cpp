@@ -82,14 +82,34 @@ static libvlc_instance_t * create_instance(const std::vector<std::string> &optio
     return libvlc_new(int(argv.size()), argv.data());
 }
 
+instance::instance() noexcept
+    : libvlc_instance(create_instance(std::vector<std::string>()))
+{
+}
+
 instance::instance(const std::vector<std::string> &options) noexcept
     : libvlc_instance(create_instance(options))
 {
 }
 
+instance::instance(instance &&from) noexcept
+    : libvlc_instance(from.libvlc_instance)
+{
+    from.libvlc_instance = nullptr;
+}
+
+instance & instance::operator=(instance &&from)
+{
+    libvlc_instance = from.libvlc_instance;
+    from.libvlc_instance = nullptr;
+
+    return *this;
+}
+
 instance::~instance() noexcept
 {
-    libvlc_release(libvlc_instance);
+    if (libvlc_instance)
+        libvlc_release(libvlc_instance);
 }
 
 } // End of namespace

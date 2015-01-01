@@ -81,16 +81,18 @@ private:
     };
 
 public:
-    media_cache();
+    explicit media_cache(class instance &);
     ~media_cache();
 
-    void scan_all(std::vector<class media> &);
+    void scan_files(std::vector<std::string> &);
 
     platform::uuid uuid(const std::string &) const;
     struct media_info media_info(class media &) const;
     enum media_type media_type(class media &) const;
 
 private:
+    class instance &instance;
+
     mutable std::mutex mutex;
     mutable std::map<std::string, data> cache;
 };
