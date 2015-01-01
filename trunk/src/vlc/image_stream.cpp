@@ -89,8 +89,6 @@ bool image_stream::open(
             libvlc_media_player_t *player;
         } t;
 
-        std::unique_lock<std::mutex> l(t.mutex);
-
         t.displayed = false;
         t.encountered_error = false;
         t.pixel_buffer = image(width, height);
@@ -109,13 +107,16 @@ bool image_stream::open(
             libvlc_event_attach(event_manager, libvlc_MediaPlayerTimeChanged, &T::callback, &t);
             libvlc_event_attach(event_manager, libvlc_MediaPlayerEncounteredError, &T::callback, &t);
 
-            libvlc_media_player_play(t.player);
+            if (libvlc_media_player_play(t.player) == 0)
+            {
+                std::unique_lock<std::mutex> l(t.mutex);
 
-            while (!t.displayed && !t.encountered_error && !process.term_pending())
-                t.condition.wait(l);
+                while (!t.displayed && !t.encountered_error && !process.term_pending())
+                    t.condition.wait(l);
 
-            l.unlock();
-            libvlc_media_player_stop(t.player);
+                l.unlock();
+                libvlc_media_player_stop(t.player);
+            }
 
             libvlc_event_detach(event_manager, libvlc_MediaPlayerEncounteredError, &T::callback, &t);
             libvlc_event_detach(event_manager, libvlc_MediaPlayerTimeChanged, &T::callback, &t);

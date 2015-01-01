@@ -187,15 +187,12 @@ static struct media_cache::media_info media_info_from_media(
 
         if (libvlc_media_player_play(player) == 0)
         {
-            {
-                std::unique_lock<std::mutex> l(t.mutex);
-                while (!t.playing && !t.stopped) t.condition.wait(l);
-            }
+            std::unique_lock<std::mutex> l(t.mutex);
 
-            {
-                std::unique_lock<std::mutex> l(t.mutex);
-                while ((t.new_time < 1000) && !t.stopped) t.condition.wait(l);
-            }
+            while (!t.playing && !t.stopped) t.condition.wait(l);
+            while ((t.new_time < 1000) && !t.stopped) t.condition.wait(l);
+
+            l.unlock();
 
             media_info.chapter_count = libvlc_media_player_get_chapter_count(player);
 
