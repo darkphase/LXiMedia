@@ -56,33 +56,34 @@ int instance::compare_version(int major, int minor, int patch)
     return -1;
 }
 
-static libvlc_instance_t * create_instance(bool verbose_logging) noexcept
+static libvlc_instance_t * create_instance(const std::vector<std::string> &options) noexcept
 {
-    static const char * const default_argv[] = { "--avcodec-hw", "disable", "-vvv" };
+    std::vector<const char *> argv;
 
-    const bool version_2_2 = instance::compare_version(2, 2) >= 0;
-    const char * const * const argv = version_2_2 ? default_argv : (default_argv + 2);
-    const size_t argc =
-            (sizeof(default_argv) / sizeof(*default_argv)) -
-            (version_2_2 ? 0 : 2) -
-            (verbose_logging ? 0 : 1);
+    if (instance::compare_version(2, 2) >= 0)
+    {
+        argv.push_back("--avcodec-hw");
+        argv.push_back("disable");
+    }
+
+    for (auto &i : options)
+        argv.push_back(i.c_str());
 
 #if !defined(TEST_H)
-    std::clog << "vlc::instance: creating new libvlc instance (" << libvlc_get_version() << ")";
-    if (verbose_logging)
-    {
-        std::clog << " with arguments:";
-        for (size_t i = 0; i < argc; i++)
-            std::clog << ' ' << argv[i];
-    }
+    std::clog << "vlc::instance: creating new libvlc instance ("
+              << libvlc_get_version() << ") with arguments:";
+
+    for (auto i : argv)
+        std::clog << ' ' << i;
+
     std::clog << std::endl;
 #endif
 
-    return libvlc_new(argc, argv);
+    return libvlc_new(int(argv.size()), argv.data());
 }
 
-instance::instance(bool verbose_logging) noexcept
-    : libvlc_instance(create_instance(verbose_logging))
+instance::instance(const std::vector<std::string> &options) noexcept
+    : libvlc_instance(create_instance(options))
 {
 }
 

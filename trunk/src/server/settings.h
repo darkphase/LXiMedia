@@ -28,6 +28,7 @@
 enum class encode_mode { slow, fast };
 enum class video_mode { auto_, vcd, dvd, hdtv_720, hdtv_1080 };
 enum class canvas_mode { none, pad, crop };
+enum class font_size { small, normal, large };
 enum class surround_mode { stereo, surround51 };
 enum class path_type { auto_, music, pictures, videos };
 struct root_path { path_type type; std::string path; };
@@ -65,6 +66,9 @@ public:
     bool surround_mode_enabled() const;
     enum surround_mode surround_mode() const;
     void set_surround_mode(enum surround_mode);
+
+    enum font_size font_size() const;
+    void set_font_size(enum font_size);
 
     bool share_removable_media() const;
     void set_share_removable_media(bool);

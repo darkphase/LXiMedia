@@ -19,6 +19,7 @@
 #define VLC_INSTANCE_H
 
 #include <string>
+#include <vector>
 
 struct libvlc_instance_t;
 
@@ -34,7 +35,7 @@ public:
      */
     static int compare_version(int major, int minor = -1, int patch = -1);
 
-    explicit instance(bool = false) noexcept;
+    explicit instance(const std::vector<std::string> &options = std::vector<std::string>()) noexcept;
     ~instance() noexcept;
 
     instance(const instance &) = delete;
