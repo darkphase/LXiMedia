@@ -392,7 +392,7 @@ void media_cache::scan_files(std::vector<std::string> &files)
                 {
                     std::lock_guard<std::mutex> _(mutex);
 
-                    auto &data = cache[tasks[i].front().first];
+                    auto &data = cache[tasks[i].front().second.mrl()];
                     data.uuid = uuid;
                     data.uuid_generated = true;
                     data.media_info = media_info;
