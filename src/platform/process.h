@@ -38,6 +38,9 @@ namespace platform {
 class process : public std::istream
 {
 public:
+    enum class priority { normal, low, idle };
+
+public:
     template <typename _Type>
     static std::shared_ptr<_Type> make_shared();
 
@@ -45,11 +48,11 @@ public:
 
     process(
             const std::function<void(process &, int)> &,
-            bool background_task = false);
+            priority priority_ = priority::normal);
 
     process(
             const std::function<void(process &, std::ostream &)> &,
-            bool background_task = false);
+            priority priority_ = priority::normal);
 
     process(process &&);
     process & operator=(process &&);

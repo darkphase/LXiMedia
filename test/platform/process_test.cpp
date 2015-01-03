@@ -55,7 +55,7 @@ static const struct process_test
 
             while (!process.term_pending())
                 std::this_thread::yield();
-        }, true);
+        }, _Process::priority::low);
 
         // Get data from the pipe.
         std::string result;

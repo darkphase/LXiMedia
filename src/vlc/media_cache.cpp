@@ -25,17 +25,19 @@
 #include <vlc/vlc.h>
 #include <cstring>
 #include <sstream>
-#include <thread>
 
 namespace vlc {
 
 media_cache::media_cache(class instance &instance)
-    : instance(instance)
+    : instance(instance),
+      background_scan_finished(true)
 {
 }
 
 media_cache::~media_cache()
 {
+    if (background_scan_thread.joinable())
+        background_scan_thread.join();
 }
 
 static platform::uuid uuid_from_file(const std::string &path)
@@ -324,9 +326,54 @@ enum media_type media_cache::media_type(class media &media) const
     return result;
 }
 
-void media_cache::scan_files(std::vector<std::string> &files)
+void media_cache::scan_files(const std::vector<std::string> &files)
 {
-    static const unsigned num_queues = std::max(1u, std::thread::hardware_concurrency());
+    return scan_files(files, false);
+}
+
+void media_cache::scan_files_background(const std::vector<std::string> &files)
+{
+    static const size_t chunk_size = 32;
+
+    std::unique_lock<std::mutex> l(mutex);
+
+    for (auto &i : files)
+        background_scan_queue.emplace_back(i);
+
+    if (!background_scan_queue.empty() && background_scan_finished)
+    {
+        background_scan_finished = false;
+        l.unlock();
+
+        if (background_scan_thread.joinable())
+            background_scan_thread.join();
+
+        background_scan_thread = std::thread([this]
+        {
+            std::unique_lock<std::mutex> l(mutex);
+
+            while (!background_scan_queue.empty())
+            {
+                std::vector<std::string> files;
+                while (!background_scan_queue.empty() && (files.size() < chunk_size))
+                {
+                    files.emplace_back(std::move(background_scan_queue.back()));
+                    background_scan_queue.pop_back();
+                }
+
+                l.unlock();
+                scan_files(files, true);
+                l.lock();
+            }
+
+            background_scan_finished = true;
+        });
+    }
+}
+
+void media_cache::scan_files(const std::vector<std::string> &files, bool background)
+{
+    const unsigned num_queues = background ? 1u : std::max(1u, std::thread::hardware_concurrency());
     std::vector<std::list<std::pair<std::string, media>>> tasks;
     tasks.resize(num_queues);
 
@@ -376,7 +423,7 @@ void media_cache::scan_files(std::vector<std::string> &files)
                         out << uuid_from_file(task.first) << ' ' << std::flush;
                         out << media_info_from_media(const_cast<class media &>(task.second)) << std::endl;
                     }
-                }, true);
+                }, background ? platform::process::priority::idle : platform::process::priority::low);
             }
         }
 
