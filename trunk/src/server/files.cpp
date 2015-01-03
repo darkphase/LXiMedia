@@ -182,10 +182,11 @@ std::vector<pupnp::content_directory::item> files::list_contentdir_items(
         size_t start, size_t &count)
 {
     const bool return_all = count == 0;
+    const size_t chunk_size = return_all ? 8 : count;
 
     const auto &files = list_files(path, start == 0);
 
-    std::vector<std::string> paths;
+    std::vector<std::string> paths, next_paths;
     for (auto &file : files)
         if (return_all || (count > 0))
         {
@@ -199,19 +200,32 @@ std::vector<pupnp::content_directory::item> files::list_contentdir_items(
             else
                 start--;
         }
+        else if ((start == 0) && (next_paths.size() < chunk_size))
+            next_paths.emplace_back(path + file);
         else
             break;
 
-    std::vector<std::string> scan_files;
-    for (auto &path : paths)
-    {
-        std::string file_path, track_name;
-        split_path(path, file_path, track_name);
-        if (!ends_with(file_path, "/"))
-            scan_files.emplace_back(to_system_path(file_path).path);
-    }
+    media_cache.scan_files(scan_files_paths(paths));
 
-    media_cache.scan_files(scan_files);
+    messageloop.post([this, chunk_size, paths, next_paths]
+    {
+        media_cache.scan_files_background(scan_files_paths(next_paths));
+
+        for (auto &path : paths)
+            if (ends_with(path, "/"))
+            {
+                const auto &files = list_files(path, false);
+
+                std::vector<std::string> paths;
+                for (auto &file : files)
+                    if (paths.size() < chunk_size)
+                        paths.emplace_back(path + file);
+                    else
+                        break;
+
+                media_cache.scan_files_background(scan_files_paths(paths));
+            }
+    });
 
     std::vector<pupnp::content_directory::item> result;
     for (auto &path : paths)
@@ -323,16 +337,7 @@ std::vector<pupnp::content_directory::item> files::list_recommended_items(
                 start--;
         }
 
-    std::vector<std::string> scan_files;
-    for (auto &path : paths)
-    {
-        std::string file_path, track_name;
-        split_path(path, file_path, track_name);
-        if (!ends_with(file_path, "/"))
-            scan_files.emplace_back(to_system_path(file_path).path);
-    }
-
-    media_cache.scan_files(scan_files);
+    media_cache.scan_files(scan_files_paths(paths));
 
     std::vector<pupnp::content_directory::item> result;
     for (auto &path : paths)
@@ -790,6 +795,20 @@ const std::vector<std::string> & files::list_files(const std::string &path, bool
     }
 
     return files_cache_item->second;
+}
+
+std::vector<std::string> files::scan_files_paths(const std::vector<std::string> &paths) const
+{
+    std::vector<std::string> result;
+    for (auto &path : paths)
+    {
+        std::string file_path, track_name;
+        split_path(path, file_path, track_name);
+        if (!ends_with(file_path, "/"))
+            result.emplace_back(to_system_path(file_path).path);
+    }
+
+    return std::move(result);
 }
 
 pupnp::content_directory::item files::make_item(const std::string &client, const std::string &path) const

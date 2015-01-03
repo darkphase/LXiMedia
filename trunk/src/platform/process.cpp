@@ -109,14 +109,14 @@ namespace platform {
 
 process::process(
         const std::function<void(process &, std::ostream &)> &function,
-        bool background_task)
+        priority priority_)
     : process([function](class process &process, int fd)
         {
             pipe_streambuf streambuf(fd);
             std::ostream stream(&streambuf);
 
             function(process, stream);
-        }, background_task)
+        }, priority_)
 {
 }
 
@@ -168,7 +168,7 @@ process::process()
 
 process::process(
         const std::function<void(process &, int)> &function,
-        bool background_task)
+        priority priority_)
     : std::istream(nullptr),
       child(0)
 {
@@ -197,12 +197,24 @@ process::process(
             ::sigaction(SIGTERM, &act, nullptr);
             ::sigaction(SIGINT, &act, nullptr);
 
-            if (background_task)
+            switch (priority_)
             {
-                ::nice(5);
+            case priority::normal:
+                break;
+
+            case priority::low:
 #ifdef __linux__
                 ::syscall(SYS_ioprio_set, 1, getpid(), 0x6007);
 #endif
+                ::nice(5);
+                break;
+
+            case priority::idle:
+#ifdef __linux__
+                ::syscall(SYS_ioprio_set, 1, getpid(), 0x6007);
+#endif
+                ::nice(15);
+                break;
             }
 
             ::close(pipe_desc[0]);
@@ -309,7 +321,7 @@ process::process()
 
 process::process(
         const std::function<void(process &, int)> &function,
-        bool background_task)
+        priority priority_)
     : std::istream(nullptr),
       thread(),
       term_received(false)
@@ -323,8 +335,29 @@ process::process(
         throw std::runtime_error("Creating pipe failed");
     }
 
-    thread = std::thread([this, function]
+    thread = std::thread([this, function, priority_]
     {
+        switch (priority_)
+        {
+        case priority::normal:
+            break;
+
+        case priority::low:
+#if defined(WIN32)
+            ::SetThreadPriority(::GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
+            ::SetThreadPriority(::GetCurrentThread(), THREAD_PRIORITY_LOWEST);
+#endif
+            break;
+
+        case priority::idle:
+#if defined(WIN32)
+            ::SetThreadPriority(::GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
+            ::SetThreadPriority(::GetCurrentThread(), THREAD_PRIORITY_IDLE);
+#endif
+            break;
+        }
+
+
         function(*this, pipe_desc[1]);
     });
 

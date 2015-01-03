@@ -26,6 +26,7 @@
 #include <map>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 struct libvlc_media_t;
@@ -84,17 +85,25 @@ public:
     explicit media_cache(class instance &);
     ~media_cache();
 
-    void scan_files(std::vector<std::string> &);
-
     platform::uuid uuid(const std::string &) const;
     struct media_info media_info(class media &) const;
     enum media_type media_type(class media &) const;
+
+    void scan_files(const std::vector<std::string> &);
+    void scan_files_background(const std::vector<std::string> &);
+
+private:
+    void scan_files(const std::vector<std::string> &, bool);
 
 private:
     class instance &instance;
 
     mutable std::mutex mutex;
     mutable std::map<std::string, data> cache;
+
+    std::vector<std::string> background_scan_queue;
+    std::thread background_scan_thread;
+    bool background_scan_finished;
 };
 
 std::ostream & operator<<(std::ostream &, const struct media_cache::track &);
