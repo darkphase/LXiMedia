@@ -423,7 +423,7 @@ int files::play_audio_video_item(
             transcode << protocol.vcodec;
 
             const float frame_rate = float(protocol.frame_rate_num) / float(protocol.frame_rate_den);
-            transcode << ",fps=" << std::setprecision(3) << frame_rate;
+            transcode << ",fps=" << std::setprecision(5) << frame_rate;
 
             unsigned width = 0, height = 0;
             switch (settings.canvas_mode())
