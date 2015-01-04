@@ -56,7 +56,7 @@ test::~test()
 
 std::vector<pupnp::content_directory::item> test::list_contentdir_items(
         const std::string &client,
-        const std::string &,
+        const std::string &path,
         size_t start, size_t &count)
 {
     const bool return_all = count == 0;
@@ -64,26 +64,36 @@ std::vector<pupnp::content_directory::item> test::list_contentdir_items(
     clients.insert(client);
 
     std::vector<pupnp::content_directory::item> items;
-    switch (html::setuppage::setup_mode())
+    if (path == "/")
     {
-    case html::setup_mode::disabled:
-    case html::setup_mode::name:
-    case html::setup_mode::finish:
-        break;
+        switch (html::setuppage::setup_mode())
+        {
+        case html::setup_mode::disabled:
+        case html::setup_mode::name:
+            break;
 
-    case html::setup_mode::network:
-    case html::setup_mode::codecs:
-        items.emplace_back(get_contentdir_item(client, "/pm5544_mp2v_mpg"));
-        items.emplace_back(get_contentdir_item(client, "/pm5544_mp2v_m2ts"));
-        items.emplace_back(get_contentdir_item(client, "/pm5544_mp2v_ts"));
-        items.emplace_back(get_contentdir_item(client, "/pm5544_h264_m2ts"));
-        items.emplace_back(get_contentdir_item(client, "/pm5544_h264_ts"));
-        break;
+        case html::setup_mode::network:
+        case html::setup_mode::codecs:
+            items.emplace_back(get_contentdir_item(client, "/formats/"));
+            break;
 
-    case html::setup_mode::high_definition:
-        items.emplace_back(get_contentdir_item(client, "/pm5644_720"));
-        items.emplace_back(get_contentdir_item(client, "/pm5644_1080"));
-        break;
+        case html::setup_mode::high_definition:
+            items.emplace_back(get_contentdir_item(client, "/resolutions/"));
+            break;
+        }
+    }
+    else if (path == "/formats/")
+    {
+        items.emplace_back(get_contentdir_item(client, "/formats/pm5544_mp2v_mpg"));
+        items.emplace_back(get_contentdir_item(client, "/formats/pm5544_mp2v_m2ts"));
+        items.emplace_back(get_contentdir_item(client, "/formats/pm5544_mp2v_ts"));
+        items.emplace_back(get_contentdir_item(client, "/formats/pm5544_h264_m2ts"));
+        items.emplace_back(get_contentdir_item(client, "/formats/pm5544_h264_ts"));
+    }
+    else if (path == "/resolutions/")
+    {
+        items.emplace_back(get_contentdir_item(client, "/resolutions/pm5644_hd_720"));
+        items.emplace_back(get_contentdir_item(client, "/resolutions/pm5644_hd_1080"));
     }
 
     std::vector<pupnp::content_directory::item> result;
@@ -98,44 +108,55 @@ std::vector<pupnp::content_directory::item> test::list_contentdir_items(
 pupnp::content_directory::item test::get_contentdir_item(const std::string &, const std::string &path)
 {
     pupnp::content_directory::item item;
-    item.is_dir = false;
+    item.is_dir = ends_with(path, "/");
     item.path = path;
-    item.type = pupnp::content_directory::item_type::video_broadcast;
 
-    item.frame_rate = 10.0f;
-    item.duration = std::chrono::seconds(10);
-    item.sample_rate = 44100;
-    item.channels = 2;
-
-    if (starts_with(path, "/pm5544_"))
+    if (item.is_dir)
     {
-        item.mrl = pm5544_png_media.mrl();
-        item.uuid = platform::uuid("fe23d774-4956-4608-aa17-78fb4af8b5a4");
-        item.width = 768;
-        item.height = 576;
-
-        if      (path == "/pm5544_mp2v_mpg")    item.title = "MPEG 2 Program Stream";
-        else if (path == "/pm5544_mp2v_m2ts")   item.title = "MPEG 2 BDAV Transport Stream";
-        else if (path == "/pm5544_mp2v_ts")     item.title = "MPEG 2 Transport Stream";
-        else if (path == "/pm5544_h264_m2ts")   item.title = "MPEG 4 AVC BDAV Transport Stream";
-        else if (path == "/pm5544_h264_ts")     item.title = "MPEG 4 AVC Transport Stream";
+        if (path == "/formats/")
+            item.title = "Formats";
+        else if (path == "/resolutions/")
+            item.title = "Resolutions";
     }
-    else if (starts_with(path, "/pm5644_"))
+    else
     {
-        item.mrl = pm5644_png_media.mrl();
-        item.uuid = platform::uuid("b6a79f3c-b6ad-457b-b47a-35827d8f171c");
+        item.type = pupnp::content_directory::item_type::video_broadcast;
 
-        if (path == "/pm5644_720")
+        item.frame_rate = 10.0f;
+        item.duration = std::chrono::seconds(10);
+        item.sample_rate = 44100;
+        item.channels = 2;
+
+        if (starts_with(path, "/formats/"))
         {
-            item.width = 1280;
-            item.height = 720;
-            item.title = "High Definition 720p";
+            item.mrl = pm5544_png_media.mrl();
+            item.uuid = platform::uuid("fe23d774-4956-4608-aa17-78fb4af8b5a4");
+            item.width = 768;
+            item.height = 576;
+
+            if      (path == "/formats/pm5544_mp2v_mpg")    item.title = "MPEG 2 Program Stream";
+            else if (path == "/formats/pm5544_mp2v_m2ts")   item.title = "MPEG 2 BDAV Transport Stream";
+            else if (path == "/formats/pm5544_mp2v_ts")     item.title = "MPEG 2 Transport Stream";
+            else if (path == "/formats/pm5544_h264_m2ts")   item.title = "MPEG 4 AVC BDAV Transport Stream";
+            else if (path == "/formats/pm5544_h264_ts")     item.title = "MPEG 4 AVC Transport Stream";
         }
-        else if (path == "/pm5644_1080")
+        else if (starts_with(path, "/resolutions/"))
         {
-            item.width = 1920;
-            item.height = 1080;
-            item.title = "High Definition 1080p";
+            item.mrl = pm5644_png_media.mrl();
+            item.uuid = platform::uuid("b6a79f3c-b6ad-457b-b47a-35827d8f171c");
+
+            if (path == "/resolutions/pm5644_hd_720")
+            {
+                item.width = 1280;
+                item.height = 720;
+                item.title = "High Definition 720p";
+            }
+            else if (path == "/resolutions/pm5644_hd_1080")
+            {
+                item.width = 1920;
+                item.height = 1080;
+                item.title = "High Definition 1080p";
+            }
         }
     }
 
@@ -144,27 +165,27 @@ pupnp::content_directory::item test::get_contentdir_item(const std::string &, co
 
 bool test::correct_protocol(const pupnp::content_directory::item &item, pupnp::connection_manager::protocol &protocol)
 {
-    if (item.path == "/pm5544_mp2v_mpg")
+    if (item.path == "/formats/pm5544_mp2v_mpg")
     {
         return (protocol.profile == "MPEG_PS_PAL") || (protocol.profile == "MPEG_PS_NTSC");
     }
-    else if (item.path == "/pm5544_mp2v_m2ts")
+    else if (item.path == "/formats/pm5544_mp2v_m2ts")
     {
         return (protocol.profile == "MPEG_TS_SD_EU") || (protocol.profile == "MPEG_TS_SD_NA");
     }
-    else if (item.path == "/pm5544_mp2v_ts")
+    else if (item.path == "/formats/pm5544_mp2v_ts")
     {
         return (protocol.profile == "MPEG_TS_SD_EU_ISO") || (protocol.profile == "MPEG_TS_SD_NA_ISO");
     }
-    else if (item.path == "/pm5544_h264_m2ts")
+    else if (item.path == "/formats/pm5544_h264_m2ts")
     {
         return protocol.profile == "AVC_TS_MP_SD_AC3";
     }
-    else if (item.path == "/pm5544_h264_ts")
+    else if (item.path == "/formats/pm5544_h264_ts")
     {
         return protocol.profile == "AVC_TS_MP_SD_AC3_ISO";
     }
-    else if (starts_with(item.path, "/pm5644_"))
+    else if (starts_with(item.path, "/resolutions/"))
     {
         if ((protocol.profile == "MPEG_TS_HD_EU") || (protocol.profile == "MPEG_TS_HD_NA") ||
             (protocol.profile == "MPEG_TS_HD_EU_ISO") || (protocol.profile == "MPEG_TS_HD_NA_ISO") ||
@@ -172,9 +193,9 @@ bool test::correct_protocol(const pupnp::content_directory::item &item, pupnp::c
             (protocol.profile == "AVC_TS_MP_HD_MPEG1_L3") ||
             (protocol.profile == "AVC_TS_MP_HD_MPEG1_L3_ISO"))
         {
-            if (item.path == "/pm5644_720")
+            if (item.path == "/resolutions/pm5644_hd_720")
                 return protocol.height == 720;
-            else if (item.path == "/pm5644_1080")
+            else if (item.path == "/resolutions/pm5644_hd_1080")
                 return protocol.height == 1080;
         }
     }
@@ -284,6 +305,8 @@ int test::play_item(
             track_ids.audio = 1;
             track_ids.video = 0;
             stream->set_track_ids(track_ids);
+
+            stream->on_end_reached = [this, item] { items.insert(item.path); };
 
             if (stream->open(item.mrl, transcode.str(), vlc_mux, rate))
             {

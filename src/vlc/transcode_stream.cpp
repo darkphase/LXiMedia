@@ -39,6 +39,7 @@ namespace vlc {
 struct transcode_stream::shared_info
 {
     libvlc_time_t time;
+    bool end_reached;
 };
 
 transcode_stream::transcode_stream(class platform::messageloop_ref &messageloop, class instance &instance)
@@ -51,6 +52,14 @@ transcode_stream::transcode_stream(class platform::messageloop_ref &messageloop,
       last_info(std::make_shared<shared_info>()),
       update_info_timer(messageloop, std::bind(&transcode_stream::update_info, this))
 {
+    if (info)
+    {
+        info->time = 0;
+        info->end_reached = false;
+
+        if (last_info)
+            *last_info = *info;
+    }
 }
 
 transcode_stream::~transcode_stream()
@@ -132,7 +141,11 @@ bool transcode_stream::open(
                         libvlc_video_set_spu(t->player, t->me->track_ids.text);
                 }
                 else if (e->type == libvlc_MediaPlayerEndReached)
+                {
                     t->end_reached = true;
+                    if (t->me->info)
+                        t->me->info->end_reached = true;
+                }
                 else if (e->type == libvlc_MediaPlayerEncounteredError)
                     t->encountered_error = true;
 
@@ -231,6 +244,8 @@ void transcode_stream::close()
 
         process = nullptr;
     }
+
+    update_info();
 }
 
 std::chrono::milliseconds transcode_stream::playback_position() const
@@ -241,14 +256,27 @@ std::chrono::milliseconds transcode_stream::playback_position() const
     return std::chrono::milliseconds(0);
 }
 
+bool transcode_stream::end_reached() const
+{
+    if (info)
+        return info->end_reached;
+
+    return false;
+}
+
 void transcode_stream::update_info()
 {
     if (info && last_info)
     {
-        if (on_playback_position_changed && (info->time != last_info->time))
+        const auto new_info = *info;
+
+        if (on_playback_position_changed && (new_info.time != last_info->time))
             on_playback_position_changed(playback_position());
 
-        *last_info = *info;
+        if (on_end_reached && (new_info.end_reached != last_info->end_reached))
+            on_end_reached();
+
+        *last_info = new_info;
     }
 }
 

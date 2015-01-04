@@ -113,7 +113,6 @@ bool server::initialize()
         case html::setup_mode::network:
         case html::setup_mode::codecs:
         case html::setup_mode::high_definition:
-        case html::setup_mode::finish:
             test.reset(new class test(
                            messageloop,
                            *vlc_instance,

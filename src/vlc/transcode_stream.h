@@ -55,6 +55,9 @@ public:
     std::chrono::milliseconds playback_position() const;
     std::function<void(std::chrono::milliseconds)> on_playback_position_changed;
 
+    bool end_reached() const;
+    std::function<void()> on_end_reached;
+
 private:
     void update_info();
 

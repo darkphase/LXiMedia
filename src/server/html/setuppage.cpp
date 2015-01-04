@@ -46,7 +46,14 @@ setuppage::setuppage(
       settings(settings),
       test(test),
       apply(apply),
-      applying(false)
+      applying(false),
+      mp2v_mpg(false),
+      mp2v_ts(false),
+      mp2v_m2ts(false),
+      h264_ts(false),
+      h264_m2ts(false),
+      hd_720(false),
+      hd_1080(false)
 {
     using namespace std::placeholders;
 
@@ -77,7 +84,13 @@ enum setup_mode setuppage::setup_mode()
 void setuppage::activate_setup()
 {
     if (current_setup_mode == html::setup_mode::disabled)
+    {
         current_setup_mode = html::setup_mode::name;
+
+        played_items.clear();
+        mp2v_mpg = mp2v_ts = mp2v_m2ts = h264_ts = h264_m2ts = false;
+        hd_720 = hd_1080 = false;
+    }
 }
 
 bool setuppage::setup_required()
@@ -88,6 +101,45 @@ bool setuppage::setup_required()
 void setuppage::render_headers(const struct pupnp::upnp::request &request, std::ostream &out)
 {
     out << "<link rel=\"stylesheet\" href=\"/css/setup.css\" type=\"text/css\" media=\"screen, handheld, projection\" />";
+
+    switch (current_setup_mode)
+    {
+    case html::setup_mode::network:
+    case html::setup_mode::disabled:
+    case html::setup_mode::name:
+        break;
+
+    case html::setup_mode::codecs:
+        mp2v_mpg = request.url.query.find("mp2v_mpg") != request.url.query.end();
+        mp2v_ts = request.url.query.find("mp2v_ts") != request.url.query.end();
+        mp2v_m2ts = request.url.query.find("mp2v_m2ts") != request.url.query.end();
+        h264_ts = request.url.query.find("h264_ts") != request.url.query.end();
+        h264_m2ts = request.url.query.find("h264_m2ts") != request.url.query.end();
+        break;
+
+    case html::setup_mode::high_definition:
+        hd_720 = request.url.query.find("hd_720") != request.url.query.end();
+        hd_1080 = request.url.query.find("hd_1080") != request.url.query.end();
+        break;
+    }
+
+    if (test)
+    {
+        for (auto &i : test->played_items())
+            if (played_items.find(i) == played_items.end())
+            {
+                mp2v_mpg |= ends_with(i, "mp2v_mpg");
+                mp2v_ts |= ends_with(i, "mp2v_ts");
+                mp2v_m2ts |= ends_with(i, "mp2v_m2ts");
+                h264_ts |= ends_with(i, "h264_ts");
+                h264_m2ts |= ends_with(i, "h264_m2ts");
+                hd_720 |= ends_with(i, "hd_720");
+                hd_1080 |= ends_with(i, "hd_1080");
+                played_items.insert(i);
+            }
+    }
+
+    applying = false;
 
     if ((request.url.query.find("apply") != request.url.query.end()) && apply)
     {
@@ -124,58 +176,50 @@ void setuppage::render_headers(const struct pupnp::upnp::request &request, std::
             break;
 
         case html::setup_mode::codecs:
+            if (mp2v_mpg || mp2v_ts || mp2v_m2ts)
             {
-                const bool mp2v_mpg = request.url.query.find("mp2v_mpg") != request.url.query.end();
-                const bool mp2v_ts = request.url.query.find("mp2v_ts") != request.url.query.end();
-                const bool mp2v_m2ts = request.url.query.find("mp2v_m2ts") != request.url.query.end();
-                const bool h264_ts = request.url.query.find("h264_ts") != request.url.query.end();
-                const bool h264_m2ts = request.url.query.find("h264_m2ts") != request.url.query.end();
-
-                if (mp2v_mpg || mp2v_ts || mp2v_m2ts)
-                {
-                    settings.set_mpeg4_enabled(false);
-                    settings.set_video_mpeg_enabled(mp2v_mpg);
-                    settings.set_video_mpegts_enabled(mp2v_ts);
-                    settings.set_video_mpegm2ts_enabled(mp2v_m2ts);
-                    settings.set_video_mode(video_mode::auto_);
-                    current_setup_mode = html::setup_mode::high_definition;
-                }
-                else if (h264_ts || h264_m2ts)
-                {
-                    settings.set_mpeg2_enabled(false);
-                    settings.set_video_mpeg_enabled(false);
-                    settings.set_video_mpegts_enabled(h264_ts);
-                    settings.set_video_mpegm2ts_enabled(h264_m2ts);
-                    settings.set_video_mode(video_mode::auto_);
-                    current_setup_mode = html::setup_mode::high_definition;
-                }
-                else
-                {
-                    settings.set_mpeg2_enabled(true);
-                    settings.set_mpeg4_enabled(false);
-                    settings.set_video_mpeg_enabled(true);
-                    settings.set_video_mpegts_enabled(true);
-                    settings.set_video_mpegm2ts_enabled(true);
-                    settings.set_video_mode(video_mode::dvd);
-                    current_setup_mode = html::setup_mode::finish;
-                }
+                settings.set_mpeg4_enabled(false);
+                settings.set_video_mpeg_enabled(mp2v_mpg);
+                settings.set_video_mpegts_enabled(mp2v_ts);
+                settings.set_video_mpegm2ts_enabled(mp2v_m2ts);
+                settings.set_video_mode(video_mode::auto_);
+                current_setup_mode = html::setup_mode::high_definition;
             }
+            else if (h264_ts || h264_m2ts)
+            {
+                settings.set_mpeg2_enabled(false);
+                settings.set_video_mpeg_enabled(false);
+                settings.set_video_mpegts_enabled(h264_ts);
+                settings.set_video_mpegm2ts_enabled(h264_m2ts);
+                settings.set_video_mode(video_mode::auto_);
+                current_setup_mode = html::setup_mode::high_definition;
+            }
+            else
+            {
+                settings.set_mpeg2_enabled(true);
+                settings.set_mpeg4_enabled(false);
+                settings.set_video_mpeg_enabled(true);
+                settings.set_video_mpegts_enabled(true);
+                settings.set_video_mpegm2ts_enabled(true);
+                settings.set_video_mode(video_mode::dvd);
+
+                settings.set_configure_required(false);
+                current_setup_mode = html::setup_mode::disabled;
+                path = "/";
+            }
+
             break;
 
         case html::setup_mode::high_definition:
             // Prefer 720p over 1080p as it generally performs better in CPU
             // usage and image quality (as 1080p is often interpreted ans 1080i)
-            if (request.url.query.find("hd_720") != request.url.query.end())
+            if (hd_720)
                 settings.set_video_mode(video_mode::hdtv_720);
-            else if (request.url.query.find("hd_1080") != request.url.query.end())
+            else if (hd_1080)
                 settings.set_video_mode(video_mode::hdtv_1080);
             else
                 settings.set_video_mode(video_mode::dvd);
 
-            current_setup_mode = html::setup_mode::finish;
-            break;
-
-        case html::setup_mode::finish:
             settings.set_configure_required(false);
             current_setup_mode = html::setup_mode::disabled;
             path = "/";
@@ -186,31 +230,31 @@ void setuppage::render_headers(const struct pupnp::upnp::request &request, std::
         apply();
         out << "<meta http-equiv=\"Refresh\" content=\"3; url=http://" << request.url.host << path << "\" />";
     }
-    else if ((request.url.query.find("next") != request.url.query.end()))
-    {
-        switch (current_setup_mode)
-        {
-        case html::setup_mode::disabled:          current_setup_mode = html::setup_mode::network;           break;
-        case html::setup_mode::name:              current_setup_mode = html::setup_mode::network;           break;
-        case html::setup_mode::network:           current_setup_mode = html::setup_mode::codecs;            break;
-        case html::setup_mode::codecs:            current_setup_mode = html::setup_mode::high_definition;   break;
-        case html::setup_mode::high_definition:   current_setup_mode = html::setup_mode::finish;            break;
-        case html::setup_mode::finish:            current_setup_mode = html::setup_mode::disabled;          break;
-        }
-    }
     else switch (current_setup_mode)
     {
+    case html::setup_mode::disabled:
+    case html::setup_mode::name:
+        if (request.url.query.find("abort") != request.url.query.end())
+        {
+            settings.set_configure_required(false);
+            current_setup_mode = html::setup_mode::disabled;
+
+            applying = true;
+            out << "<meta http-equiv=\"Refresh\" content=\"1; url=http://" << request.url.host << "/settings\" />";
+        }
+
+        break;
+
     case html::setup_mode::network:
-        if (test && test->detected_clients().empty())
+        if (test && !test->detected_clients().empty())
+            current_setup_mode = html::setup_mode::codecs;
+        else
             out << "<meta http-equiv=\"Refresh\" content=\"2; url=http://" << request.url.host << request.url.path << "\" />";
 
         break;
 
-    case html::setup_mode::disabled:
-    case html::setup_mode::name:
     case html::setup_mode::codecs:
     case html::setup_mode::high_definition:
-    case html::setup_mode::finish:
         break;
     }
 }
@@ -221,12 +265,11 @@ int setuppage::render_page(const struct pupnp::upnp::request &request, std::ostr
     {
         switch (current_setup_mode)
         {
-        case html::setup_mode::disabled:          render_setup_finish(request, out);          break;
+        case html::setup_mode::disabled:          render_setup_high_definition(request, out); break;
         case html::setup_mode::name:                                                          break;
         case html::setup_mode::network:           render_setup_name(request, out);            break;
         case html::setup_mode::codecs:            render_setup_network(request, out);         break;
         case html::setup_mode::high_definition:   render_setup_codecs(request, out);          break;
-        case html::setup_mode::finish:            render_setup_high_definition(request, out); break;
         }
 
         out << "<div class=\"wait\"><div><p>"
@@ -243,7 +286,6 @@ int setuppage::render_page(const struct pupnp::upnp::request &request, std::ostr
         case html::setup_mode::network:           render_setup_network(request, out);         break;
         case html::setup_mode::codecs:            render_setup_codecs(request, out);          break;
         case html::setup_mode::high_definition:   render_setup_high_definition(request, out); break;
-        case html::setup_mode::finish:            render_setup_finish(request, out);          break;
         }
     }
 
@@ -282,8 +324,14 @@ void setuppage::render_setup_name(const struct pupnp::upnp::request &, std::ostr
            "<p><input type=\"text\" size=\"40\" name=\"upnp_devicename\" value=\""
         << escape_xml(settings.upnp_devicename()) << "\" /></p>"
            "<p class=\"assist\"><input type=\"submit\" name=\"apply\" value=\""
-        << tr("Next") << " &gt;&gt;&gt;\" /></p>"
-           "</form></fieldset>";
+        << tr("Start setup assistant") << " &gt;&gt;&gt;\" /></p>"
+           "</form>";
+
+    if (current_setup_mode != html::setup_mode::disabled)
+    {
+        out << "<p class=\"disabled\"><a href=\"/setup?abort\">"
+            << tr("Skip setup assistant") << "</a></p>";
+    }
 }
 
 void setuppage::render_setup_network(const struct pupnp::upnp::request &, std::ostream &out)
@@ -296,17 +344,31 @@ void setuppage::render_setup_network(const struct pupnp::upnp::request &, std::o
                        "and use the menus of the " + device_name + " to browse to the server named") << " \""
         << escape_xml(settings.upnp_devicename()) << "\".</p><p>"
         << tr("Please consult the manual of the " + device_name + " if you need more information.") << "</p>"
-           "<form name=\"setup\" action=\"/setup\" method=\"get\">";
+           "<form name=\"setup\" action=\"/setup\" method=\"get\">"
+        << "<p class=\"assist\"><img src=\"/img/running.svg\" /> " << tr("Waiting...") << "</p>"
+        << "</form>";
+}
 
-    if (test && !test->detected_clients().empty())
-    {
-        out << "<p class=\"assist\"><input type=\"submit\" name=\"next\" "
-               "value=\"" << tr("Found it") << " &gt;&gt;&gt;\" /></p>";
-    }
-    else
-        out << "<p class=\"assist\"><img src=\"/img/running.svg\" /> " << tr("Waiting...") << "</p>";
+static void render_checkbox(
+        const std::string &name,
+        const std::string &title,
+        bool checked,
+        const std::set<std::string> &played_items,
+        std::ostream &out)
+{
+    bool enabled = false;
+    for (auto &i : played_items)
+        enabled |= ends_with(i, name);
 
-    out << "</form></fieldset>";
+    out << "<p"
+        << (enabled ? "" : " class=\"disabled\"")
+        << "><input type=\"checkbox\" "
+           "name=\"" << name << "\" "
+           "value=\"on\" "
+        << (checked ? " checked=\"checked\"" : "")
+        << (enabled ? "" : " disabled=\"disabled\"")
+        << "onchange=\"if(this.value != 0) { this.form.submit(); }\" />"
+        << title << "</p>";
 }
 
 void setuppage::render_setup_codecs(const struct pupnp::upnp::request &, std::ostream &out)
@@ -318,18 +380,27 @@ void setuppage::render_setup_codecs(const struct pupnp::upnp::request &, std::os
            "<p>" << tr("Try to play the available files on your " + device_name + " and select "
                        "the files below that you were able to play.") << "</p><p>"
         << tr("Please consult the manual of the " + device_name + " if you need more information.") << "</p>"
-           "<form name=\"setup\" action=\"/setup\" method=\"get\">"
+           "<form name=\"setup\" action=\"/setup\" method=\"get\" id=\"form\">"
            "<input type=\"hidden\" name=\"setup\" value=\"formats\" />"
-           "<div class=\"codecs\"><table><tr><td>"
-           "<p><input type=\"checkbox\" name=\"mp2v_mpg\" value=\"on\" />MPEG 2 Program Stream</p>"
-           "<p><input type=\"checkbox\" name=\"mp2v_m2ts\" value=\"on\" />MPEG 2 BDAV Transport Stream</p>"
-           "<p><input type=\"checkbox\" name=\"mp2v_ts\" value=\"on\" />MPEG 2 Transport Stream</p>"
-           "<p><input type=\"checkbox\" name=\"h264_m2ts\" value=\"on\" />MPEG 4 AVC BDAV Transport Stream</p>"
-           "<p><input type=\"checkbox\" name=\"h264_ts\" value=\"on\" />MPEG 4 AVC Transport Stream</p>"
-           "</td></tr></table></div>"
+           "<div class=\"codecs\"><table><tr><td>";
+
+    render_checkbox("mp2v_mpg", "Formats/MPEG 2 Program Stream", mp2v_mpg, played_items, out);
+    render_checkbox("mp2v_m2ts", "Formats/MPEG 2 BDAV Transport Stream", mp2v_m2ts, played_items, out);
+    render_checkbox("mp2v_ts", "Formats/MPEG 2 Transport Stream", mp2v_ts, played_items, out);
+    render_checkbox("h264_m2ts", "Formats/MPEG 4 AVC BDAV Transport Stream", h264_m2ts, played_items, out);
+    render_checkbox("h264_ts", "Formats/MPEG 4 AVC Transport Stream", h264_ts, played_items, out);
+
+    out << "</td></tr></table></div>"
            "<p class=\"assist\"><input type=\"submit\" name=\"apply\" value=\""
         << tr("Next") << " &gt;&gt;&gt;\" /></p>"
-           "</form></fieldset>";
+           "</form>";
+
+    if (!applying)
+    {
+        out << "<script type=\"text/javascript\">"
+               "var timer = setInterval(function () { document.getElementById(\"form\").submit(); }, 2000);"
+               "</script>";
+    }
 }
 
 void setuppage::render_setup_high_definition(const struct pupnp::upnp::request &, std::ostream &out)
@@ -341,25 +412,24 @@ void setuppage::render_setup_high_definition(const struct pupnp::upnp::request &
            "<p>" << tr("Try to play the available files on your " + device_name + " and select "
                        "the files below that you were able to play.") << "</p><p>"
         << tr("Please consult the manual of the " + device_name + " if you need more information.") << "</p>"
-           "<form name=\"setup\" action=\"/setup\" method=\"get\">"
+           "<form name=\"setup\" action=\"/setup\" method=\"get\" id=\"form\">"
            "<input type=\"hidden\" name=\"setup\" value=\"formats\" />"
-           "<div class=\"codecs\"><table><tr><td>"
-           "<p><input type=\"checkbox\" name=\"hd_720\" value=\"on\" />High Definition 720p</p>"
-           "<p><input type=\"checkbox\" name=\"hd_1080\" value=\"on\" />High Definition 1080p</p>"
-           "</td></tr></table></div>"
-           "<p class=\"assist\"><input type=\"submit\" name=\"apply\" value=\""
-        << tr("Next") << " &gt;&gt;&gt;\" /></p>"
-           "</form></fieldset>";
-}
+           "<div class=\"codecs\"><table><tr><td>";
 
-void setuppage::render_setup_finish(const struct pupnp::upnp::request &, std::ostream &out)
-{
-    out << "<p><img class=\"logo\" src=\"/img/lximedia.svg\" alt=\"LXiMedia\" /></p>"
-           "<h1>" << tr("Finished") << "</h1>"
-           "<form name=\"setup\" action=\"/setup\" method=\"get\">"
+    render_checkbox("hd_720", "Resolutions/High Definition 720p", hd_720, played_items, out);
+    render_checkbox("hd_1080", "Resolutions/High Definition 1080p", hd_1080, played_items, out);
+
+    out << "</td></tr></table></div>"
            "<p class=\"assist\"><input type=\"submit\" name=\"apply\" value=\""
-        << tr("Done") << "\" /></p>"
-           "</form></fieldset>";
+        << tr("Done") << " &gt;&gt;&gt;\" /></p>"
+           "</form>";
+
+    if (!applying)
+    {
+        out << "<script type=\"text/javascript\">"
+               "var timer = setInterval(function () { document.getElementById(\"form\").submit(); }, 2000);"
+               "</script>";
+    }
 }
 
 }

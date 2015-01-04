@@ -45,6 +45,18 @@ p.assist {
 .assist a:active    { color: #000000; text-decoration: underline; }
 .assist a:hover     { color: #000000; text-decoration: underline; }
 
+p.disabled {
+ padding: 0;
+ margin: 0;
+ font-size: 1.2em;
+ color: #A0A0A0;
+ text-align: center;
+}
+.disabled a:link      { color: #A0A0A0; text-decoration: none; }
+.disabled a:visited   { color: #A0A0A0; text-decoration: none; }
+.disabled a:active    { color: #A0A0A0; text-decoration: underline; }
+.disabled a:hover     { color: #A0A0A0; text-decoration: underline; }
+
 div.codecs {
  padding: 0;
  margin-top: 2em;
