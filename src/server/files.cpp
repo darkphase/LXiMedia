@@ -207,10 +207,10 @@ std::vector<pupnp::content_directory::item> files::list_contentdir_items(
 
     media_cache.scan_files(scan_files_paths(paths));
 
+    // Start scanning the files that may be requested next in the background.
     messageloop.post([this, chunk_size, paths, next_paths]
     {
-        media_cache.scan_files_background(scan_files_paths(next_paths));
-
+        std::list<std::vector<std::string>> scan_chunks;
         for (auto &path : paths)
             if (ends_with(path, "/"))
             {
@@ -223,8 +223,27 @@ std::vector<pupnp::content_directory::item> files::list_contentdir_items(
                     else
                         break;
 
-                media_cache.scan_files_background(scan_files_paths(paths));
+                scan_chunks.emplace_front(scan_files_paths(paths));
             }
+
+        if (!scan_chunks.empty())
+        {
+            if (!next_paths.empty())
+            {
+                auto tmp = std::move(scan_chunks.back());
+                scan_chunks.pop_back();
+                scan_chunks.emplace_back(scan_files_paths(next_paths));
+                scan_chunks.emplace_back(std::move(tmp));
+            }
+
+            std::vector<std::string> scan_files;
+            for (auto &i : scan_chunks) for (auto &j : i)
+                scan_files.emplace_back(std::move(j));
+
+            media_cache.scan_files_background(scan_files);
+        }
+        else if (!next_paths.empty())
+            media_cache.scan_files_background(scan_files_paths(next_paths));
     });
 
     std::vector<pupnp::content_directory::item> result;
