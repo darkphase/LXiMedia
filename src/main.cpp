@@ -1,10 +1,10 @@
-#include "server.h"
-#include "settings.h"
 #include "platform/messageloop.h"
 #include "platform/path.h"
 #include "platform/string.h"
 #include "pupnp/client.h"
 #include "pupnp/upnp.h"
+#include "server/server.h"
+#include "server/settings.h"
 #include <clocale>
 #include <cstdio>
 #include <cstdlib>
