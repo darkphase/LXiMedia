@@ -25,6 +25,7 @@
 #include <vlc/vlc.h>
 #include <cstring>
 #include <sstream>
+#include <unordered_set>
 
 namespace vlc {
 
@@ -333,8 +334,6 @@ void media_cache::scan_files(const std::vector<std::string> &files)
 
 void media_cache::scan_files_background(const std::vector<std::string> &files)
 {
-    static const size_t chunk_size = 32;
-
     std::unique_lock<std::mutex> l(mutex);
 
     for (auto &i : files)
@@ -354,16 +353,31 @@ void media_cache::scan_files_background(const std::vector<std::string> &files)
 
             while (!background_scan_queue.empty())
             {
+                std::unordered_set<std::string> mrls;
                 std::vector<std::string> files;
-                while (!background_scan_queue.empty() && (files.size() < chunk_size))
+                while (!background_scan_queue.empty())
                 {
-                    files.emplace_back(std::move(background_scan_queue.back()));
+                    auto mrl = media::from_file(
+                                instance,
+                                background_scan_queue.back()).mrl();
+
+                    if ((mrls.find(mrl) == mrls.end()) &&
+                        (cache.find(mrl) == cache.end()))
+                    {
+                        mrls.emplace(std::move(mrl));
+                        files.emplace_back(
+                                    std::move(background_scan_queue.back()));
+                    }
+
                     background_scan_queue.pop_back();
                 }
 
-                l.unlock();
-                scan_files(files, true);
-                l.lock();
+                if (!files.empty())
+                {
+                    l.unlock();
+                    scan_files(files, true);
+                    l.lock();
+                }
             }
 
             background_scan_finished = true;
@@ -373,7 +387,12 @@ void media_cache::scan_files_background(const std::vector<std::string> &files)
 
 void media_cache::scan_files(const std::vector<std::string> &files, bool background)
 {
-    const unsigned num_queues = background ? 1u : std::max(1u, std::thread::hardware_concurrency());
+    const unsigned num_queues = std::max(
+                std::min(
+                    std::thread::hardware_concurrency(),
+                    background ? 2u : unsigned(-1)),
+                1u);
+
     std::vector<std::list<std::pair<std::string, media>>> tasks;
     tasks.resize(num_queues);
 
