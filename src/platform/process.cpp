@@ -151,7 +151,11 @@ void * process::map(size_t size)
     return ::mmap(
                 nullptr, size,
                 PROT_READ | PROT_WRITE,
+#if !defined(__APPLE__)
                 MAP_SHARED | MAP_ANONYMOUS,
+#else
+                MAP_SHARED | MAP_ANON,
+#endif
                 -1, 0);
 }
 
