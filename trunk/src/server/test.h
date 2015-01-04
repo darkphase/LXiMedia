@@ -27,6 +27,7 @@
 #include "settings.h"
 #include <cstdint>
 #include <cstdlib>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -45,6 +46,7 @@ public:
   virtual ~test();
 
   const std::set<std::string> & detected_clients() const { return clients; }
+  const std::set<std::string> & played_items() const { return items; }
 
 private: // From content_directory::item_source
   std::vector<pupnp::content_directory::item> list_contentdir_items(const std::string &client, const std::string &path, size_t start, size_t &count) override;
@@ -60,6 +62,7 @@ private:
   const class settings &settings;
 
   std::set<std::string> clients;
+  std::set<std::string> items;
 
   const resources::resource_file a440hz_flac;
   const vlc::media a440hz_flac_media;

@@ -27,7 +27,7 @@ class test;
 
 namespace html {
 
-enum class setup_mode { disabled, name, network, codecs, high_definition, finish };
+enum class setup_mode { disabled, name, network, codecs, high_definition };
 
 class setuppage
 {
@@ -40,7 +40,7 @@ public:
 
     ~setuppage();
 
-    static void activate_setup();
+    void activate_setup();
     static enum setup_mode setup_mode();
     static bool setup_required();
 
@@ -64,6 +64,15 @@ private:
     const std::unique_ptr<class test> &test;
     const std::function<void()> apply;
     bool applying;
+
+    std::set<std::string> played_items;
+    bool mp2v_mpg;
+    bool mp2v_ts;
+    bool mp2v_m2ts;
+    bool h264_ts;
+    bool h264_m2ts;
+    bool hd_720;
+    bool hd_1080;
 };
 
 } // End of namespace

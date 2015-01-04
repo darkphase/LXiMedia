@@ -458,6 +458,16 @@ void settingspage::render_headers(const struct pupnp::upnp::request &request, st
 
 int settingspage::render_page(const struct pupnp::upnp::request &request, std::ostream &out)
 {
+    out << "<fieldset>"
+           "<legend>" << tr("Setup assistant") << "</legend>"
+           "<p>" << tr("The setup assistant wil guide you through the process of "
+                       "setting up a device, such as a television, game console, "
+                       "media center, etc., for use with LXiMediaServer.") << "</p>"
+           "<form name=\"setup\" action=\"/setup\" method=\"get\">"
+           "<p class=\"buttons\"><input type=\"submit\" name=\"start\" value=\""
+        << tr("Start setup assistant") << "\" /></p>"
+           "</form></fieldset>";
+
     render_http_settings(settings, out);
     render_dlna_settings(settings, out);
     render_path_settings(request.url.query, settings, out);

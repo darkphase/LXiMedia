@@ -12,6 +12,7 @@
 #include <iostream>
 #include <memory>
 #include <set>
+#include <thread>
 
 static FILE * logfile_open(const std::string &location);
 static bool open_url(const std::string &location);
@@ -160,6 +161,8 @@ int main(int argc, const char *argv[])
                     class pupnp::client client(messageloop_ref, upnp);
 
                     client.get(get_url(urls) + "quit");
+
+                    std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 }
                 else
                     std::cerr << "LXiMediaServer not running." << std::endl;
