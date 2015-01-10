@@ -42,6 +42,9 @@ public:
     int overflow(int value) override;
     int sync() override;
 
+    std::streambuf::pos_type seekoff(std::streambuf::off_type, std::ios_base::seekdir, std::ios_base::openmode) override;
+    std::streambuf::pos_type seekpos(std::streambuf::pos_type, std::ios_base::openmode) override;
+
 private:
     const bool binary;
     void *handle;

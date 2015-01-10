@@ -160,6 +160,51 @@ int basic_utf8filebuf<_type, _traits>::sync()
     return _traits::eq_int_type(result, _traits::eof()) ? -1 : 0;
 }
 
+template <class _type, class _traits>
+std::streambuf::pos_type basic_utf8filebuf<_type, _traits>::seekoff(std::streambuf::off_type off, std::ios_base::seekdir dir, std::ios_base::openmode which)
+{
+    LARGE_INTEGER lmove, lpos;
+    lmove.QuadPart = off;
+
+    BOOL result;
+    switch (dir)
+    {
+    case std::ios_base::beg:
+        result = SetFilePointerEx(handle, lmove, &lpos, FILE_BEGIN);
+        break;
+
+    case std::ios_base::cur:
+        result = SetFilePointerEx(handle, lmove, &lpos, FILE_CURRENT);
+        break;
+
+    case std::ios_base::end:
+        result = SetFilePointerEx(handle, lmove, &lpos, FILE_END);
+        break;
+
+    default:
+        result = FALSE;
+        break;
+    }
+
+    if (result != FALSE)
+    {
+        if (which & std::ios_base::in)
+            this->setg(this->eback(), this->egptr(), this->egptr());
+        else if (which & std::ios_base::out)
+            this->setp(this->epptr(), this->epptr());
+
+        return std::streambuf::pos_type(lpos.QuadPart);
+    }
+
+    return std::streambuf::pos_type(std::streambuf::off_type(-1));
+}
+
+template <class _type, class _traits>
+std::streambuf::pos_type basic_utf8filebuf<_type, _traits>::seekpos(std::streambuf::pos_type pos, std::ios_base::openmode which)
+{
+    return seekoff(std::streambuf::off_type(pos), std::ios_base::beg, which);
+}
+
 template class basic_utf8filebuf<char>;
 
 
