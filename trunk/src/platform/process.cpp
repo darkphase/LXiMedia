@@ -253,26 +253,6 @@ process::process(
         throw std::runtime_error("Failed to fork process.");
 }
 
-process::process(process &&from)
-    : std::istream(from.rdbuf(nullptr)),
-      child(from.child)
-{
-    from.child = 0;
-}
-
-process & process::operator=(process &&from)
-{
-    delete std::istream::rdbuf(from.rdbuf(nullptr));
-
-    if (child != 0)
-        throw std::runtime_error("Process still running while destructing.");
-
-    child = from.child;
-    from.child = 0;
-
-    return *this;
-}
-
 process::~process()
 {
     delete std::istream::rdbuf(nullptr);
