@@ -439,7 +439,7 @@ std::vector<std::string> list_files(
             }
         } while((result.size() < max_count) && (FindNextFile(handle, &find_data) != 0));
 
-        CloseHandle(handle);
+        FindClose(handle);
     }
 
     return result;
