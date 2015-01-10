@@ -20,6 +20,7 @@
 #include "vlc/media.h"
 #include "platform/fstream.h"
 #include "platform/process.h"
+#include "platform/path.h"
 #include "platform/string.h"
 #include <sha1/sha1.h>
 #include <vlc/vlc.h>
@@ -101,14 +102,7 @@ platform::uuid media_cache::uuid(const std::string &mrl) const
     {
         l.unlock();
 
-        platform::uuid uuid;
-#if defined(__unix__) || defined(__APPLE__)
-        if (starts_with(mrl, "file://"))
-            uuid = uuid_from_file(from_percent(mrl.substr(7)));
-#elif defined(WIN32)
-        if (starts_with(mrl, "file:"))
-            uuid = uuid_from_file(from_percent(mrl.substr(5)));
-#endif
+        const auto uuid = uuid_from_file(platform::path_from_mrl(mrl));
 
         l.lock();
 

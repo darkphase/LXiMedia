@@ -273,31 +273,19 @@ std::vector<pupnp::content_directory::item> files::list_recommended_items(
          (i != watched_by_last_seen.rend()) && (directories.size() < 8);
          i++)
     {
-        const std::string &mrl = i->second.mrl;
+        const auto path = platform::path_from_mrl(i->second.mrl);
 
-#if defined(__unix__) || defined(__APPLE__)
-        if (starts_with(mrl, "file://"))
+        const auto ls = path.find_last_of('/');
+        if (ls != path.npos)
         {
-            std::string path = from_percent(mrl.substr(7));
-#elif defined(WIN32)
-        if (starts_with(mrl, "file:"))
-        {
-            std::string path = from_percent(mrl.substr(5));
-            std::replace(path.begin(), path.end(), '\\', '/');
-#endif
-
-            const auto ls = path.find_last_of('/');
-            if (ls != path.npos)
+            const auto virtual_path = to_virtual_path(path.substr(0, ls + 1));
+            if (directories.find(virtual_path) == directories.end())
             {
-                const auto virtual_path = to_virtual_path(path.substr(0, ls + 1));
-                if (directories.find(virtual_path) == directories.end())
+                const auto system_path = to_system_path(virtual_path);
+                if ((system_path.type == path_type::auto_) ||
+                    (system_path.type == path_type::videos))
                 {
-                    const auto system_path = to_system_path(virtual_path);
-                    if ((system_path.type == path_type::auto_) ||
-                        (system_path.type == path_type::videos))
-                    {
-                        directories.emplace(virtual_path);
-                    }
+                    directories.emplace(virtual_path);
                 }
             }
         }
