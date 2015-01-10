@@ -24,6 +24,7 @@
 namespace platform {
 
 std::string clean_path(const std::string &);
+std::string path_from_mrl(const std::string &);
 
 std::vector<std::string> list_root_directories();
 std::vector<std::string> list_files(

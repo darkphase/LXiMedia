@@ -46,6 +46,25 @@ std::string clean_path(const std::string &path)
     return result;
 }
 
+std::string path_from_mrl(const std::string &mrl)
+{
+#if !defined(WIN32)
+    if (starts_with(mrl, "file://"))
+        return from_percent(mrl.substr(7));
+#else
+    if (starts_with(mrl, "file:"))
+    {
+        size_t pos = 5;
+        while ((mrl.length() > pos) && (mrl[pos] == '/'))
+            pos++;
+
+        return from_percent(mrl.substr(pos));
+    }
+#endif
+
+    return std::string();
+}
+
 } // End of namespace
 
 #if defined(__unix__) || defined(__APPLE__)
