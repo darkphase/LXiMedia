@@ -103,16 +103,16 @@ static struct uuid convert(const UUID &from)
 {
     struct uuid uuid;
 
-    uuid.value[0] = (from.Data1      ) & 0xFF;
-    uuid.value[1] = (from.Data1 >>  8) & 0xFF;
-    uuid.value[2] = (from.Data1 >> 16) & 0xFF;
-    uuid.value[3] = (from.Data1 >> 24) & 0xFF;
+    uuid.value[0] = (from.Data1 >> 24) & 0xFF;
+    uuid.value[1] = (from.Data1 >> 16) & 0xFF;
+    uuid.value[2] = (from.Data1 >>  8) & 0xFF;
+    uuid.value[3] = (from.Data1      ) & 0xFF;
 
-    uuid.value[4] = (from.Data2      ) & 0xFF;
-    uuid.value[5] = (from.Data2 >>  8) & 0xFF;
+    uuid.value[4] = (from.Data2 >>  8) & 0xFF;
+    uuid.value[5] = (from.Data2      ) & 0xFF;
 
-    uuid.value[6] = (from.Data3      ) & 0xFF;
-    uuid.value[7] = (from.Data3 >>  8) & 0xFF;
+    uuid.value[6] = (from.Data3 >>  8) & 0xFF;
+    uuid.value[7] = (from.Data3      ) & 0xFF;
 
     for (unsigned i = 0; i < sizeof(from.Data4); i++)
         uuid.value[8 + i] = from.Data4[i];
@@ -166,18 +166,18 @@ static UUID convert(const struct uuid &from)
 {
     UUID uuid;
     uuid.Data1 =
-            (DWORD(from.value[0])      ) |
-            (DWORD(from.value[1]) <<  8) |
-            (DWORD(from.value[2]) << 16) |
-            (DWORD(from.value[3]) << 24);
+            (DWORD(from.value[0]) << 24) |
+            (DWORD(from.value[1]) << 16) |
+            (DWORD(from.value[2]) <<  8) |
+            (DWORD(from.value[3])      );
 
     uuid.Data2 =
-            (DWORD(from.value[4])      ) |
-            (DWORD(from.value[5]) <<  8);
+            ( WORD(from.value[4]) <<  8) |
+            ( WORD(from.value[5])      );
 
     uuid.Data3 =
-            (DWORD(from.value[6])      ) |
-            (DWORD(from.value[7]) <<  8);
+            ( WORD(from.value[6]) <<  8) |
+            ( WORD(from.value[7])      );
 
     for (unsigned i = 0; i < sizeof(uuid.Data4); i++)
         uuid.Data4[i] = from.value[8 + i];
