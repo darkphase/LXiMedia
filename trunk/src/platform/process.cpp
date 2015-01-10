@@ -52,7 +52,11 @@ pipe_streambuf::pipe_streambuf(int fd)
 
 pipe_streambuf::~pipe_streambuf()
 {
+#if !defined(WIN32)
     ::close(fd);
+#else
+    ::_close(fd);
+#endif
 }
 
 int pipe_streambuf::underflow()
@@ -60,7 +64,11 @@ int pipe_streambuf::underflow()
     if ((gptr() != nullptr) && (gptr() < egptr())) // buffer not exhausted
         return traits_type::to_int_type(*this->gptr());
 
+#if !defined(WIN32)
     const int rc = ::read(fd, &buffer[putback], sizeof(buffer) - putback);
+#else
+    const int rc = ::_read(fd, &buffer[putback], sizeof(buffer) - putback);
+#endif
     if ((rc > 0) && (rc <= int(sizeof(buffer) - putback)))
     {
         setg(&buffer[0], &buffer[putback], &buffer[putback] + rc);
@@ -76,7 +84,11 @@ int pipe_streambuf::overflow(int value)
     const int size = pptr() - pbase();
     for (int pos = 0; pos < size; )
     {
+#if !defined(WIN32)
         const int rc = ::write(fd, &buffer[pos], size);
+#else
+        const int rc = ::_write(fd, &buffer[pos], size);
+#endif
         if (rc > 0)
             pos += size;
         else
@@ -93,10 +105,10 @@ int pipe_streambuf::overflow(int value)
 int pipe_streambuf::sync()
 {
     int result = overflow(traits_type::eof());
-#if defined(WIN32)
-    ::FlushFileBuffers(HANDLE(_get_osfhandle(fd)));
-#else
+#if !defined(WIN32)
     ::fsync(fd);
+#else
+    ::FlushFileBuffers(HANDLE(_get_osfhandle(fd)));
 #endif
 
     return traits_type::eq_int_type(result, traits_type::eof()) ? -1 : 0;
@@ -176,6 +188,7 @@ process::process(
     : std::istream(nullptr),
       child(0)
 {
+    int pipe_desc[2];
     if (pipe(pipe_desc) != 0)
         throw std::runtime_error("Creating pipe failed");
 
@@ -330,16 +343,17 @@ process::process(
       thread(),
       term_received(false)
 {
-#if defined(WIN32)
-    if (_pipe(pipe_desc, 4096, _O_BINARY) != 0)
-#else
+    int pipe_desc[2];
+#if !defined(WIN32)
     if (pipe(pipe_desc) != 0)
+#else
+    if (_pipe(pipe_desc, 4096, _O_BINARY | _O_NOINHERIT) != 0)
 #endif
     {
         throw std::runtime_error("Creating pipe failed");
     }
 
-    thread = std::thread([this, function, priority_]
+    thread = std::thread([this, function, priority_, pipe_desc]
     {
         switch (priority_)
         {
@@ -366,23 +380,6 @@ process::process(
     });
 
     std::istream::rdbuf(new pipe_streambuf(pipe_desc[0]));
-}
-
-process::process(process &&from)
-    : std::istream(from.rdbuf(nullptr)),
-      thread(std::move(from.thread)),
-      term_received(from.term_received)
-{
-}
-
-process & process::operator=(process &&from)
-{
-    delete std::istream::rdbuf(from.rdbuf(nullptr));
-
-    thread = std::move(from.thread);
-    term_received = from.term_received;
-
-    return *this;
 }
 
 process::~process()

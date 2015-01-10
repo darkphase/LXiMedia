@@ -418,17 +418,16 @@ void media_cache::scan_files(const std::vector<std::string> &files, bool backgro
 
     for (bool more = true; more;)
     {
-        std::vector<platform::process> processes;
-        processes.resize(num_queues);
+        std::vector<std::unique_ptr<platform::process>> processes;
 
         for (unsigned i = 0; i < num_queues; i++)
         {
             if (!tasks[i].empty())
             {
 #ifdef PROCESS_USES_THREAD
-                processes[i] = platform::process([this, tasks, i](platform::process &, std::ostream &out)
+                processes.emplace_back(new platform::process([this, tasks, i](platform::process &, std::ostream &out)
 #else
-                processes[i] = platform::process([this, &tasks, i](platform::process &, std::ostream &out)
+                processes.emplace_back(new platform::process([this, &tasks, i](platform::process &, std::ostream &out)
 #endif
                 {
                     for (auto &task : tasks[i])
@@ -436,8 +435,10 @@ void media_cache::scan_files(const std::vector<std::string> &files, bool backgro
                         out << uuid_from_file(task.first) << ' ' << std::flush;
                         out << media_info_from_media(const_cast<class media &>(task.second)) << std::endl;
                     }
-                }, background ? platform::process::priority::idle : platform::process::priority::low);
+                }, background ? platform::process::priority::idle : platform::process::priority::low));
             }
+            else
+                processes.emplace_back(nullptr);
         }
 
         for (unsigned i = 0; i < num_queues; i++)
@@ -445,9 +446,9 @@ void media_cache::scan_files(const std::vector<std::string> &files, bool backgro
             while (!tasks[i].empty())
             {
                 platform::uuid uuid;
-                processes[i] >> uuid;
+                *processes[i] >> uuid;
                 struct media_info media_info;
-                processes[i] >> media_info;
+                *processes[i] >> media_info;
 
                 {
                     std::lock_guard<std::mutex> _(mutex);
@@ -461,12 +462,12 @@ void media_cache::scan_files(const std::vector<std::string> &files, bool backgro
 
                 tasks[i].pop_front();
 
-                if (!processes[i])
+                if (!*processes[i])
                     break; // Process crashed while parsing this file.
             }
 
-            if (processes[i].joinable())
-                processes[i].join();
+            if (processes[i] && processes[i]->joinable())
+                processes[i]->join();
         }
 
         more = false;

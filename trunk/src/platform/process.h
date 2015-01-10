@@ -54,13 +54,12 @@ public:
             const std::function<void(process &, std::ostream &)> &,
             priority priority_ = priority::normal);
 
-    process(process &&);
-    process & operator=(process &&);
-
     ~process();
 
     process(const process &) = delete;
     process & operator=(const process &) = delete;
+    process(process &&) = delete;
+    process & operator=(process &&) = delete;
 
     void send_term();
     bool term_pending() const;
@@ -73,8 +72,6 @@ private:
     static void unmap(void *, size_t);
 
 private:
-    int pipe_desc[2];
-
 #ifndef PROCESS_USES_THREAD
     pid_t child;
 #else
