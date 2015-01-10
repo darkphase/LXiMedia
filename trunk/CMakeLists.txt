@@ -40,33 +40,31 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
 endif()
 
 #######################################
-# Extract PUPnP
-set(PUPNP_VERSION "1.6.19")
-execute_process(COMMAND sh ${CMAKE_SOURCE_DIR}/ext/pupnp/pupnp.sh ${CMAKE_SOURCE_DIR}/ext/pupnp/ ./ext/pupnp/ ${PUPNP_VERSION})
-
-include_directories(
-    SYSTEM
-    ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/ixml/inc
-    ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/upnp/inc)
+# Compile PUPnP
+include_directories(SYSTEM ext/pupnp/ixml/inc ext/pupnp/upnp/inc)
 
 # pupnp libraries
-file(GLOB_RECURSE PUPNP_IXML_SRC_LIST ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/ixml/src/*.c)
-file(GLOB_RECURSE PUPNP_THREADUTIL_SRC_LIST ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/threadutil/src/*.c)
-file(GLOB_RECURSE PUPNP_UPNP_SRC_LIST ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/upnp/src/*.c)
+file(GLOB_RECURSE PUPNP_IXML_SRC_LIST ext/pupnp/ixml/src/*.c)
+file(GLOB_RECURSE PUPNP_THREADUTIL_SRC_LIST ext/pupnp/threadutil/src/*.c)
+file(GLOB_RECURSE PUPNP_UPNP_SRC_LIST ext/pupnp/upnp/src/*.c)
 
 set_source_files_properties(
     ${PUPNP_IXML_SRC_LIST} ${PUPNP_THREADUTIL_SRC_LIST} ${PUPNP_UPNP_SRC_LIST}
     PROPERTIES COMPILE_FLAGS "-std=gnu99 -DUPNP_STATIC_LIB")
 
-add_library(pupnp STATIC ${PUPNP_IXML_SRC_LIST} ${PUPNP_THREADUTIL_SRC_LIST} ${PUPNP_UPNP_SRC_LIST})
+add_library(
+    pupnp STATIC
+    ${PUPNP_IXML_SRC_LIST}
+    ${PUPNP_THREADUTIL_SRC_LIST}
+    ${PUPNP_UPNP_SRC_LIST})
 
 target_include_directories(
     pupnp PRIVATE
-    ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}
-    ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/ixml/src/inc
-    ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/threadutil/inc
-    ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/threadutil/src/inc
-    ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/upnp/src/inc)
+    ext/pupnp/
+    ext/pupnp/ixml/src/inc
+    ext/pupnp/threadutil/inc
+    ext/pupnp/threadutil/src/inc
+    ext/pupnp/upnp/src/inc)
 
 #######################################
 # Compile JPGE
