@@ -25,12 +25,12 @@ void server::add_audio_protocols()
 
     // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
 
-    connection_manager.add_source_audio_protocol(
-                "LPCM",
-                pupnp::upnp::mime_audio_lpcm_48000_2, "lpcm",
-                48000, 2,
-                "acodec=lpcm",
-                "dummy");
+//    connection_manager.add_source_audio_protocol(
+//                "LPCM",
+//                pupnp::upnp::mime_audio_lpcm_48000_2, "lpcm",
+//                48000, 2,
+//                "acodec=lpcm",
+//                "dummy");
 
     connection_manager.add_source_audio_protocol(
                 "MP2",
