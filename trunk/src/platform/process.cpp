@@ -107,8 +107,6 @@ int pipe_streambuf::sync()
     int result = overflow(traits_type::eof());
 #if !defined(WIN32)
     ::fsync(fd);
-#else
-    ::FlushFileBuffers(HANDLE(_get_osfhandle(fd)));
 #endif
 
     return traits_type::eq_int_type(result, traits_type::eof()) ? -1 : 0;
