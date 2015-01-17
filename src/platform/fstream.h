@@ -30,30 +30,6 @@
 namespace platform {
 
 template <class _type, class _traits = std::char_traits<_type>>
-class basic_utf8filebuf : public std::basic_streambuf<_type, _traits>
-{
-public:
-    basic_utf8filebuf(const std::string &filename, std::ios_base::openmode mode);
-    ~basic_utf8filebuf();
-
-    bool is_open() const;
-
-    int underflow() override;
-    int overflow(int value) override;
-    int sync() override;
-
-    std::streambuf::pos_type seekoff(std::streambuf::off_type, std::ios_base::seekdir, std::ios_base::openmode) override;
-    std::streambuf::pos_type seekpos(std::streambuf::pos_type, std::ios_base::openmode) override;
-
-private:
-    const bool binary;
-    void *handle;
-    char read_buffer[4096];
-    char write_buffer[4096];
-    std::string text_buffer;
-};
-
-template <class _type, class _traits = std::char_traits<_type>>
 class basic_ifstream : public std::basic_istream<_type, _traits>
 {
 public:
