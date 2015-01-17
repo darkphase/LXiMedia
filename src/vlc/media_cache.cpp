@@ -115,11 +115,34 @@ platform::uuid media_cache::uuid(const std::string &mrl) const
     return data.uuid;
 }
 
-static struct media_cache::media_info media_info_from_media(
-    class media &media)
+static bool should_read_media_info_from_player(const std::string &path)
 {
-    struct media_cache::media_info media_info;
+    platform::ifstream file(path, std::ios_base::binary);
+    if (file.is_open())
+    {
+        uint8_t buffer[16];
+        if (file.read(reinterpret_cast<char *>(buffer), sizeof(buffer)))
+        {
+            // MPEG TS
+            if (buffer[0] == 0x47)
+                return true;
 
+            // MPEG PS
+            if ((buffer[0] == 0x00) && (buffer[1] == 0x00) &&
+                (buffer[2] == 0x01) && (buffer[3] >= 0xB9))
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+static void read_media_info_from_player(
+        class media &media,
+        struct media_cache::media_info &media_info)
+{
     auto player = libvlc_media_player_new_from_media(media);
     if (player)
     {
@@ -167,14 +190,14 @@ static struct media_cache::media_info media_info_from_media(
         t.stopped = t.playing = false;
         t.new_time = -1;
         t.new_length = -1;
-        t.pixel_buffer.resize((width * height * sizeof(uint32_t)) + align);
+        t.pixel_buffer.resize((width * height * sizeof(uint16_t)) + align);
 
         libvlc_media_player_set_rate(player, 30.0f);
 
         libvlc_audio_set_callbacks(player, &T::play, nullptr, nullptr, nullptr, nullptr, &t);
         libvlc_audio_set_format(player, "S16N", 44100, 2);
         libvlc_video_set_callbacks(player, &T::lock, nullptr, nullptr, &t);
-        libvlc_video_set_format(player, "RV32", width, height, width * sizeof(uint32_t));
+        libvlc_video_set_format(player, "YUYV", width, height, width * sizeof(uint16_t));
 
         auto event_manager = libvlc_media_player_event_manager(player);
         libvlc_event_attach(event_manager, libvlc_MediaPlayerPlaying, T::callback, &t);
@@ -188,7 +211,7 @@ static struct media_cache::media_info media_info_from_media(
             std::unique_lock<std::mutex> l(t.mutex);
 
             while (!t.playing && !t.stopped) t.condition.wait(l);
-            while ((t.new_time < 1000) && !t.stopped) t.condition.wait(l);
+            while ((t.new_time < 750) && !t.stopped) t.condition.wait(l);
 
             l.unlock();
 
@@ -205,10 +228,16 @@ static struct media_cache::media_info media_info_from_media(
 
         libvlc_media_player_release(player);
 
-        media_info.duration = std::chrono::milliseconds(
-                    std::max(libvlc_media_get_duration(media), t.new_length));
+        media_info.duration = std::max(
+                    std::chrono::milliseconds(t.new_length),
+                    media_info.duration);
     }
+}
 
+static bool read_track_list(
+        class media &media,
+        struct media_cache::media_info &media_info)
+{
     libvlc_media_track_t **track_list = nullptr;
     const unsigned count = libvlc_media_tracks_get(media, &track_list);
     if (track_list)
@@ -269,6 +298,25 @@ static struct media_cache::media_info media_info_from_media(
 
         libvlc_media_tracks_release(track_list, count);
     }
+
+    return track_list && (count > 0);
+}
+
+static struct media_cache::media_info media_info_from_media(
+    class media &media)
+{
+    struct media_cache::media_info media_info;
+
+    libvlc_media_parse(media);
+
+    media_info.duration = std::chrono::milliseconds(
+                libvlc_media_get_duration(media));
+
+    const auto path = platform::path_from_mrl(media.mrl());
+    if (should_read_media_info_from_player(path))
+        read_media_info_from_player(media, media_info);
+
+    read_track_list(media, media_info);
 
     return media_info;
 }
