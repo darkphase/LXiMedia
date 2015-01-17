@@ -29,21 +29,59 @@ static const struct inifile_test
                 "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt\n"
                 "mollit anim id est laborum.";
 
+        // Write first file
         {
-            platform::inifile out(filename);
-            out.open_section("section[1]\\").write("string=", data);
-            out.open_section("section[2]\\").write("int=", 1234);
-            out.open_section("section[2]\\").write("long=", 12345678L);
-            out.open_section("section[2]\\").write("long long=", 123456789101112LL);
+            platform::inifile ini(filename);
+            ini.open_section("section[1]\\").write("string=", data);
+            ini.open_section("section[1]\\").write("int1=", 1234);
         }
+
+        // Soft-touch by appending.
         {
-            const platform::inifile in(filename);
-            test_assert(in.open_section("section[1]\\").names().size() == 1);
-            test_assert(in.open_section("section[1]\\").read("string=") == data);
-            test_assert(in.open_section("section[2]\\").names().size() == 3);
-            test_assert(in.open_section("section[2]\\").read("int=", 0) == 1234);
-            test_assert(in.open_section("section[2]\\").read("long=", 0L) == 12345678L);
-            test_assert(in.open_section("section[2]\\").read("long long=", 0LL) == 123456789101112LL);
+            platform::inifile ini(filename);
+            test_assert(ini.open_section("section[1]\\").names().size() == 2);
+            test_assert(ini.open_section("section[1]\\").read("string=", std::string()) == data);
+            test_assert(ini.open_section("section[1]\\").read("int1=", 0) == 1234);
+            ini.open_section("section[1]\\").write("int2=", 2345);
+
+            ini.save();
+            test_assert(ini.open_section("section[1]\\").read("int2=", 0) == 2345);
+        }
+
+        // Soft-touch by modifying value with same length.
+        {
+            platform::inifile ini(filename);
+            test_assert(ini.open_section("section[1]\\").names().size() == 3);
+            test_assert(ini.open_section("section[1]\\").read("string=", std::string()) == data);
+            test_assert(ini.open_section("section[1]\\").read("int1=", 0) == 1234);
+            test_assert(ini.open_section("section[1]\\").read("int2=", 0) == 2345);
+            ini.open_section("section[1]\\").write("int1=", 3456);
+
+            ini.save();
+            test_assert(ini.open_section("section[1]\\").read("int1=", 0) == 3456);
+        }
+
+        // Hard-touch by creating new section.
+        {
+            platform::inifile ini(filename);
+            test_assert(ini.open_section("section[1]\\").names().size() == 3);
+            test_assert(ini.open_section("section[1]\\").read("string=", std::string()) == data);
+            test_assert(ini.open_section("section[1]\\").read("int1=", 0) == 3456);
+            test_assert(ini.open_section("section[1]\\").read("int2=", 0) == 2345);
+            ini.open_section("section[2]\\").write("long=", 12345678L);
+            ini.open_section("section[2]\\").write("long long=", 123456789101112LL);
+        }
+
+        // Verify final file.
+        {
+            const platform::inifile ini(filename);
+            test_assert(ini.open_section("section[1]\\").names().size() == 3);
+            test_assert(ini.open_section("section[1]\\").read("string=", std::string()) == data);
+            test_assert(ini.open_section("section[1]\\").read("int1=", 0) == 3456);
+            test_assert(ini.open_section("section[1]\\").read("int2=", 0) == 2345);
+            test_assert(ini.open_section("section[2]\\").names().size() == 2);
+            test_assert(ini.open_section("section[2]\\").read("long=", 0L) == 12345678L);
+            test_assert(ini.open_section("section[2]\\").read("long long=", 0LL) == 123456789101112LL);
         }
     }
 } inifile_test;

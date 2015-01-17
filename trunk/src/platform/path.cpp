@@ -252,6 +252,11 @@ void remove_file(const std::string &path)
     remove(path.c_str());
 }
 
+void rename_file(const std::string &old_path, const std::string &new_path)
+{
+    rename(old_path.c_str(), new_path.c_str());
+}
+
 std::string home_dir()
 {
     const char *home = getenv("HOME");
@@ -552,6 +557,13 @@ std::string temp_file_path(const std::string &suffix)
 void remove_file(const std::string &path)
 {
     _wremove(platform::to_windows_path(path).c_str());
+}
+
+void rename_file(const std::string &old_path, const std::string &new_path)
+{
+    _wrename(
+                platform::to_windows_path(old_path).c_str(),
+                platform::to_windows_path(new_path).c_str());
 }
 
 std::string home_dir()

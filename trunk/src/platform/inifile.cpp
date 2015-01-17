@@ -18,8 +18,64 @@
 #include "inifile.h"
 #include "platform/fstream.h"
 #include "platform/path.h"
+#include <cassert>
 
 namespace platform {
+
+inifile::inifile(const std::string &filename)
+    : filename(filename),
+      file(),
+      touched(none)
+{
+    load_file();
+}
+
+inifile::~inifile()
+{
+    save_file();
+}
+
+void inifile::save()
+{
+    save_file();
+    if (!file)
+        load_file();
+}
+
+bool inifile::has_section(const std::string &name) const
+{
+    return values.find(name) != values.end();
+}
+
+class inifile::const_section inifile::open_section(const std::string &name) const
+{
+    return inifile::const_section(*this, name);
+}
+
+class inifile::section inifile::open_section(const std::string &name)
+{
+    return inifile::section(*this, name);
+}
+
+void inifile::soft_touch()
+{
+    if (touched == none)
+    {
+        touched = soft;
+        if (on_touched) on_touched();
+    }
+}
+
+void inifile::hard_touch()
+{
+    if (touched == none)
+    {
+        touched = hard;
+        if (on_touched) on_touched();
+    }
+    else if (touched == soft)
+        touched = hard;
+}
 
 static std::string unescape(const std::string &input)
 {
@@ -61,38 +117,52 @@ bool is_escaped(const std::string &str, size_t offset)
     return n & 1;
 }
 
-inifile::inifile(const std::string &filename)
-    : filename(filename),
-      touched(false)
+void inifile::load_file()
 {
-    platform::ifstream file(filename, std::ios_base::binary); // Binary needed to support UTF-8 on Windows
-    for (std::string line, section; std::getline(file, line); )
-        if (!line.empty() && (line[0] != ';') && (line[0] != '#'))
-            {
-                if (line[0] == '[')
+    values.clear();
+
+    // Binary needed to support UTF-8 on Windows
+    file.reset(new platform::fstream(
+                   filename,
+                   std::ios_base::binary | std::ios_base::in | std::ios_base::out));
+
+    for (std::string section; *file;)
+    {
+        const size_t line_begin = file->tellg();
+        std::string line;
+        if (std::getline(*file, line))
+        {
+            const size_t line_end = file->tellg();
+            if (!line.empty() && (line[0] != ';') && (line[0] != '#'))
                 {
-                    auto c = line.find_first_of(']');
-                    while ((c != line.npos) && is_escaped(line, c))
-                        c = line.find_first_of(']', c + 1);
+                    if (line[0] == '[')
+                    {
+                        auto c = line.find_first_of(']');
+                        while ((c != line.npos) && is_escaped(line, c))
+                            c = line.find_first_of(']', c + 1);
 
-                    if (c != line.npos)
-                        section = unescape(line.substr(1, c - 1));
+                        if (c != line.npos)
+                            section = unescape(line.substr(1, c - 1));
 
-                    continue;
+                        continue;
+                    }
+
+                    auto e = line.find_first_of('=');
+                    while ((e != line.npos) && is_escaped(line, e))
+                        e = line.find_first_of('=', e + 1);
+
+                    if (e != line.npos)
+                    {
+                        values[section][unescape(line.substr(0, e))] = string_ref(
+                                    *file,
+                                    line_begin + e + 1,
+                                    line_end - 1 - (line_begin + e + 1));
+                    }
                 }
-
-                auto e = line.find_first_of('=');
-                while ((e != line.npos) && is_escaped(line, e))
-                    e = line.find_first_of('=', e + 1);
-
-                if (e != line.npos)
-                    values[section][unescape(line.substr(0, e))] = unescape(line.substr(e + 1));
-            }
-}
-
-inifile::~inifile()
-{
-    save();
+        }
+        else
+            break;
+    }
 }
 
 static std::string escape(const std::string &input)
@@ -129,48 +199,159 @@ static std::string escape(const std::string &input)
     return result;
 }
 
-void inifile::save()
+void inifile::save_file()
 {
-    if (touched)
+    switch (touched)
     {
-        platform::ofstream file(filename, std::ios_base::binary); // Binary needed to support UTF-8 on Windows
+    case none:
+        break;
+
+    case soft:
+        file->clear();
+
         for (auto &section : values)
         {
-            if (!section.first.empty())
-                file << '[' << escape(section.first) << ']' << std::endl;
-
             for (auto &value : section.second)
-                file << escape(value.first) << '=' << escape(value.second) << std::endl;
+                if (value.second.dirty())
+                {
+                    if (value.second.offset() >
+                            std::istream::pos_type(value.first.length()))
+                    {
+                        if (file->seekp(value.second.offset()))
+                        {
+                            const auto data = value.second.escaped_value();
+                            assert(value.second.length() == data.length());
+                            if (value.second.length() == data.length())
+                            {
+                                file->write(data.data(), data.length());
 
-            file << std::endl;
+                                value.second = string_ref(
+                                            *file,
+                                            value.second.offset(),
+                                            value.second.length());
+                            }
+                        }
+                    }
+                    else if (file->seekp(0, std::ios_base::end))
+                    {
+                        assert(values.size() == 1);
+
+                        const size_t line_begin = file->tellp();
+
+                        const auto escaped_name = escape(value.first);
+                        const auto escaped_value = value.second.escaped_value();
+                        *file << escaped_name << '='
+                              << escaped_value << std::endl;
+
+                        value.second = string_ref(
+                                    *file,
+                                    line_begin + escaped_name.length() + 1,
+                                    escaped_value.length());
+                    }
+                }
         }
 
-        touched = false;
+        file->flush();
+        break;
+
+    case hard:
+        {
+            // Binary needed to support UTF-8 on Windows
+            platform::ofstream file(filename + '~', std::ios_base::binary);
+
+            bool first = true;
+            for (auto &section : values)
+            {
+                if (!first)
+                    file << std::endl;
+                else
+                    first = false;
+
+                if (!section.first.empty())
+                    file << '[' << escape(section.first) << ']' << std::endl;
+
+                for (auto &value : section.second)
+                {
+                    file << escape(value.first) << '='
+                         << value.second.escaped_value() << std::endl;
+                }
+            }
+        }
+
+        this->file = nullptr;
+        remove_file(filename);
+        rename_file(filename + '~', filename);
+        break;
     }
+
+    touched = none;
 }
 
-bool inifile::has_section(const std::string &name) const
+
+inifile::string_ref::string_ref()
+    : istream(nullptr),
+      off(0), len(0),
+      escval()
 {
-    return values.find(name) != values.end();
 }
 
-class inifile::const_section inifile::open_section(const std::string &name) const
+inifile::string_ref::string_ref(const std::string &value)
+    : istream(nullptr),
+      off(0), len(0),
+      escval(escape(value))
 {
-    return inifile::const_section(*this, name);
 }
 
-class inifile::section inifile::open_section(const std::string &name)
+inifile::string_ref::string_ref(
+        std::istream &istream,
+        std::istream::pos_type off,
+        size_t len)
+    : istream(&istream),
+      off(off), len(len),
+      escval()
 {
-    return inifile::section(*this, name);
 }
 
-void inifile::touch()
+inifile::string_ref & inifile::string_ref::operator=(const string_ref &other)
 {
-    if (!touched)
+    istream = other.istream;
+    off = other.off;
+    len = other.len;
+    escval = other.escval;
+
+    return *this;
+}
+
+inifile::string_ref & inifile::string_ref::operator=(const std::string &other)
+{
+    istream = nullptr;
+    escval = escape(other);
+
+    return *this;
+}
+
+inifile::string_ref::operator std::string() const
+{
+    return unescape(escaped_value());
+}
+
+std::string inifile::string_ref::escaped_value() const
+{
+    if (istream)
     {
-        touched = true;
-        if (on_touched) on_touched();
+        istream->clear();
+        if (istream->seekg(off))
+        {
+            std::string result;
+            result.resize(len);
+            if (istream->read(&result[0], result.size()))
+                return result;
+        }
+
+        return std::string();
     }
+
+    return escval;
 }
 
 
@@ -275,22 +456,31 @@ void inifile::section::write(const std::string &name, const std::string &value)
         auto j = i->second.find(name);
         if (j != i->second.end())
         {
-            if (j->second != value)
+            const std::string old_value = j->second;
+            if (old_value != value)
             {
                 j->second = value;
-                inifile.touch();
+
+                if (j->second.escaped_value().length() == j->second.length())
+                    inifile.soft_touch();
+                else
+                    inifile.hard_touch();
             }
         }
         else
         {
             i->second.emplace(name, value);
-            inifile.touch();
+
+            if (inifile.values.size() == 1)
+                inifile.soft_touch();
+            else
+                inifile.hard_touch();
         }
     }
     else
     {
         inifile.values[section_name].emplace(name, value);
-        inifile.touch();
+        inifile.hard_touch();
     }
 }
 
@@ -331,7 +521,7 @@ void inifile::section::erase(const std::string &name)
             if (i->second.empty())
                 inifile.values.erase(i);
 
-            inifile.touch();
+            inifile.hard_touch();
         }
     }
 }
