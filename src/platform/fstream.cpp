@@ -29,36 +29,35 @@ basic_utf8filebuf<_type, _traits>::basic_utf8filebuf(const std::string &filename
     : binary(mode & std::ios_base::binary),
       handle(INVALID_HANDLE_VALUE)
 {
-    const bool out = mode & std::ios_base::out;
+    DWORD desired_access = 0;
+    DWORD creation_disposition = 0;
 
     if (mode & std::ios_base::in)
     {
-        handle = CreateFile(
-                    to_windows_path(filename).c_str(),
-                    GENERIC_READ,
-                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                    NULL,
-                    OPEN_EXISTING,
-                    0,
-                    NULL);
+        desired_access |= GENERIC_READ;
+        creation_disposition = OPEN_EXISTING;
     }
-    else if (mode & std::ios_base::out)
+
+    if (mode & std::ios_base::out)
     {
-        handle = CreateFile(
-                    to_windows_path(filename).c_str(),
-                    GENERIC_WRITE,
-                    FILE_SHARE_READ | FILE_SHARE_DELETE,
-                    NULL,
-                    CREATE_ALWAYS,
-                    FILE_ATTRIBUTE_NORMAL,
-                    NULL);
+        desired_access |= GENERIC_WRITE;
+        creation_disposition = CREATE_ALWAYS;
     }
+
+    handle = CreateFile(
+                to_windows_path(filename).c_str(),
+                desired_access,
+                FILE_SHARE_READ | FILE_SHARE_DELETE,
+                NULL,
+                creation_disposition,
+                FILE_ATTRIBUTE_NORMAL,
+                NULL);
 
     if (handle != INVALID_HANDLE_VALUE)
     {
         this->setg(nullptr, nullptr, nullptr);
-        if (out)
-            this->setp(&buffer[0], &buffer[sizeof(buffer)]);
+        if (mode & std::ios_base::out)
+            this->setp(&write_buffer[0], &write_buffer[sizeof(write_buffer)]);
     }
 }
 
@@ -88,8 +87,8 @@ int basic_utf8filebuf<_type, _traits>::underflow()
     }
 
     DWORD bytesRead = 0;
-    if (ReadFile(handle, &buffer[0], sizeof(buffer), &bytesRead, NULL) &&
-        (bytesRead > 0) && (bytesRead <= sizeof(buffer)))
+    if (ReadFile(handle, &read_buffer[0], sizeof(read_buffer), &bytesRead, NULL) &&
+        (bytesRead > 0) && (bytesRead <= sizeof(read_buffer)))
     {
         if (!binary)
         {
@@ -97,14 +96,14 @@ int basic_utf8filebuf<_type, _traits>::underflow()
             dst.resize(bytesRead);
             dst.resize(MultiByteToWideChar(
                     CP_ACP, 0,
-                    &buffer[0], bytesRead,
+                    &read_buffer[0], bytesRead,
                     &dst[0], dst.length()));
 
             text_buffer = from_utf16(dst);
             this->setg(&text_buffer[0], &text_buffer[0], &text_buffer[text_buffer.length()]);
         }
         else
-            this->setg(&buffer[0], &buffer[0], &buffer[bytesRead]);
+            this->setg(&read_buffer[0], &read_buffer[0], &read_buffer[bytesRead]);
 
         return _traits::to_int_type(*this->gptr());
     }
@@ -118,7 +117,7 @@ int basic_utf8filebuf<_type, _traits>::overflow(int value)
     const int write = this->pptr() - this->pbase();
     if (!binary)
     {
-        std::wstring u16 = to_utf16(std::string(&buffer[0], write));
+        std::wstring u16 = to_utf16(std::string(&write_buffer[0], write));
 
         std::string dst;
         dst.resize(u16.length() * 4);
@@ -140,13 +139,13 @@ int basic_utf8filebuf<_type, _traits>::overflow(int value)
     else for (int pos = 0; pos < write; )
     {
         DWORD bytesWritten = 0;
-        if (WriteFile(handle, &buffer[pos], write - pos, &bytesWritten, NULL) && (bytesWritten <= DWORD(write - pos)))
+        if (WriteFile(handle, &write_buffer[pos], write - pos, &bytesWritten, NULL) && (bytesWritten <= DWORD(write - pos)))
             pos += bytesWritten;
         else
             return _traits::eof();
     }
 
-    this->setp(&buffer[0], &buffer[sizeof(buffer)]);
+    this->setp(&write_buffer[0], &write_buffer[sizeof(write_buffer)]);
     if (!_traits::eq_int_type(value, _traits::eof()))
         this->sputc(value);
 
@@ -248,6 +247,27 @@ bool basic_ofstream<_type, _traits>::is_open() const
 }
 
 template class basic_ofstream<char>;
+
+
+template <class _type, class _traits>
+basic_fstream<_type, _traits>::basic_fstream(const std::string &filename, std::ios_base::openmode mode)
+    : std::basic_iostream<_type, _traits>(new basic_utf8filebuf<_type, _traits>(filename, mode))
+{
+}
+
+template <class _type, class _traits>
+basic_fstream<_type, _traits>::~basic_fstream()
+{
+    delete this->rdbuf();
+}
+
+template <class _type, class _traits>
+bool basic_fstream<_type, _traits>::is_open() const
+{
+    return static_cast<basic_utf8filebuf<_type, _traits> *>(this->rdbuf())->is_open();
+}
+
+template class basic_fstream<char>;
 
 } // End of namespace
 

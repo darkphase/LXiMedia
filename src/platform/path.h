@@ -38,6 +38,7 @@ std::string file_date(const std::string &path);
 
 std::string temp_file_path(const std::string &suffix);
 void remove_file(const std::string &);
+void rename_file(const std::string &old_path, const std::string &new_path);
 
 std::string home_dir();
 std::string config_dir();

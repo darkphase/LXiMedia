@@ -18,29 +18,20 @@
 #include "watchlist.h"
 #include "platform/path.h"
 #include <cassert>
+#include <iomanip>
 #include <sstream>
 
 using std::chrono::duration_cast;
 
-watchlist::watchlist(class platform::messageloop_ref &messageloop)
-    : messageloop(messageloop),
-      inifile(platform::config_dir() + "/watchlist"),
-      timer(messageloop, std::bind(&platform::inifile::save, &inifile)),
-      save_delay(250)
-{
-    inifile.on_touched = [this] { timer.start(save_delay, true); };
-}
-
-watchlist::~watchlist()
-{
-}
-
 static std::string to_string(const struct watchlist::entry &entry)
 {
     std::ostringstream str;
-    str << duration_cast<std::chrono::minutes>(entry.last_seen.time_since_epoch()).count()
-        << ',' << entry.last_position.count()
-        << '/' << entry.duration.count()
+    str << std::setw(9) << std::setfill('0')
+        << duration_cast<std::chrono::minutes>(entry.last_seen.time_since_epoch()).count()
+        << ',' << std::setw(6) << std::setfill('0')
+        << duration_cast<std::chrono::seconds>(entry.last_position).count()
+        << '/' << std::setw(6) << std::setfill('0')
+        << duration_cast<std::chrono::seconds>(entry.duration).count()
         << ',' << entry.mrl;
 
     return str.str();
@@ -63,14 +54,14 @@ static watchlist::entry to_entry(const std::string &str)
             catch (const std::out_of_range &) { }
 
             const auto last_position = str.substr(comma1 + 1, std::min(slash, comma2) - comma1 - 1);
-            try { result.last_position = std::chrono::milliseconds(std::stoll(last_position)); }
+            try { result.last_position = std::chrono::seconds(std::stoll(last_position)); }
             catch (const std::invalid_argument &) { }
             catch (const std::out_of_range &) { }
 
             if (slash < comma2)
             {
                 const auto duration = str.substr(slash + 1, comma2 - slash - 1);
-                try { result.duration = std::chrono::milliseconds(std::stoll(duration)); }
+                try { result.duration = std::chrono::seconds(std::stoll(duration)); }
                 catch (const std::invalid_argument &) { }
                 catch (const std::out_of_range &) { }
             }
@@ -80,6 +71,24 @@ static watchlist::entry to_entry(const std::string &str)
     }
 
     return result;
+}
+
+watchlist::watchlist(class platform::messageloop_ref &messageloop)
+    : messageloop(messageloop),
+      inifile(platform::config_dir() + "/watchlist"),
+      timer(messageloop, std::bind(&platform::inifile::save, &inifile)),
+      save_delay(250)
+{
+    inifile.on_touched = [this] { timer.start(save_delay, true); };
+
+//    // Convert file.
+//    auto section = inifile.open_section();
+//    for (auto &uuid : section.names())
+//        section.write(uuid, to_string(to_entry(section.read(uuid))));
+}
+
+watchlist::~watchlist()
+{
 }
 
 std::vector<struct watchlist::entry> watchlist::watched_items() const

@@ -48,7 +48,8 @@ public:
 private:
     const bool binary;
     void *handle;
-    char buffer[4096];
+    char read_buffer[4096];
+    char write_buffer[4096];
     std::string text_buffer;
 };
 
@@ -72,8 +73,19 @@ public:
    bool is_open() const;
 };
 
+template <class _type, class _traits = std::char_traits<_type>>
+class basic_fstream : public std::basic_iostream<_type, _traits>
+{
+public:
+   basic_fstream(const std::string &filename, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out);
+   ~basic_fstream();
+
+   bool is_open() const;
+};
+
 typedef basic_ifstream<char> ifstream;
 typedef basic_ofstream<char> ofstream;
+typedef basic_fstream<char> fstream;
 
 } // End of namespace
 
@@ -84,6 +96,7 @@ namespace platform {
 
 using std::ifstream;
 using std::ofstream;
+using std::fstream;
 
 } // End of namespace
 
