@@ -42,6 +42,15 @@ void inifile::save()
         load_file();
 }
 
+std::set<std::string> inifile::sections() const
+{
+    std::set<std::string> result;
+    for (auto &i : values)
+        result.insert(i.first);
+
+    return result;
+}
+
 bool inifile::has_section(const std::string &name) const
 {
     return values.find(name) != values.end();
@@ -55,6 +64,11 @@ class inifile::const_section inifile::open_section(const std::string &name) cons
 class inifile::section inifile::open_section(const std::string &name)
 {
     return inifile::section(*this, name);
+}
+
+void inifile::erase_section(const std::string &name)
+{
+    values.erase(name);
 }
 
 void inifile::soft_touch()

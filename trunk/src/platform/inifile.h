@@ -109,9 +109,12 @@ public:
     std::function<void()> on_touched;
     void save();
 
+    std::set<std::string> sections() const;
     bool has_section(const std::string &name) const;
+
     class const_section open_section(const std::string &name = std::string()) const;
     class section open_section(const std::string &name = std::string());
+    void erase_section(const std::string &name = std::string());
 
 private:
     void soft_touch();

@@ -25,15 +25,29 @@
 #include <sha1/sha1.h>
 #include <vlc/vlc.h>
 #include <cstring>
+#include <mutex>
 #include <sstream>
 #include <unordered_set>
 
 namespace vlc {
 
-media_cache::media_cache(class instance &instance)
+static const char revision_name[] = "rev_1";
+
+media_cache::media_cache(
+        class platform::messageloop_ref &messageloop,
+        class instance &instance)
     : instance(instance),
+      inifile(platform::config_dir() + "/media_cache"),
+      timer(messageloop, std::bind(&platform::inifile::save, &inifile)),
+      save_delay(5),
+      section(inifile.open_section(revision_name)),
       background_scan_finished(true)
 {
+    inifile.on_touched = [this] { timer.start(save_delay, true); };
+
+    for (auto &i : inifile.sections())
+        if (i != revision_name)
+            inifile.erase_section(i);
 }
 
 media_cache::~media_cache()
@@ -93,26 +107,17 @@ static platform::uuid uuid_from_file(const std::string &path)
     return platform::uuid();
 }
 
-platform::uuid media_cache::uuid(const std::string &mrl) const
+platform::uuid media_cache::uuid(const std::string &mrl)
 {
-    std::unique_lock<std::mutex> l(mutex);
-
-    auto &data = cache[mrl];
-    if (!data.uuid_generated)
+    auto i = uuids.find(mrl);
+    if (i == uuids.end())
     {
-        l.unlock();
-
         const auto uuid = uuid_from_file(platform::path_from_mrl(mrl));
-
-        l.lock();
-
-        auto &data = cache[mrl];
-        data.uuid = uuid;
-        data.uuid_generated = true;
-        return data.uuid;
+        uuids[mrl] = uuid;
+        return uuid;
     }
-
-    return data.uuid;
+    else
+        return i->second;
 }
 
 static bool should_read_media_info_from_player(const std::string &path)
@@ -321,31 +326,31 @@ static struct media_cache::media_info media_info_from_media(
     return media_info;
 }
 
-struct media_cache::media_info media_cache::media_info(class media &media) const
+struct media_cache::media_info media_cache::media_info(class media &media)
 {
-    std::unique_lock<std::mutex> l(mutex);
-
     const auto mrl = media.mrl();
+    const auto uuid = this->uuid(mrl);
 
-    auto &data = cache[mrl];
-    if (!data.media_info_read)
+    if (section.has_value(uuid))
     {
-        l.unlock();
-
+        std::stringstream str(section.read(uuid));
+        struct media_info media_info;
+        str >> media_info;
+        return media_info;
+    }
+    else
+    {
         const auto media_info = media_info_from_media(media);
 
-        l.lock();
+        std::ostringstream str;
+        str << media_info;
+        section.write(uuid, str.str());
 
-        auto &data = cache[mrl];
-        data.media_info = media_info;
-        data.media_info_read = true;
-        return data.media_info;
+        return media_info;
     }
-
-    return data.media_info;
 }
 
-enum media_type media_cache::media_type(class media &media) const
+enum media_type media_cache::media_type(class media &media)
 {
     vlc::media_type result = vlc::media_type::unknown;
 
@@ -371,97 +376,31 @@ enum media_type media_cache::media_type(class media &media) const
 
 void media_cache::scan_files(const std::vector<std::string> &files)
 {
-    return scan_files(files, false);
-}
-
-void media_cache::scan_files_background(const std::vector<std::string> &files)
-{
-    std::unique_lock<std::mutex> l(mutex);
-
-    for (auto &i : files)
-        background_scan_queue.emplace_back(i);
-
-    if (!background_scan_queue.empty() && background_scan_finished)
-    {
-        background_scan_finished = false;
-        l.unlock();
-
-        if (background_scan_thread.joinable())
-            background_scan_thread.join();
-
-        background_scan_thread = std::thread([this]
-        {
-            std::unique_lock<std::mutex> l(mutex);
-
-            while (!background_scan_queue.empty())
-            {
-                std::unordered_set<std::string> mrls;
-                std::vector<std::string> files;
-                while (!background_scan_queue.empty())
-                {
-                    auto mrl = media::from_file(
-                                instance,
-                                background_scan_queue.back()).mrl();
-
-                    if ((mrls.find(mrl) == mrls.end()) &&
-                        (cache.find(mrl) == cache.end()))
-                    {
-                        mrls.emplace(std::move(mrl));
-                        files.emplace_back(
-                                    std::move(background_scan_queue.back()));
-                    }
-
-                    background_scan_queue.pop_back();
-                }
-
-                if (!files.empty())
-                {
-                    l.unlock();
-                    scan_files(files, true);
-                    l.lock();
-                }
-            }
-
-            background_scan_finished = true;
-        });
-    }
-}
-
-void media_cache::scan_files(const std::vector<std::string> &files, bool background)
-{
     const unsigned num_queues = std::max(
-                std::min(
-                    std::thread::hardware_concurrency(),
-                    background ? 2u : unsigned(-1)),
+                std::thread::hardware_concurrency(),
                 1u);
 
-    std::vector<std::list<std::pair<std::string, media>>> tasks;
+    std::vector<std::list<media>> tasks;
     tasks.resize(num_queues);
 
 #ifdef PROCESS_USES_THREAD
+    std::mutex mutex;
     std::vector<vlc::instance> instances;
     instances.resize(num_queues);
 #endif
 
+    unsigned index = 0;
+    for (auto &i : files)
     {
-        std::lock_guard<std::mutex> _(mutex);
-
-        unsigned index = 0;
-        for (auto &i : files)
-        {
-            const auto queue_index = index % num_queues;
+        const auto queue_index = index % num_queues;
 #ifdef PROCESS_USES_THREAD
-            auto media = media::from_file(instances[queue_index], i);
+        auto media = media::from_file(instances[queue_index], i);
 #else
-            auto media = media::from_file(instance, i);
+        auto media = media::from_file(instance, i);
 #endif
 
-            if (cache.find(media.mrl()) == cache.end())
-            {
-                tasks[queue_index].emplace_back(std::make_pair(i, std::move(media)));
-                index++;
-            }
-        }
+        tasks[queue_index].emplace_back(std::move(media));
+        index++;
     }
 
     for (bool more = true; more;)
@@ -473,17 +412,45 @@ void media_cache::scan_files(const std::vector<std::string> &files, bool backgro
             if (!tasks[i].empty())
             {
 #ifdef PROCESS_USES_THREAD
-                processes.emplace_back(new platform::process([this, tasks, i](platform::process &, std::ostream &out)
+                processes.emplace_back(new platform::process([this, &mutex, tasks, i](platform::process &, std::ostream &out)
 #else
                 processes.emplace_back(new platform::process([this, &tasks, i](platform::process &, std::ostream &out)
 #endif
                 {
                     for (auto &task : tasks[i])
                     {
-                        out << uuid_from_file(task.first) << ' ' << std::flush;
-                        out << media_info_from_media(const_cast<class media &>(task.second)) << std::endl;
+                        const std::string mrl = task.mrl();
+                        platform::uuid uuid;
+
+#ifdef PROCESS_USES_THREAD
+                        std::unique_lock<std::mutex> l(mutex);
+#else
+                        struct { void lock() {} void unlock() {} } l;
+#endif
+
+                        auto i = uuids.find(mrl);
+                        if (i == uuids.end())
+                        {
+                            l.unlock();
+                            uuid = uuid_from_file(platform::path_from_mrl(mrl));
+                            l.lock();
+                        }
+                        else
+                            uuid = i->second;
+
+                        if (!uuid.is_null() && !section.has_value(uuid))
+                        {
+                            l.unlock();
+                            out << uuid << ' ' << std::flush;
+                            out << media_info_from_media(const_cast<class media &>(task)) << std::endl;
+                        }
+                        else
+                        {
+                            l.unlock();
+                            out << platform::uuid() << std::endl;
+                        }
                     }
-                }, background ? platform::process::priority::idle : platform::process::priority::low));
+                }));
             }
             else
                 processes.emplace_back(nullptr);
@@ -495,17 +462,24 @@ void media_cache::scan_files(const std::vector<std::string> &files, bool backgro
             {
                 platform::uuid uuid;
                 *processes[i] >> uuid;
-                struct media_info media_info;
-                *processes[i] >> media_info;
-
+                if (!uuid.is_null())
                 {
-                    std::lock_guard<std::mutex> _(mutex);
+#ifdef PROCESS_USES_THREAD
+                    std::unique_lock<std::mutex> l(mutex);
+#else
+                    struct { void lock() {} void unlock() {} } l;
+#endif
 
-                    auto &data = cache[tasks[i].front().second.mrl()];
-                    data.uuid = uuid;
-                    data.uuid_generated = true;
-                    data.media_info = media_info;
-                    data.media_info_read = true;
+                    uuids[tasks[i].front().mrl()] = uuid;
+
+                    l.unlock();
+                    struct media_info media_info;
+                    *processes[i] >> media_info;
+                    l.lock();
+
+                    std::ostringstream str;
+                    str << media_info;
+                    section.write(uuid, str.str());
                 }
 
                 tasks[i].pop_front();

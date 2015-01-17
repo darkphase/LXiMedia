@@ -19,12 +19,12 @@
 #define VLC_MEDIA_CACHE_H
 
 #include "media.h"
+#include "platform/inifile.h"
 #include "platform/messageloop.h"
 #include "platform/uuid.h"
 #include <chrono>
 #include <condition_variable>
 #include <map>
-#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -82,24 +82,26 @@ private:
     };
 
 public:
-    explicit media_cache(class instance &);
+    explicit media_cache(
+            class platform::messageloop_ref &,
+            class instance &);
+
     ~media_cache();
 
-    platform::uuid uuid(const std::string &) const;
-    struct media_info media_info(class media &) const;
-    enum media_type media_type(class media &) const;
+    platform::uuid uuid(const std::string &);
+    struct media_info media_info(class media &);
+    enum media_type media_type(class media &);
 
     void scan_files(const std::vector<std::string> &);
-    void scan_files_background(const std::vector<std::string> &);
-
-private:
-    void scan_files(const std::vector<std::string> &, bool);
 
 private:
     class instance &instance;
 
-    mutable std::mutex mutex;
-    mutable std::map<std::string, data> cache;
+    std::map<std::string, platform::uuid> uuids;
+    class platform::inifile inifile;
+    class platform::timer timer;
+    const std::chrono::seconds save_delay;
+    class platform::inifile::section section;
 
     std::vector<std::string> background_scan_queue;
     std::thread background_scan_thread;

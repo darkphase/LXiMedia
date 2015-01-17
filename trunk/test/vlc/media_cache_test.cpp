@@ -23,12 +23,14 @@ static const struct media_cache_test
     struct test png_test;
     void png()
     {
+        class platform::messageloop messageloop;
+        class platform::messageloop_ref messageloop_ref(messageloop);
         class instance instance;
         auto media = media::from_file(instance, pm5544_png);
         test_assert(static_cast< ::libvlc_media_t *>(media) != nullptr);
         test_assert(!media.mrl().empty());
 
-        class media_cache media_cache(instance);
+        class media_cache media_cache(messageloop_ref, instance);
 
         static const platform::uuid ref_uuid("6c9a8849-dbd4-5b7e-8f50-0916d1294251");
         test_assert(media_cache.uuid(media.mrl()) == ref_uuid);
