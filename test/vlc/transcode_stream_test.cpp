@@ -32,8 +32,10 @@ static const struct transcode_stream_test
 
     void transcode_base(const std::string &transcode, const char *mux)
     {
+        class platform::messageloop messageloop;
+        class platform::messageloop_ref messageloop_ref(messageloop);
         class instance instance;
-        class media_cache media_cache(instance);
+        class media_cache media_cache(messageloop_ref, instance);
 
         if (!outfile.empty())
             ::remove(outfile.c_str());
@@ -42,8 +44,6 @@ static const struct transcode_stream_test
 
         // Transcode file.
         {
-            class platform::messageloop messageloop;
-            class platform::messageloop_ref messageloop_ref(messageloop);
             class transcode_stream transcode_stream(messageloop_ref, instance);
 
             class media a440hz_flac_media = media::from_file(instance, a440hz_flac);

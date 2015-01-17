@@ -46,7 +46,7 @@ files::files(
         class watchlist &watchlist)
     : messageloop(messageloop),
       vlc_instance(vlc_instance),
-      media_cache(vlc_instance),
+      media_cache(messageloop, vlc_instance),
       connection_manager(connection_manager),
       content_directory(content_directory),
       recommended(recommended),
@@ -182,7 +182,7 @@ std::vector<pupnp::content_directory::item> files::list_contentdir_items(
         size_t start, size_t &count)
 {
     const bool return_all = count == 0;
-    const size_t chunk_size = return_all ? 8 : count;
+    const size_t chunk_size = count;
 
     const auto &files = list_files(path, start == 0);
 
@@ -206,45 +206,13 @@ std::vector<pupnp::content_directory::item> files::list_contentdir_items(
             break;
 
     media_cache.scan_files(scan_files_paths(paths));
-
-    // Start scanning the files that may be requested next in the background.
-    messageloop.post([this, chunk_size, paths, next_paths]
+    if (!next_paths.empty())
     {
-        std::list<std::vector<std::string>> scan_chunks;
-        for (auto &path : paths)
-            if (ends_with(path, "/"))
-            {
-                const auto &files = list_files(path, false);
-
-                std::vector<std::string> paths;
-                for (auto &file : files)
-                    if (paths.size() < chunk_size)
-                        paths.emplace_back(path + file);
-                    else
-                        break;
-
-                scan_chunks.emplace_front(scan_files_paths(paths));
-            }
-
-        if (!scan_chunks.empty())
+        messageloop.post([this, next_paths]
         {
-            if (!next_paths.empty())
-            {
-                auto tmp = std::move(scan_chunks.back());
-                scan_chunks.pop_back();
-                scan_chunks.emplace_back(scan_files_paths(next_paths));
-                scan_chunks.emplace_back(std::move(tmp));
-            }
-
-            std::vector<std::string> scan_files;
-            for (auto &i : scan_chunks) for (auto &j : i)
-                scan_files.emplace_back(std::move(j));
-
-            media_cache.scan_files_background(scan_files);
-        }
-        else if (!next_paths.empty())
-            media_cache.scan_files_background(scan_files_paths(next_paths));
-    });
+            media_cache.scan_files(scan_files_paths(next_paths));
+        });
+    }
 
     std::vector<pupnp::content_directory::item> result;
     for (auto &path : paths)
