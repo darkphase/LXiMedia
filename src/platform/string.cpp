@@ -18,7 +18,6 @@
 #include "string.h"
 #include <algorithm>
 #include <climits>
-#include <cstdlib>
 #include <cstring>
 #include <iomanip>
 #include <sstream>
@@ -53,51 +52,12 @@ std::string to_lower(const std::string &input)
     return result;
 }
 
-static std::basic_string<char32_t> to_utf32(const std::string &u8)
-{
-    std::basic_string<char32_t> result;
-
-    for (auto i = u8.begin(); i != u8.end(); )
-    {
-        const uint8_t lead = uint8_t(*(i++));
-
-        char32_t cp = 0;
-        if (lead < 0x80)
-        {
-            cp = char32_t(lead);
-        }
-        else if ((lead >> 5) == 0x06)
-        {
-            cp = (char32_t(lead) << 6) & 0x07FF;
-            if (i != u8.end()) cp |= (char32_t(uint8_t(*(i++))) & 0x3F);
-        }
-        else if ((lead >> 4) == 0x0E)
-        {
-            cp = (char32_t(lead) << 12) & 0xFFFF;
-            if (i != u8.end()) cp |= (char32_t(uint8_t(*(i++))) << 6) & 0x0FFF;
-            if (i != u8.end()) cp |= char32_t(uint8_t(*(i++))) & 0x3F;
-        }
-        else if ((lead >> 3) == 0x1E)
-        {
-            cp = (char32_t(lead) << 18) & 0x1FFFFF;
-            if (i != u8.end()) cp |= (char32_t(uint8_t(*(i++))) << 12) & 0x03FFFF;
-            if (i != u8.end()) cp |= (char32_t(uint8_t(*(i++))) << 6) & 0x0FFF;
-            if (i != u8.end()) cp |= char32_t(uint8_t(*(i++))) & 0x3F;
-        }
-
-        if (cp)
-            result.push_back(cp);
-    }
-
-    return std::move(result);
-}
-
 static bool is_number(char32_t c)
 {
     return (c >= '0') && (c <= '9');
 }
 
-static unsigned read_number(const std::basic_string<char32_t> &s, size_t &p)
+static unsigned read_number(const std::u32string &s, size_t &p)
 {
     unsigned n = 0;
     while (p < s.length())
@@ -290,7 +250,62 @@ std::string escape_xml(const std::string &input)
     return result.str();
 }
 
-#if defined(WIN32)
+#if defined(__unix__) || defined(__APPLE__)
+#include <iconv.h>
+
+std::string to_utf8(const std::string &src, const std::string &encoding)
+{
+    std::string dst;
+
+    auto handle = iconv_open("UTF-8", encoding.c_str());
+    if (handle != iconv_t(-1))
+    {
+        char *inptr = const_cast<char *>(&src[0]);
+        size_t insize = src.length();
+
+        dst.resize((src.length() * 4) + 8);
+        char *outptr = &dst[0];
+        size_t outsize = dst.length();
+
+        size_t rc = iconv(handle, &inptr, &insize, &outptr, &outsize);
+        if (rc != size_t(-1))
+            dst.resize(dst.length() - outsize);
+        else
+            dst.clear();
+
+        iconv_close(handle);
+    }
+
+    return dst;
+}
+
+std::u32string to_utf32(const std::string &src, const char *encoding)
+{
+    std::u32string dst;
+
+    auto handle = iconv_open("UTF-32", encoding ? encoding : "UTF-8");
+    if (handle != iconv_t(-1))
+    {
+        char *inptr = const_cast<char *>(&src[0]);
+        size_t insize = src.length();
+
+        dst.resize(src.length() + 8);
+        char *outptr = reinterpret_cast<char *>(&dst[0]);
+        size_t outsize = dst.length() * sizeof(dst[0]);
+
+        size_t rc = iconv(handle, &inptr, &insize, &outptr, &outsize);
+        if (rc != size_t(-1))
+            dst.resize(dst.length() - (outsize / sizeof(dst[0])));
+        else
+            dst.clear();
+
+        iconv_close(handle);
+    }
+
+    return dst;
+}
+
+#elif defined(WIN32)
 #include <windows.h>
 
 std::wstring to_utf16(const std::string &src)
@@ -314,6 +329,75 @@ std::string from_utf16(const std::wstring &src)
             &src[0], src.length(),
             &dst[0], dst.length(),
             NULL, NULL));
+
+    return dst;
+}
+
+static UINT to_codepage(const char *encoding)
+{
+    if      (encoding == nullptr)                   return CP_UTF8;
+    else if (strcmp(encoding, "ISO-8859-1" ) == 0)  return 28591;
+    else if (strcmp(encoding, "ISO-8859-2" ) == 0)  return 28592;
+    else if (strcmp(encoding, "ISO-8859-3" ) == 0)  return 28593;
+    else if (strcmp(encoding, "ISO-8859-4" ) == 0)  return 28594;
+    else if (strcmp(encoding, "ISO-8859-5" ) == 0)  return 28595;
+    else if (strcmp(encoding, "ISO-8859-6" ) == 0)  return 28596;
+    else if (strcmp(encoding, "ISO-8859-7" ) == 0)  return 28597;
+    else if (strcmp(encoding, "ISO-8859-8" ) == 0)  return 28598;
+    else if (strcmp(encoding, "ISO-8859-9" ) == 0)  return 28599;
+    else if (strcmp(encoding, "ISO-8859-13") == 0)  return 28603;
+    else if (strcmp(encoding, "ISO-8859-15") == 0)  return 28605;
+
+    return 0;
+}
+
+std::string to_utf8(const std::string &src, const std::string &encoding)
+{
+    const UINT codepage = to_codepage(encoding.c_str());
+
+    if (codepage)
+    {
+        std::wstring tmp;
+        tmp.resize(src.length());
+        tmp.resize(MultiByteToWideChar(
+                codepage, 0,
+                &src[0], src.length(),
+                &tmp[0], tmp.length()));
+
+        std::string dst;
+        dst.resize(tmp.length() * 4);
+        dst.resize(WideCharToMultiByte(
+                CP_UTF8, 0,
+                &tmp[0], tmp.length(),
+                &dst[0], dst.length(),
+                NULL, NULL));
+
+        return dst;
+    }
+
+    return src;
+}
+
+std::u32string to_utf32(const std::string &src, const char *encoding)
+{
+    const UINT codepage = to_codepage(encoding);
+
+    std::wstring tmp;
+    if (codepage)
+    {
+        tmp.resize(src.length());
+        tmp.resize(MultiByteToWideChar(
+                codepage, 0,
+                &src[0], src.length(),
+                &tmp[0], tmp.length()));
+    }
+
+    // This is wrong!
+    // TODO: Implement proper conversion from UTF-16 to UTF-32.
+    std::u32string dst;
+    dst.reserve(tmp.length());
+    for (auto i : tmp)
+        dst.push_back(i);
 
     return dst;
 }

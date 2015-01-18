@@ -20,8 +20,8 @@
 
 #include <string>
 
-bool starts_with(const std::string &, const std::string &);
-bool ends_with(const std::string &, const std::string &);
+bool starts_with(const std::string &text, const std::string &find);
+bool ends_with(const std::string &text, const std::string &find);
 
 std::string to_upper(const std::string &);
 std::string to_lower(const std::string &);
@@ -39,5 +39,8 @@ std::string escape_xml(const std::string &);
 std::wstring to_utf16(const std::string &);
 std::string from_utf16(const std::wstring &);
 #endif
+
+std::string to_utf8(const std::string &, const std::string &encoding);
+std::u32string to_utf32(const std::string &, const char *encoding = nullptr);
 
 #endif

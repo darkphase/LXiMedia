@@ -256,7 +256,10 @@ static std::string format_path(const std::string &src)
 
 static void render_path_box(const std::string &full_path, const std::string &current, size_t index, std::ostream &out)
 {
-    const std::vector<std::string> items = full_path.empty() ? platform::list_root_directories() : platform::list_files(full_path, true);
+    const std::vector<std::string> items = full_path.empty()
+            ? platform::list_root_directories()
+            : platform::list_files(full_path, platform::file_filter::directories);
+
     if (!items.empty())
     {
         out << "<select name=\"append_path_" << index << "\" onchange=\"if(this.value != 0) { this.form.submit(); }\">";

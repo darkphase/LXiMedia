@@ -25,6 +25,7 @@
 #include "pupnp/content_directory.h"
 #include "vlc/media_cache.h"
 #include "settings.h"
+#include "watchlist.h"
 #include <cstdint>
 #include <cstdlib>
 #include <string>
@@ -46,7 +47,8 @@ public:
             class pupnp::content_directory &,
             class recommended &recommended,
             const class settings &,
-            class watchlist &);
+            class platform::inifile &media_cache_file,
+            class platform::inifile &watchlist_file);
 
     virtual ~files();
 
@@ -93,7 +95,7 @@ private:
     class pupnp::content_directory &content_directory;
     class recommended &recommended;
     const class settings &settings;
-    class watchlist &watchlist;
+    class watchlist watchlist;
     const std::string basedir;
     const std::chrono::milliseconds min_parse_time;
     const std::chrono::milliseconds max_parse_time;

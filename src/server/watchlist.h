@@ -18,11 +18,12 @@
 #ifndef WATCHLIST_H
 #define WATCHLIST_H
 
-#include "platform/inifile.h"
 #include "platform/messageloop.h"
 #include "platform/uuid.h"
 #include <chrono>
 #include <vector>
+
+namespace platform { class inifile; }
 
 class watchlist
 {
@@ -45,7 +46,10 @@ public:
     };
 
 public:
-    explicit watchlist(class platform::messageloop_ref &);
+    watchlist(
+            class platform::messageloop_ref &,
+            class platform::inifile &);
+
     ~watchlist();
 
     std::vector<struct entry> watched_items() const;
@@ -57,7 +61,7 @@ public:
 
 private:
     class platform::messageloop_ref messageloop;
-    class platform::inifile inifile;
+    class platform::inifile &inifile;
     class platform::timer timer;
     const std::chrono::milliseconds save_delay;
 };

@@ -28,10 +28,13 @@ server::server(
         class platform::messageloop_ref &messageloop,
         class settings &settings,
         class pupnp::upnp &upnp,
-        const std::string &logfilename)
+        const std::string &logfilename,
+        class platform::inifile &media_cache_file,
+        class platform::inifile &watchlist_file)
     : messageloop(messageloop),
       settings(settings),
-      watchlist(messageloop),
+      media_cache_file(media_cache_file),
+      watchlist_file(watchlist_file),
       upnp(upnp),
       rootdevice(messageloop, upnp, settings.uuid(), "urn:schemas-upnp-org:device:MediaServer:1"),
       connection_manager(messageloop, rootdevice),
@@ -75,6 +78,7 @@ bool server::initialize()
     if (upnp.initialize(settings.http_port(), settings.bind_all_networks()))
     {
         std::vector<std::string> options;
+        options.push_back("--no-sub-autodetect-file");
 
         if (settings.verbose_logging_enabled())
             options.push_back("-vvv");
@@ -103,7 +107,8 @@ bool server::initialize()
                             content_directory,
                             *recommended,
                             settings,
-                            watchlist));
+                            media_cache_file,
+                            watchlist_file));
 
             setup.reset(new class setup(
                             messageloop,

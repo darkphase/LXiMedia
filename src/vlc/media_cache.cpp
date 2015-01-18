@@ -18,8 +18,8 @@
 #include "vlc/media_cache.h"
 #include "vlc/instance.h"
 #include "vlc/media.h"
+#include "vlc/subtitles.h"
 #include "platform/fstream.h"
-#include "platform/process.h"
 #include "platform/path.h"
 #include "platform/string.h"
 #include <sha1/sha1.h>
@@ -27,6 +27,7 @@
 #include <cstring>
 #include <mutex>
 #include <sstream>
+#include <thread>
 #include <unordered_set>
 
 namespace vlc {
@@ -35,25 +36,32 @@ static const char revision_name[] = "rev_1";
 
 media_cache::media_cache(
         class platform::messageloop_ref &messageloop,
-        class instance &instance)
+        class instance &instance,
+        class platform::inifile &inifile)
     : instance(instance),
-      inifile(platform::config_dir() + "/media_cache"),
+      inifile(inifile),
       timer(messageloop, std::bind(&platform::inifile::save, &inifile)),
       save_delay(5),
       section(inifile.open_section(revision_name)),
-      background_scan_finished(true)
+      num_queues(std::max(std::thread::hardware_concurrency(), 1u))
 {
     inifile.on_touched = [this] { timer.start(save_delay, true); };
 
     for (auto &i : inifile.sections())
         if (i != revision_name)
             inifile.erase_section(i);
+
+#ifdef PROCESS_USES_THREAD
+    std::vector<std::string> options;
+    options.push_back("--no-sub-autodetect-file");
+    for (unsigned i = 0; i < num_queues; i++)
+        instances.emplace_back(options);
+#endif
 }
 
 media_cache::~media_cache()
 {
-    if (background_scan_thread.joinable())
-        background_scan_thread.join();
+    inifile.on_touched = nullptr;
 }
 
 static platform::uuid uuid_from_file(const std::string &path)
@@ -331,23 +339,33 @@ struct media_cache::media_info media_cache::media_info(class media &media)
     const auto mrl = media.mrl();
     const auto uuid = this->uuid(mrl);
 
+    struct media_info media_info;
     if (section.has_value(uuid))
     {
         std::stringstream str(section.read(uuid));
-        struct media_info media_info;
         str >> media_info;
-        return media_info;
     }
     else
     {
-        const auto media_info = media_info_from_media(media);
+        media_info = media_info_from_media(media);
 
         std::ostringstream str;
         str << media_info;
         section.write(uuid, str.str());
-
-        return media_info;
     }
+
+    int max_track_id = -1;
+    for (auto &i : media_info.tracks)
+        max_track_id = std::max(max_track_id, i.id);
+
+    for (auto &i : subtitles::find_subtitle_files(platform::path_from_mrl(mrl)))
+        for (auto &j : subtitle_info(i).tracks)
+        {
+            j.id = max_track_id + 1;
+            media_info.tracks.push_back(j);
+        }
+
+    return media_info;
 }
 
 enum media_type media_cache::media_type(class media &media)
@@ -374,20 +392,46 @@ enum media_type media_cache::media_type(class media &media)
     return result;
 }
 
+struct media_cache::media_info media_cache::subtitle_info(const std::string &path)
+{
+    const auto mrl = platform::mrl_from_path(path);
+    const auto uuid = this->uuid(mrl);
+
+    struct media_info media_info;
+    if (section.has_value(uuid))
+    {
+        std::stringstream str(section.read(uuid));
+        str >> media_info;
+    }
+    else
+    {
+        struct track track;
+        track.type = track_type::text;
+
+        const char *language = nullptr, *encoding = nullptr;
+        if (subtitles::determine_subtitle_language(path, language, encoding))
+        {
+            if (language) track.language = language;
+            if (encoding) track.text.encoding = encoding;
+        }
+
+        media_info.tracks.push_back(track);
+
+        std::ostringstream str;
+        str << media_info;
+        section.write(uuid, str.str());
+    }
+
+    for (auto &track : media_info.tracks)
+        track.file = path;
+
+    return media_info;
+}
+
 void media_cache::scan_files(const std::vector<std::string> &files)
 {
-    const unsigned num_queues = std::max(
-                std::thread::hardware_concurrency(),
-                1u);
-
     std::vector<std::list<media>> tasks;
     tasks.resize(num_queues);
-
-#ifdef PROCESS_USES_THREAD
-    std::mutex mutex;
-    std::vector<vlc::instance> instances;
-    instances.resize(num_queues);
-#endif
 
     unsigned index = 0;
     for (auto &i : files)
@@ -411,11 +455,7 @@ void media_cache::scan_files(const std::vector<std::string> &files)
         {
             if (!tasks[i].empty())
             {
-#ifdef PROCESS_USES_THREAD
-                processes.emplace_back(new platform::process([this, &mutex, tasks, i](platform::process &, std::ostream &out)
-#else
-                processes.emplace_back(new platform::process([this, &tasks, i](platform::process &, std::ostream &out)
-#endif
+                processes.emplace_back(new platform::process([this, tasks, i](platform::process &, std::ostream &out)
                 {
                     for (auto &task : tasks[i])
                     {
@@ -471,14 +511,15 @@ void media_cache::scan_files(const std::vector<std::string> &files)
 #endif
 
                     uuids[tasks[i].front().mrl()] = uuid;
-
                     l.unlock();
+
                     struct media_info media_info;
                     *processes[i] >> media_info;
-                    l.lock();
 
                     std::ostringstream str;
                     str << media_info;
+
+                    l.lock();
                     section.write(uuid, str.str());
                 }
 
@@ -549,8 +590,11 @@ std::ostream & operator<<(std::ostream &str, const struct media_cache::track &tr
         str << ' ' << track.video.width << ' ' << track.video.height << ' ' << track.video.frame_rate;
         break;
 
-    case track_type::unknown:
     case track_type::text:
+        str << ' ' << '"' << to_percent(track.text.encoding) << '"';
+        break;
+
+    case track_type::unknown:
         break;
     }
 
@@ -585,8 +629,16 @@ std::istream & operator>>(std::istream &str, struct media_cache::track &track)
         str >> track.video.width >> track.video.height >> track.video.frame_rate;
         break;
 
-    case track_type::unknown:
     case track_type::text:
+        {
+            std::string encoding;
+            str >> encoding;
+            if (encoding.length() >= 2)
+                track.text.encoding = from_percent(encoding.substr(1, encoding.length() - 2));
+        }
+        break;
+
+    case track_type::unknown:
         break;
     }
 

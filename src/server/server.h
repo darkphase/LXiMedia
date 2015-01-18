@@ -34,7 +34,6 @@
 #include "pupnp/upnp.h"
 #include "vlc/instance.h"
 #include "settings.h"
-#include "watchlist.h"
 
 class files;
 class recommended;
@@ -51,7 +50,9 @@ public:
             class platform::messageloop_ref &,
             class settings &,
             class pupnp::upnp &,
-            const std::string &);
+            const std::string &,
+            class platform::inifile &media_cache_file,
+            class platform::inifile &watchlist_file);
 
     ~server();
 
@@ -71,7 +72,8 @@ private:
 private:
     class platform::messageloop_ref messageloop;
     class settings &settings;
-    class watchlist watchlist;
+    class platform::inifile &media_cache_file;
+    class platform::inifile &watchlist_file;
 
     class pupnp::upnp &upnp;
     class pupnp::rootdevice rootdevice;
