@@ -1,3 +1,4 @@
+#include "platform/inifile.h"
 #include "platform/messageloop.h"
 #include "platform/path.h"
 #include "platform/string.h"
@@ -67,11 +68,19 @@ static int run_server(
         std::clog << "bound address: " << i << ":" << upnp.bound_port() << std::endl;
 
     class platform::messageloop_ref messageloop_ref(messageloop);
+    class platform::inifile media_cache_file(platform::config_dir() + "/media_cache");
+    class platform::inifile watchlist_file(platform::config_dir() + "/watchlist");
 
-    server::recreate_server = [&messageloop, &messageloop_ref, &upnp, &settings, &logfile]
+    server::recreate_server = [
+            &messageloop, &messageloop_ref,
+            &media_cache_file, &watchlist_file,
+            &upnp, &settings, &logfile]
     {
         server_ptr = nullptr;
-        server_ptr.reset(new class server(messageloop_ref, settings, upnp, logfile));
+        server_ptr.reset(new class server(
+                             messageloop_ref, settings, upnp, logfile,
+                             media_cache_file, watchlist_file));
+
         if (!server_ptr->initialize())
         {
             std::clog << "failed to initialize server; stopping." << std::endl;

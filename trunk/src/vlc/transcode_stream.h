@@ -19,6 +19,7 @@
 #define VLC_TRANSCODE_STREAM_H
 
 #include "platform/messageloop.h"
+#include "vlc/subtitles.h"
 #include <chrono>
 #include <istream>
 #include <memory>
@@ -31,7 +32,7 @@ namespace vlc {
 
 class instance;
 
-struct track_ids { int audio, video, text; track_ids() : audio(-1), video(-1), text(-1) {} };
+struct track_ids { int audio, video, text; track_ids() : audio(-2), video(-2), text(-2) {} };
 
 class transcode_stream : public std::istream
 {
@@ -43,6 +44,7 @@ public:
     void set_chapter(int);
     void set_position(std::chrono::milliseconds);
     void set_track_ids(const struct track_ids &);
+    void set_subtitle_file(subtitles::file &&);
 
     bool open(
             const std::string &mrl,
@@ -71,6 +73,7 @@ private:
     int chapter;
     std::chrono::milliseconds position;
     struct track_ids track_ids;
+    subtitles::file subtitle_file;
 
     std::unique_ptr<platform::process> process;
     std::shared_ptr<shared_info> info, last_info;

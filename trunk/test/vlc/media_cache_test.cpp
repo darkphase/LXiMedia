@@ -1,6 +1,7 @@
 #include "test.h"
 #include "vlc/media.cpp"
 #include "vlc/media_cache.cpp"
+#include "vlc/subtitles.cpp"
 #include "platform/fstream.h"
 #include "platform/messageloop.h"
 #include "platform/path.h"
@@ -13,11 +14,19 @@ namespace vlc {
 static const struct media_cache_test
 {
     const resources::resource_file pm5544_png;
+    std::string media_cache_file;
 
     media_cache_test()
         : pm5544_png(resources::pm5544_png, "png"),
+          media_cache_file(platform::temp_file_path("ini")),
           png_test(this, "vlc::media::png", &media_cache_test::png)
     {
+    }
+
+    ~media_cache_test()
+    {
+        if (!media_cache_file.empty())
+            ::remove(media_cache_file.c_str());
     }
 
     struct test png_test;
@@ -30,7 +39,8 @@ static const struct media_cache_test
         test_assert(static_cast< ::libvlc_media_t *>(media) != nullptr);
         test_assert(!media.mrl().empty());
 
-        class media_cache media_cache(messageloop_ref, instance);
+        class platform::inifile inifile(media_cache_file);
+        class media_cache media_cache(messageloop_ref, instance, inifile);
 
         static const platform::uuid ref_uuid("6c9a8849-dbd4-5b7e-8f50-0916d1294251");
         test_assert(media_cache.uuid(media.mrl()) == ref_uuid);

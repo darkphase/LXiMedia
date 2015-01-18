@@ -23,6 +23,7 @@
 #include "platform/translator.h"
 #include "vlc/image_stream.h"
 #include "vlc/media.h"
+#include "vlc/media_cache.h"
 #include "vlc/transcode_stream.h"
 #include "watchlist.h"
 #include <algorithm>
@@ -43,15 +44,16 @@ files::files(
         class pupnp::content_directory &content_directory,
         class recommended &recommended,
         const class settings &settings,
-        class watchlist &watchlist)
+        class platform::inifile &media_cache_file,
+        class platform::inifile &watchlist_file)
     : messageloop(messageloop),
       vlc_instance(vlc_instance),
-      media_cache(messageloop, vlc_instance),
+      media_cache(messageloop, vlc_instance, media_cache_file),
       connection_manager(connection_manager),
       content_directory(content_directory),
       recommended(recommended),
       settings(settings),
-      watchlist(watchlist),
+      watchlist(messageloop, watchlist_file),
       basedir('/' + tr("Files") + '/'),
       min_parse_time(3000),
       max_parse_time(30000),
@@ -509,8 +511,14 @@ int files::play_audio_video_item(
                     {
                     case vlc::track_type::unknown:  break;
                     case vlc::track_type::audio:    track_ids.audio = t.id; break;
-                    case vlc::track_type::video:    track_ids.video = t.id; break;
-                    case vlc::track_type::text:     track_ids.text  = t.id; break;
+                    case vlc::track_type::video:    /* Disabled because of VLC bug. track_ids.video = t.id;*/ break;
+
+                    case vlc::track_type::text:
+                        if (!t.file.empty())
+                            stream->set_subtitle_file(vlc::subtitles::file(t.file, t.text.encoding));
+
+                        track_ids.text = t.id;
+                        break;
                     }
 
         stream->set_track_ids(track_ids);
@@ -746,11 +754,15 @@ const std::vector<std::string> & files::list_files(const std::string &path, bool
             else
             {
                 const auto system_path = to_system_path(path).path;
-                for (auto &i : platform::list_files(system_path, false))
+                for (auto &i : platform::list_files(system_path))
                 {
                     if (ends_with(i, "/"))
                     {
-                        const auto children = platform::list_files(system_path + i, false, 2);
+                        const auto children = platform::list_files(
+                                    system_path + i,
+                                    platform::file_filter::large_files,
+                                    2);
+
                         if ((children.size() == 1) && !ends_with(children.front(), "/"))
                             files.emplace(file_prefix + to_lower(children.front()), i + children.front());
                         else if (children.size() > 0)

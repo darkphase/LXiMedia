@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "watchlist.h"
+#include "platform/inifile.h"
 #include "platform/path.h"
 #include <cassert>
 #include <iomanip>
@@ -73,9 +74,11 @@ static watchlist::entry to_entry(const std::string &str)
     return result;
 }
 
-watchlist::watchlist(class platform::messageloop_ref &messageloop)
+watchlist::watchlist(
+        class platform::messageloop_ref &messageloop,
+        class platform::inifile &inifile)
     : messageloop(messageloop),
-      inifile(platform::config_dir() + "/watchlist"),
+      inifile(inifile),
       timer(messageloop, std::bind(&platform::inifile::save, &inifile)),
       save_delay(250)
 {
@@ -89,6 +92,7 @@ watchlist::watchlist(class platform::messageloop_ref &messageloop)
 
 watchlist::~watchlist()
 {
+    inifile.on_touched = nullptr;
 }
 
 std::vector<struct watchlist::entry> watchlist::watched_items() const

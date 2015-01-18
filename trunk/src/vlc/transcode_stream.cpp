@@ -89,6 +89,11 @@ void transcode_stream::set_track_ids(const struct track_ids &ids)
     track_ids = ids;
 }
 
+void transcode_stream::set_subtitle_file(subtitles::file &&file)
+{
+    subtitle_file = std::move(file);
+}
+
 bool transcode_stream::open(
         const std::string &mrl,
         const std::string &transcode,
@@ -109,6 +114,10 @@ bool transcode_stream::open(
                 << ":std{access=fd,mux=" << mux << ",dst=" << fd << "}";
 
         libvlc_media_add_option(media, sout.str().c_str());
+
+        if (subtitle_file)
+            libvlc_media_add_option(media, (":sub-file=" + std::string(subtitle_file)).c_str());
+
         for (auto &option : options)
             libvlc_media_add_option(media, option.c_str());
 
@@ -128,17 +137,26 @@ bool transcode_stream::open(
                 {
                     t->started = true;
 
-//                        libvlc_video_set_track(t->player, -1);
-//                        if (t->me->track_ids.video > 0)
-//                            libvlc_video_set_track(t->player, t->me->track_ids.video);
+                    if (t->me->track_ids.video >= -1)
+                    {
+                        libvlc_video_set_track(t->player, -1);
+                        if (t->me->track_ids.video > 0)
+                            libvlc_video_set_track(t->player, t->me->track_ids.video);
+                    }
 
-                    libvlc_audio_set_track(t->player, -1);
-                    if (t->me->track_ids.audio >= 0)
-                        libvlc_audio_set_track(t->player, t->me->track_ids.audio);
+                    if (t->me->track_ids.audio >= -1)
+                    {
+                        libvlc_audio_set_track(t->player, -1);
+                        if (t->me->track_ids.audio >= 0)
+                            libvlc_audio_set_track(t->player, t->me->track_ids.audio);
+                    }
 
-                    libvlc_video_set_spu(t->player, -1);
-                    if (t->me->track_ids.text >= 0)
-                        libvlc_video_set_spu(t->player, t->me->track_ids.text);
+                    if (t->me->track_ids.text >= -1)
+                    {
+                        libvlc_video_set_spu(t->player, -1);
+                        if (t->me->track_ids.text >= 0)
+                            libvlc_video_set_spu(t->player, t->me->track_ids.text);
+                    }
                 }
                 else if (e->type == libvlc_MediaPlayerEndReached)
                 {

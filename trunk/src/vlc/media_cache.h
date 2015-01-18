@@ -21,13 +21,15 @@
 #include "media.h"
 #include "platform/inifile.h"
 #include "platform/messageloop.h"
+#include "platform/process.h"
 #include "platform/uuid.h"
 #include <chrono>
-#include <condition_variable>
 #include <map>
 #include <string>
-#include <thread>
 #include <vector>
+#ifdef PROCESS_USES_THREAD
+# include <mutex>
+#endif
 
 struct libvlc_media_t;
 
@@ -47,6 +49,8 @@ public:
         ~track();
 
         int id;
+        std::string file;
+
         std::string language;
         std::string description;
 
@@ -56,6 +60,7 @@ public:
             struct { unsigned sample_rate, channels; } audio;
             struct { unsigned width, height; float frame_rate; } video;
         };
+        struct { std::string encoding; } text;
     };
 
     struct media_info
@@ -84,7 +89,8 @@ private:
 public:
     explicit media_cache(
             class platform::messageloop_ref &,
-            class instance &);
+            class instance &,
+            class platform::inifile &);
 
     ~media_cache();
 
@@ -95,17 +101,22 @@ public:
     void scan_files(const std::vector<std::string> &);
 
 private:
+    struct media_info subtitle_info(const std::string &);
+
+private:
     class instance &instance;
+    class platform::inifile &inifile;
 
     std::map<std::string, platform::uuid> uuids;
-    class platform::inifile inifile;
     class platform::timer timer;
     const std::chrono::seconds save_delay;
     class platform::inifile::section section;
 
-    std::vector<std::string> background_scan_queue;
-    std::thread background_scan_thread;
-    bool background_scan_finished;
+    const unsigned num_queues;
+#ifdef PROCESS_USES_THREAD
+    std::mutex mutex;
+    std::vector<vlc::instance> instances;
+#endif
 };
 
 std::ostream & operator<<(std::ostream &, const struct media_cache::track &);

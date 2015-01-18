@@ -13,11 +13,12 @@ static const struct transcode_stream_test
 {
     const resources::resource_file a440hz_flac;
     const resources::resource_file pm5544_png;
-    std::string outfile;
+    std::string media_cache_file, out_file;
 
     transcode_stream_test()
         : a440hz_flac(resources::a440hz_flac, "flac"),
           pm5544_png(resources::pm5544_png, "png"),
+          media_cache_file(platform::temp_file_path("ini")),
           transcode_mp2v_ps_test(this, "vlc::transcode_stream::transcode_mp2v_ps", &transcode_stream_test::transcode_mp2v_ps),
           transcode_mp2v_ts_test(this, "vlc::transcode_stream::transcode_mp2v_ts", &transcode_stream_test::transcode_mp2v_ts),
           transcode_h264_ts_test(this, "vlc::transcode_stream::transcode_h264_ts", &transcode_stream_test::transcode_h264_ts)
@@ -26,8 +27,11 @@ static const struct transcode_stream_test
 
     ~transcode_stream_test()
     {
-        if (!outfile.empty())
-            ::remove(outfile.c_str());
+        if (!out_file.empty())
+            ::remove(out_file.c_str());
+
+        if (!media_cache_file.empty())
+            ::remove(media_cache_file.c_str());
     }
 
     void transcode_base(const std::string &transcode, const char *mux)
@@ -35,12 +39,14 @@ static const struct transcode_stream_test
         class platform::messageloop messageloop;
         class platform::messageloop_ref messageloop_ref(messageloop);
         class instance instance;
-        class media_cache media_cache(messageloop_ref, instance);
 
-        if (!outfile.empty())
-            ::remove(outfile.c_str());
+        class platform::inifile inifile(media_cache_file);
+        class media_cache media_cache(messageloop_ref, instance, inifile);
 
-        outfile = platform::temp_file_path(mux);
+        if (!out_file.empty())
+            ::remove(out_file.c_str());
+
+        out_file = platform::temp_file_path(mux);
 
         // Transcode file.
         {
@@ -53,12 +59,12 @@ static const struct transcode_stream_test
 
             struct vlc::track_ids track_ids;
             track_ids.audio = 1;
-            track_ids.video = 0;
+            /* Disabled because of VLC bug. track_ids.video = 0; */
             transcode_stream.set_track_ids(track_ids);
 
             test_assert(transcode_stream.open(pm5544_png_media.mrl(), transcode, mux));
 
-            platform::ofstream out(outfile, std::ios::binary);
+            platform::ofstream out(out_file, std::ios::binary);
             test_assert(out.is_open());
 
             bool finished = false;
@@ -77,7 +83,7 @@ static const struct transcode_stream_test
 
         // Check output file.
         {
-            auto media = media::from_file(instance, outfile);
+            auto media = media::from_file(instance, out_file);
 
             const auto media_info = media_cache.media_info(media);
             test_assert(media_info.tracks.size() == 2);
@@ -110,8 +116,8 @@ static const struct transcode_stream_test
             }
         }
 
-        ::remove(outfile.c_str());
-        outfile.clear();
+        ::remove(out_file.c_str());
+        out_file.clear();
     }
 
     struct test transcode_mp2v_ps_test;

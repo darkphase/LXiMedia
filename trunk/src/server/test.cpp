@@ -303,7 +303,7 @@ int test::play_item(
 
             struct vlc::track_ids track_ids;
             track_ids.audio = 1;
-            track_ids.video = 0;
+            /* Disabled because of VLC bug. track_ids.video = 0; */
             stream->set_track_ids(track_ids);
 
             stream->on_end_reached = [this, item] { items.insert(item.path); };

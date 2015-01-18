@@ -15,42 +15,44 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef PLATFORM_PATH_H
-#define PLATFORM_PATH_H
+#ifndef VLC_SUBTITLES_H
+#define VLC_SUBTITLES_H
 
 #include <string>
 #include <vector>
 
-namespace platform {
+namespace vlc {
 
-std::string clean_path(const std::string &);
-std::string mrl_from_path(const std::string &);
-std::string path_from_mrl(const std::string &);
+namespace subtitles {
 
-std::vector<std::string> list_root_directories();
+class file
+{
+public:
+    file();
+    file(const std::string &path, const std::string &encoding);
+    file(file &&);
+    file(const file &) = delete;
+    ~file();
 
-enum class file_filter { all, directories, large_files };
-std::vector<std::string> list_files(
+    file & operator=(file &&);
+    file & operator=(const file &) = delete;
+
+    operator bool() const { return !path.empty(); }
+    operator const std::string &() const { return path; }
+
+private:
+    std::string path;
+    bool own;
+};
+
+std::vector<std::string> find_subtitle_files(const std::string &path);
+
+bool determine_subtitle_language(
         const std::string &path,
-        file_filter filter = file_filter::large_files,
-        size_t max_count = size_t(-1));
+        const char *&language,
+        const char *&encoding);
 
-std::vector<std::string> list_removable_media();
-
-std::string file_date(const std::string &path);
-
-std::string temp_file_path(const std::string &suffix);
-void remove_file(const std::string &);
-void rename_file(const std::string &old_path, const std::string &new_path);
-
-std::string home_dir();
-std::string config_dir();
-
-#ifdef WIN32
-std::string volume_name(const std::string &);
-std::wstring to_windows_path(const std::string &);
-std::string from_windows_path(const std::wstring &);
-#endif
+} // End of namespace
 
 } // End of namespace
 

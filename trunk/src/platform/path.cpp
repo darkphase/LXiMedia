@@ -46,6 +46,15 @@ std::string clean_path(const std::string &path)
     return result;
 }
 
+std::string mrl_from_path(const std::string &path)
+{
+#if !defined(WIN32)
+    return "file://" + to_percent(path);
+#else
+    return "file:///" + to_percent(path);
+#endif
+}
+
 std::string path_from_mrl(const std::string &mrl)
 {
 #if !defined(WIN32)
@@ -154,7 +163,7 @@ static std::string suffix_of(const std::string &name)
 
 std::vector<std::string> list_files(
         const std::string &path,
-        bool directories_only,
+        file_filter filter,
         size_t max_count)
 {
     std::string cpath = path;
@@ -182,17 +191,26 @@ std::vector<std::string> list_files(
             if ((dirent->d_name[0] != '.') &&
                 (::stat((cpath + dirent->d_name).c_str(), &stat) == 0))
             {
-                std::string name = dirent->d_name, lname = to_lower(name);
-                if (S_ISDIR(stat.st_mode) &&
-                    (hidden_names.find(lname) == hidden_names.end()) &&
-                    (hidden_dirs.find(cpath + name) == hidden_dirs.end()))
+                const std::string name = dirent->d_name;
+                if (!name.empty() && (name[name.length() - 1] != '~'))
                 {
-                    result.emplace_back(name + '/');
-                }
-                else if (!directories_only && (size_t(stat.st_size) >= min_file_size) &&
-                         (hidden_suffixes.find(suffix_of(lname)) == hidden_suffixes.end()))
-                {
-                    result.emplace_back(std::move(name));
+                    const std::string lname = to_lower(name);
+                    if (S_ISDIR(stat.st_mode) &&
+                        (hidden_names.find(lname) == hidden_names.end()) &&
+                        (hidden_dirs.find(cpath + name) == hidden_dirs.end()))
+                    {
+                        result.emplace_back(name + '/');
+                    }
+                    else if (filter == file_filter::all)
+                    {
+                        result.emplace_back(std::move(name));
+                    }
+                    else if ((filter == file_filter::large_files) &&
+                             (size_t(stat.st_size) >= min_file_size) &&
+                             (hidden_suffixes.find(suffix_of(lname)) == hidden_suffixes.end()))
+                    {
+                        result.emplace_back(std::move(name));
+                    }
                 }
             }
         }
@@ -211,8 +229,8 @@ std::vector<std::string> list_removable_media()
         const std::string media_dir = "/media/" + std::string(pw->pw_name) + '/';
 
         std::vector<std::string> result;
-        for (auto &i : list_files(media_dir, true))
-            if (!list_files(media_dir + i, false, 1).empty())
+        for (auto &i : list_files(media_dir, platform::file_filter::directories))
+            if (!list_files(media_dir + i, platform::file_filter::large_files, 1).empty())
                 result.emplace_back(media_dir + i);
 
         return result;
@@ -423,7 +441,7 @@ static std::wstring suffix_of(const std::wstring &name)
 
 std::vector<std::string> list_files(
         const std::string &path,
-        bool directories_only,
+        file_filter filter,
         size_t max_count)
 {
     const std::wstring wpath = clean_path(platform::to_windows_path(::to_lower(path))) + L'\\';
@@ -455,7 +473,12 @@ std::vector<std::string> list_files(
                 {
                     result.emplace_back(from_utf16(name) + '/');
                 }
-                else if (!directories_only && (size_t(stat.st_size) >= min_file_size) &&
+                else if (filter == file_filter::all)
+                {
+                    result.emplace_back(from_utf16(name));
+                }
+                else if ((filter == file_filter::large_files) &&
+                         (size_t(stat.st_size) >= min_file_size) &&
                          (hidden_suffixes.find(suffix_of(lname)) == hidden_suffixes.end()))
                 {
                     result.emplace_back(from_utf16(name));
@@ -478,7 +501,7 @@ std::vector<std::string> list_removable_media()
         {
         case DRIVE_REMOVABLE:
         case DRIVE_CDROM:
-            if (!list_files(i, false, 1).empty())
+            if (!list_files(i, file_filter::large_files, 1).empty())
                 result.emplace_back(i);
 
             break;
@@ -507,7 +530,7 @@ std::vector<std::string> list_removable_media()
                                 &devd, sizeof(devd),
                                 &bytes, NULL))
                     {
-                        if ((devd.BusType == BusTypeUsb) && !list_files(i, false, 1).empty())
+                        if ((devd.BusType == BusTypeUsb) && !list_files(i, file_filter::large_files, 1).empty())
                             result.emplace_back(i);
                     }
 
