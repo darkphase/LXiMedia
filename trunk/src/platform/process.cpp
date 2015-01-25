@@ -223,13 +223,6 @@ process::process(
 #endif
                 ::nice(5);
                 break;
-
-            case priority::idle:
-#ifdef __linux__
-                ::syscall(SYS_ioprio_set, 1, getpid(), 0x6007);
-#endif
-                ::nice(15);
-                break;
             }
 
             ::close(pipe_desc[0]);
@@ -344,15 +337,7 @@ process::process(
             ::SetThreadPriority(::GetCurrentThread(), THREAD_PRIORITY_LOWEST);
 #endif
             break;
-
-        case priority::idle:
-#if defined(WIN32)
-            ::SetThreadPriority(::GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
-            ::SetThreadPriority(::GetCurrentThread(), THREAD_PRIORITY_IDLE);
-#endif
-            break;
         }
-
 
         function(*this, pipe_desc[1]);
     });

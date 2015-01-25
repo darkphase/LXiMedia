@@ -38,7 +38,7 @@ namespace platform {
 class process : public std::istream
 {
 public:
-    enum class priority { normal, low, idle };
+    enum class priority { normal, low };
 
 public:
     template <typename _Type>
