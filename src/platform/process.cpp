@@ -521,12 +521,16 @@ process::~process()
 
 void process::send_term()
 {
-    get_shared<bool>(0) = true;
+    if ((child != 0) && shm)
+        get_shared<bool>(0) = true;
 }
 
 bool process::term_pending() const
 {
-    return get_shared<bool>(0);
+    if ((child == 0) && shm)
+        return get_shared<bool>(0);
+
+    return false;
 }
 
 bool process::joinable() const
