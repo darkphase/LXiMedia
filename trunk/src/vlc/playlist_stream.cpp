@@ -17,17 +17,10 @@
 
 #include "vlc/playlist_stream.h"
 #include "vlc/transcode_stream.h"
-#include <cassert>
 #include <cmath>
-#include <condition_variable>
-#include <cstring>
 #include <iostream>
 #include <memory>
-#include <mutex>
-#include <set>
 #include <sstream>
-#include <streambuf>
-#include <thread>
 #include <vector>
 
 static const size_t buffer_size = 1048576;

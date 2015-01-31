@@ -15,24 +15,15 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#include "transcode_stream.h"
-#include "media.h"
-#include "instance.h"
+#include "vlc/transcode_stream.h"
+#include "vlc/media.h"
+#include "vlc/instance.h"
 #include "platform/string.h"
 #include <vlc/vlc.h>
 #include <cmath>
-#include <condition_variable>
-#include <cstring>
 #include <iostream>
-#include <mutex>
 #include <sstream>
 #include <thread>
-
-#if defined(__unix__) || defined(__APPLE__)
-# include <unistd.h>
-#elif defined(WIN32)
-# include <io.h>
-#endif
 
 namespace vlc {
 

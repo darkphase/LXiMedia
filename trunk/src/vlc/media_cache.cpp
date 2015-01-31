@@ -29,7 +29,6 @@
 #include <queue>
 #include <sstream>
 #include <thread>
-#include <unordered_set>
 
 namespace vlc {
 
