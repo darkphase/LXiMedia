@@ -22,7 +22,6 @@
 #include "pupnp/connection_manager.h"
 #include "pupnp/content_directory.h"
 #include "settings.h"
-#include "vlc/instance.h"
 #include <cstdint>
 #include <cstdlib>
 #include <string>

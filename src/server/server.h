@@ -32,7 +32,6 @@
 #include "pupnp/mediareceiver_registrar.h"
 #include "pupnp/rootdevice.h"
 #include "pupnp/upnp.h"
-#include "vlc/instance.h"
 #include "settings.h"
 
 class files;
@@ -81,7 +80,6 @@ private:
     class pupnp::content_directory content_directory;
     class pupnp::mediareceiver_registrar mediareceiver_registrar;
 
-    std::unique_ptr<class vlc::instance> vlc_instance;
     std::unique_ptr<class recommended> recommended;
     std::unique_ptr<class files> files;
     std::unique_ptr<class setup> setup;

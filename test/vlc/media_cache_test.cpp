@@ -34,20 +34,18 @@ static const struct media_cache_test
     {
         class platform::messageloop messageloop;
         class platform::messageloop_ref messageloop_ref(messageloop);
-        class instance instance;
-        auto media = media::from_file(instance, pm5544_png);
-        test_assert(static_cast< ::libvlc_media_t *>(media) != nullptr);
-        test_assert(!media.mrl().empty());
+        auto mrl = platform::mrl_from_path(pm5544_png);
+        test_assert(!mrl.empty());
 
         class platform::inifile inifile(media_cache_file);
-        class media_cache media_cache(messageloop_ref, instance, inifile);
+        class media_cache media_cache(messageloop_ref, inifile);
 
         static const platform::uuid ref_uuid("6c9a8849-dbd4-5b7e-8f50-0916d1294251");
-        test_assert(media_cache.uuid(media.mrl()) == ref_uuid);
+        test_assert(media_cache.uuid(mrl) == ref_uuid);
 
-        test_assert(media_cache.media_type(media) == media_type::picture);
+        test_assert(media_cache.media_type(mrl) == media_type::picture);
 
-        const auto media_info = media_cache.media_info(media);
+        const auto media_info = media_cache.media_info(mrl);
         test_assert(media_info.tracks.size() == 1);
         for (const auto &track : media_info.tracks)
         {

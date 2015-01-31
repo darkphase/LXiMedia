@@ -31,7 +31,6 @@ class playlist_stream : public std::istream
 public:
     playlist_stream(
             class platform::messageloop_ref &,
-            class instance &,
             const std::string &transcode,
             const std::string &mux);
 
@@ -43,7 +42,6 @@ private:
     class streambuf;
 
     class platform::messageloop_ref messageloop;
-    class instance &instance;
     const std::string transcode;
     const std::string mux;
 

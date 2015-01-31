@@ -29,17 +29,16 @@
 
 namespace vlc {
 
-class instance;
-
 struct track_ids { int audio, video, text; track_ids() : audio(-2), video(-2), text(-2) {} };
 
 class transcode_stream : public std::istream
 {
 public:
-    transcode_stream(class platform::messageloop_ref &, class instance &);
+    explicit transcode_stream(class platform::messageloop_ref &);
     ~transcode_stream();
 
     void add_option(const std::string &);
+    void set_font_size(int);
     void set_chapter(int);
     void set_position(std::chrono::milliseconds);
     void set_track_ids(const struct track_ids &);
@@ -67,9 +66,9 @@ private:
     static platform::process::function_handle transcode_function;
 
     class platform::messageloop_ref messageloop;
-    class instance &instance;
 
     std::vector<std::string> options;
+    int font_size;
     int chapter;
     std::chrono::milliseconds position;
     struct track_ids track_ids;

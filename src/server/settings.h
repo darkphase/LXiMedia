@@ -73,9 +73,6 @@ public:
     bool share_removable_media() const;
     void set_share_removable_media(bool);
 
-    bool verbose_logging_enabled() const;
-    void set_verbose_logging_enabled(bool);
-
     bool mpeg2_enabled() const;
     void set_mpeg2_enabled(bool);
     bool mpeg4_enabled() const;

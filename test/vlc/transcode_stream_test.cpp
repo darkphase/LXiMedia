@@ -38,10 +38,9 @@ static const struct transcode_stream_test
     {
         class platform::messageloop messageloop;
         class platform::messageloop_ref messageloop_ref(messageloop);
-        class instance instance;
 
         class platform::inifile inifile(media_cache_file);
-        class media_cache media_cache(messageloop_ref, instance, inifile);
+        class media_cache media_cache(messageloop_ref, inifile);
 
         if (!out_file.empty())
             ::remove(out_file.c_str());
@@ -50,19 +49,19 @@ static const struct transcode_stream_test
 
         // Transcode file.
         {
-            class transcode_stream transcode_stream(messageloop_ref, instance);
+            class transcode_stream transcode_stream(messageloop_ref);
 
-            class media a440hz_flac_media = media::from_file(instance, a440hz_flac);
-            transcode_stream.add_option(":input-slave=" + a440hz_flac_media.mrl());
+            const auto a440hz_flac_mrl = platform::mrl_from_path(a440hz_flac);
+            transcode_stream.add_option(":input-slave=" + a440hz_flac_mrl);
 
-            class media pm5544_png_media = media::from_file(instance, pm5544_png);
+            const auto pm5544_png_mrl = platform::mrl_from_path(pm5544_png);
 
             struct vlc::track_ids track_ids;
             track_ids.audio = 1;
             /* Disabled because of VLC bug. track_ids.video = 0; */
             transcode_stream.set_track_ids(track_ids);
 
-            test_assert(transcode_stream.open(pm5544_png_media.mrl(), transcode, mux));
+            test_assert(transcode_stream.open(pm5544_png_mrl, transcode, mux));
 
             platform::ofstream out(out_file, std::ios::binary);
             test_assert(out.is_open());
@@ -83,9 +82,9 @@ static const struct transcode_stream_test
 
         // Check output file.
         {
-            auto media = media::from_file(instance, out_file);
+            const auto media_info = media_cache.media_info(
+                        platform::mrl_from_path(out_file));
 
-            const auto media_info = media_cache.media_info(media);
             test_assert(media_info.tracks.size() == 2);
             if (instance::compare_version(2, 1) != 0)
             {

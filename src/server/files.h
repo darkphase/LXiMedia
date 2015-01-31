@@ -31,8 +31,6 @@
 #include <string>
 #include <vector>
 
-namespace vlc { class instance; class transcode_stream; }
-
 class watchlist;
 
 class files
@@ -42,7 +40,6 @@ class files
 public:
     files(
             class platform::messageloop_ref &,
-            class vlc::instance &,
             class pupnp::connection_manager &,
             class pupnp::content_directory &,
             class recommended &recommended,
@@ -63,7 +60,7 @@ private: // From recommended::item_source
 
 private:
     const std::vector<std::string> & list_files(const std::string &, bool flush_cache);
-    std::vector<std::string> scan_files_paths(const std::vector<std::string> &) const;
+    std::vector<std::string> scan_files_mrls(const std::vector<std::string> &) const;
     pupnp::content_directory::item make_item(const std::string &, const std::string &) const;
     root_path to_system_path(const std::string &) const;
     std::string to_virtual_path(const std::string &) const;
@@ -89,7 +86,6 @@ private:
 
 private:
     class platform::messageloop_ref messageloop;
-    class vlc::instance &vlc_instance;
     mutable class vlc::media_cache media_cache;
     class pupnp::connection_manager &connection_manager;
     class pupnp::content_directory &content_directory;

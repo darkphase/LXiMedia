@@ -22,8 +22,6 @@
 #include "pupnp/connection_manager.h"
 #include "pupnp/content_directory.h"
 
-namespace vlc { class instance; class transcode_stream; }
-
 class watchlist;
 
 class recommended : private pupnp::content_directory::item_source
