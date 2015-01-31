@@ -16,46 +16,51 @@
  ******************************************************************************/
 
 #include "process.h"
-
-#ifndef PLATFORM_PROCESS_PIPE_STREAMBUF_CPP
-#define PLATFORM_PROCESS_PIPE_STREAMBUF_CPP
+#undef register_function
+#include "platform/string.h"
+#include "platform/uuid.h"
+#include <cassert>
+#include <cstring>
+#include <functional>
+#include <map>
 
 #if defined(__unix__) || defined(__APPLE__)
 # include <unistd.h>
 #elif defined(WIN32)
 # include <io.h>
-# include <windows.h>
 #endif
 
 namespace {
 
-class pipe_streambuf : public std::streambuf
+struct pipe_streambuf : public std::streambuf
 {
-public:
-    explicit pipe_streambuf(int fd);
+    explicit pipe_streambuf(int ifd, int ofd);
     ~pipe_streambuf();
 
     int underflow() override;
     int overflow(int value) override;
     int sync() override;
 
-private:
-    const int fd;
-    static const size_t putback = 8;
-    char buffer[4096];
+    const int ifd, ofd;
+    static const unsigned putback = 8;
+    static const unsigned buffer_size = 4096;
+    char ibuffer[buffer_size];
+    char obuffer[buffer_size];
 };
 
-pipe_streambuf::pipe_streambuf(int fd)
-    : fd(fd)
+pipe_streambuf::pipe_streambuf(int ifd, int ofd)
+    : ifd(ifd), ofd(ofd)
 {
 }
 
 pipe_streambuf::~pipe_streambuf()
 {
 #if !defined(WIN32)
-    ::close(fd);
+    if (ifd) ::close(ifd);
+    if (ofd) ::close(ofd);
 #else
-    ::_close(fd);
+    if (ifd) ::_close(ifd);
+    if (ofd) ::_close(ofd);
 #endif
 }
 
@@ -65,13 +70,13 @@ int pipe_streambuf::underflow()
         return traits_type::to_int_type(*this->gptr());
 
 #if !defined(WIN32)
-    const int rc = ::read(fd, &buffer[putback], sizeof(buffer) - putback);
+    const int rc = ::read(ifd, &ibuffer[putback], sizeof(ibuffer) - putback);
 #else
-    const int rc = ::_read(fd, &buffer[putback], sizeof(buffer) - putback);
+    const int rc = ::_read(ifd, &ibuffer[putback], sizeof(ibuffer) - putback);
 #endif
-    if ((rc > 0) && (rc <= int(sizeof(buffer) - putback)))
+    if ((rc > 0) && (rc <= int(sizeof(ibuffer) - putback)))
     {
-        setg(&buffer[0], &buffer[putback], &buffer[putback] + rc);
+        setg(&ibuffer[0], &ibuffer[putback], &ibuffer[putback] + rc);
 
         return traits_type::to_int_type(*gptr());
     }
@@ -85,9 +90,9 @@ int pipe_streambuf::overflow(int value)
     for (int pos = 0; pos < size; )
     {
 #if !defined(WIN32)
-        const int rc = ::write(fd, &buffer[pos], size);
+        const int rc = ::write(ofd, &obuffer[pos], size);
 #else
-        const int rc = ::_write(fd, &buffer[pos], size);
+        const int rc = ::_write(ofd, &obuffer[pos], size);
 #endif
         if (rc > 0)
             pos += size;
@@ -95,7 +100,7 @@ int pipe_streambuf::overflow(int value)
             return traits_type::eof();
     }
 
-    this->setp(&buffer[0], &buffer[sizeof(buffer)]);
+    this->setp(&obuffer[0], &obuffer[sizeof(obuffer)]);
     if (!traits_type::eq_int_type(value, traits_type::eof()))
         this->sputc(value);
 
@@ -104,35 +109,106 @@ int pipe_streambuf::overflow(int value)
 
 int pipe_streambuf::sync()
 {
-    int result = overflow(traits_type::eof());
-#if !defined(WIN32)
-    ::fsync(fd);
-#endif
+    return traits_type::eq_int_type(
+                overflow(traits_type::eof()),
+                traits_type::eof()) ? -1 : 0;
+}
 
-    return traits_type::eq_int_type(result, traits_type::eof()) ? -1 : 0;
+struct strcmp_less
+{
+    bool operator()(const char *a, const char *b) const
+    {
+        return strcmp(a, b) < 0;
+    }
+};
+
+std::map<const char *, platform::process::function, strcmp_less> &functions()
+{
+    static std::map<const char *, platform::process::function, strcmp_less> f;
+    return f;
 }
 
 }
-#endif
 
 namespace platform {
 
-process::process(
-        const std::function<void(process &, std::ostream &)> &function,
-        priority priority_)
-    : process([function](class process &process, int fd)
-        {
-            pipe_streambuf streambuf(fd);
-            std::ostream stream(&streambuf);
-
-            function(process, stream);
-        }, priority_)
+struct process::shm_data
 {
+    uint64_t size; // data should be 8-byte aligned.
+    uint8_t data[4088];
+};
+
+process::function_handle process::register_function(
+        const char *name,
+        function func)
+{
+    function_handle handle;
+    handle.name = name;
+    while (*handle.name == '&')
+        handle.name++;
+
+    functions()[handle.name] = func;
+    return handle;
+}
+
+process::operator bool() const
+{
+    return !term_pending() && *static_cast<const std::iostream *>(this);
+}
+
+int process::input_fd()
+{
+    return static_cast<pipe_streambuf *>(std::iostream::rdbuf())->ifd;
+}
+
+int process::output_fd()
+{
+    return static_cast<pipe_streambuf *>(std::iostream::rdbuf())->ofd;
+}
+
+unsigned process::alloc_shared(size_t size)
+{
+    static_assert(sizeof(shm_data) == 4096, "sizeof(shm_data) != 4096");
+
+    if (size <= sizeof(shm->data))
+    {
+        // Make sure the pointer is 8-byte aligned.
+        const uint64_t u64_size = uint64_t(size + 7) & ~uint64_t(7);
+
+        uint64_t after_size = __sync_add_and_fetch(&shm->size, u64_size);
+        if (after_size <= sizeof(shm->data))
+            return after_size - u64_size;
+
+        __sync_sub_and_fetch(&shm->size, u64_size);
+    }
+
+    return unsigned(-1);
+}
+
+volatile void * process::get_shared(unsigned offset, size_t size)
+{
+    if ((size + offset) < sizeof(shm->data))
+    {
+        // Check if the pointer is 8-byte aligned.
+        assert((uintptr_t(shm->data + offset) & 7) == 0);
+
+        return shm->data + offset;
+    }
+
+    throw std::runtime_error("Invalid offset passed to get_shared");
+}
+
+const volatile void * process::get_shared(unsigned offset, size_t size) const
+{
+    if ((size + offset) < sizeof(shm->data))
+        return shm->data + offset;
+
+    throw std::runtime_error("Invalid offset passed to get_shared");
 }
 
 } // End of namespace
 
-#ifndef PROCESS_USES_THREAD
+#if defined(__unix__) || defined(__APPLE__)
 #include <cstdio>
 #include <sys/mman.h>
 #include <sys/wait.h>
@@ -143,53 +219,49 @@ process::process(
 # include <sys/syscall.h>
 #endif
 
-namespace {
+namespace platform {
 
-volatile bool term_received = false;
+void process::process_entry(int, const char *[])
+{
+}
 
-void signal_handler(int /*signal*/)
+static volatile bool term_received = false;
+static void signal_handler(int /*signal*/)
 {
     term_received = true;
 }
 
-}
-
-namespace platform {
-
-void * process::map(size_t size)
+process::process(function_handle handle, priority priority_)
+    : std::iostream(nullptr),
+      child(0),
+      shm(nullptr)
 {
-    return ::mmap(
-                nullptr, size,
-                PROT_READ | PROT_WRITE,
+    const auto &functions = ::functions();
+    auto function = functions.find(handle.name);
+    if (function == functions.end())
+        throw std::runtime_error("Failed to find child function");
+
+    // Create pipes.
+    int ipipe[2], opipe[2];
+    if ((pipe(ipipe) != 0) || (pipe(opipe) != 0))
+        throw std::runtime_error("Creating pipes failed");
+
+    // Create shared memory.
+    shm = reinterpret_cast<volatile shm_data *>(
+                ::mmap(
+                    nullptr, sizeof(shm_data),
+                    PROT_READ | PROT_WRITE,
 #if !defined(__APPLE__)
-                MAP_SHARED | MAP_ANONYMOUS,
+                    MAP_SHARED | MAP_ANONYMOUS,
 #else
-                MAP_SHARED | MAP_ANON,
+                    MAP_SHARED | MAP_ANON,
 #endif
-                -1, 0);
-}
+                    -1, 0));
 
-void process::unmap(void *addr, size_t size)
-{
-    ::munmap(addr, size);
-}
+    if (shm == nullptr)
+        throw std::runtime_error("Creating shared memory failed");
 
-process::process()
-    : std::istream(nullptr),
-      child(0)
-{
-}
-
-process::process(
-        const std::function<void(process &, int)> &function,
-        priority priority_)
-    : std::istream(nullptr),
-      child(0)
-{
-    int pipe_desc[2];
-    if (pipe(pipe_desc) != 0)
-        throw std::runtime_error("Creating pipe failed");
-
+    // Spawn child process
     ::fflush(::stdout);
     ::fflush(::stderr);
 
@@ -225,19 +297,25 @@ process::process(
                 break;
             }
 
-            ::close(pipe_desc[0]);
-            function(*this, pipe_desc[1]);
+            ::close(ipipe[1]);
+            ::close(opipe[0]);
+
+            std::iostream::rdbuf(new pipe_streambuf(ipipe[0], opipe[1]));
+            const int exit_code = function->second(*this);
 
             ::fflush(::stdout);
             ::fflush(::stderr);
 
-            ::_exit(0);
+            delete std::iostream::rdbuf(nullptr);
+
+            ::_exit(exit_code);
         }
         else
         {   // Parent process
-            ::close(pipe_desc[1]);
+            ::close(ipipe[0]);
+            ::close(opipe[1]);
 
-            std::istream::rdbuf(new pipe_streambuf(pipe_desc[0]));
+            std::iostream::rdbuf(new pipe_streambuf(opipe[0], ipipe[1]));
         }
     }
     else
@@ -246,7 +324,10 @@ process::process(
 
 process::~process()
 {
-    delete std::istream::rdbuf(nullptr);
+    if (shm != nullptr)
+        ::munmap(const_cast<shm_data *>(shm), sizeof(shm_data));
+
+    delete std::iostream::rdbuf(nullptr);
 
     if (child != 0)
         throw std::runtime_error("Process still running while destructing.");
@@ -270,7 +351,7 @@ bool process::joinable() const
     return child != 0;
 }
 
-void process::join()
+int process::join()
 {
     if (child != 0)
     {
@@ -279,95 +360,194 @@ void process::join()
             continue;
 
         child = 0;
+        return WEXITSTATUS(stat_loc);
     }
     else
         throw std::runtime_error("Process not joinable.");
 }
 
 } // End of namespace
-#else // PROCESS_USES_THREAD
+#elif defined(WIN32)
 #include <fcntl.h>
+#include <windows.h>
 
 namespace platform {
 
-void * process::map(size_t size)
+static const char child_process_arg[] = "start_function";
+static int my_argc = 0;
+static const char **my_argv = nullptr;
+
+void process::process_entry(int argc, const char *argv[])
 {
-    return new char[size];
+    my_argc = argc;
+    my_argv = argv;
+
+    for (int i = 1; (i + 5) < argc; i++)
+        if (strcmp(argv[i], child_process_arg) == 0)
+        {
+            const auto &functions = ::functions();
+            auto function = functions.find(argv[i + 1]);
+            if (function != functions.end())
+            {
+                class process process(
+                            priority(std::stoi(argv[i + 2])),
+                            HANDLE(std::stoi(argv[i + 3])),
+                            std::stoi(argv[i + 4]),
+                            std::stoi(argv[i + 5]));
+
+                ::exit(function->second(process));
+            }
+
+            throw std::runtime_error("Failed to find child function");
+        }
 }
 
-void process::unmap(void *addr, size_t)
+process::process(function_handle handle, priority priority_)
+    : std::iostream(nullptr),
+      child(0),
+      file_mapping(nullptr),
+      shm(nullptr)
 {
-    delete [] reinterpret_cast<char *>(addr);
-}
-
-process::process()
-    : std::istream(nullptr),
-      thread(),
-      term_received(false)
-{
-}
-
-process::process(
-        const std::function<void(process &, int)> &function,
-        priority priority_)
-    : std::istream(nullptr),
-      thread(),
-      term_received(false)
-{
-    int pipe_desc[2];
-#if !defined(WIN32)
-    if (pipe(pipe_desc) != 0)
-#else
-    if (_pipe(pipe_desc, 4096, _O_BINARY | _O_NOINHERIT) != 0)
-#endif
+    // Create pipes.
+    int ipipe[2], opipe[2];
+    if ((_pipe(ipipe, pipe_streambuf::buffer_size, _O_BINARY) != 0) ||
+        (_pipe(opipe, pipe_streambuf::buffer_size, _O_BINARY) != 0))
     {
-        throw std::runtime_error("Creating pipe failed");
+        throw std::runtime_error("Creating pipes failed");
     }
 
-    thread = std::thread([this, function, priority_, pipe_desc]
+    // Create shared memory.
+    file_mapping = ::CreateFileMapping(
+                INVALID_HANDLE_VALUE,
+                NULL,
+                PAGE_READWRITE,
+                0, sizeof(shm_data),
+                NULL);
+
+    if ((file_mapping == NULL) || (file_mapping == INVALID_HANDLE_VALUE))
+        throw std::runtime_error("Creating shared memory failed");
+
+    shm = reinterpret_cast<shm_data *>(
+                ::MapViewOfFile(
+                    file_mapping,
+                    FILE_MAP_WRITE,
+                    0, 0,
+                    sizeof(shm_data)));
+
+    if (shm == nullptr)
+        throw std::runtime_error("Creating shared memory failed");
+
+    HANDLE duplicate_file_mapping = INVALID_HANDLE_VALUE;
+    if (::DuplicateHandle(
+                ::GetCurrentProcess(), file_mapping,
+                ::GetCurrentProcess(), &duplicate_file_mapping,
+                0, TRUE, DUPLICATE_SAME_ACCESS) == FALSE)
     {
-        switch (priority_)
-        {
-        case priority::normal:
-            break;
+        throw std::runtime_error("Duplicating shared memory handle failed");
+    }
 
-        case priority::low:
-#if defined(WIN32)
-            ::SetThreadPriority(::GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
-            ::SetThreadPriority(::GetCurrentThread(), THREAD_PRIORITY_LOWEST);
-#endif
-            break;
-        }
+    // Will get offset 0; used to emulate the term signal.
+    alloc_shared<bool>();
 
-        function(*this, pipe_desc[1]);
-    });
+    // Spawn child process
+    child = _spawnl(
+                P_NOWAIT,
+                my_argv[0],
+                my_argv[0],
+                child_process_arg,
+                handle.name,
+                std::to_string(int(priority_)).c_str(),
+                std::to_string(int(duplicate_file_mapping)).c_str(),
+                std::to_string(ipipe[0]).c_str(),
+                std::to_string(opipe[1]).c_str(),
+                NULL);
 
-    std::istream::rdbuf(new pipe_streambuf(pipe_desc[0]));
+    if (child != -1)
+    {
+        ::CloseHandle(duplicate_file_mapping);
+        ::close(ipipe[0]);
+        ::close(opipe[1]);
+
+        std::iostream::rdbuf(new pipe_streambuf(opipe[0], ipipe[1]));
+    }
+    else
+        throw std::runtime_error("Failed to spawn process.");
+}
+
+process::process(priority priority_, void *file_mapping, int ifd, int ofd)
+    : std::iostream(new pipe_streambuf(ifd, ofd)),
+      child(0),
+      file_mapping(file_mapping),
+      shm(nullptr)
+{
+    // Set priority.
+    switch (priority_)
+    {
+    case priority::normal:
+        break;
+
+    case priority::low:
+        ::SetPriorityClass(
+                    ::GetCurrentProcess(),
+                    BELOW_NORMAL_PRIORITY_CLASS);
+        ::SetPriorityClass(
+                    ::GetCurrentProcess(),
+                    PROCESS_MODE_BACKGROUND_BEGIN);
+        break;
+    }
+
+    // Map shared memory.
+    shm = reinterpret_cast<shm_data *>(
+                ::MapViewOfFile(
+                    file_mapping,
+                    FILE_MAP_WRITE,
+                    0, 0,
+                    sizeof(shm_data)));
+
+    if (shm == nullptr)
+        throw std::runtime_error("Mapping shared memory failed");
 }
 
 process::~process()
 {
-    delete std::istream::rdbuf(nullptr);
+    ::UnmapViewOfFile(const_cast<shm_data *>(shm));
+    ::CloseHandle(file_mapping);
+
+    delete std::iostream::rdbuf(nullptr);
+
+    if (child != 0)
+        throw std::runtime_error("Process still running while destructing.");
 }
 
 void process::send_term()
 {
-    term_received = true;
+    get_shared<bool>(0) = true;
 }
 
 bool process::term_pending() const
 {
-    return term_received;
+    return get_shared<bool>(0);
 }
 
 bool process::joinable() const
 {
-    return thread.joinable();
+    return child != 0;
 }
 
-void process::join()
+int process::join()
 {
-    thread.join();
+    if (child != 0)
+    {
+        int termstat = -1;
+        while (_cwait(&termstat, child, WAIT_CHILD) != child)
+            continue;
+
+        child = 0;
+
+        return termstat;
+    }
+    else
+        throw std::runtime_error("Process not joinable.");
 }
 
 } // End of namespace
