@@ -15,15 +15,11 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#include "media.h"
-#include "instance.h"
+#include "vlc/media.h"
+#include "vlc/instance.h"
 #include <vlc/vlc.h>
 #include <algorithm>
-#include <cassert>
-#include <chrono>
-#include <condition_variable>
 #include <map>
-#include <mutex>
 
 namespace vlc {
 
