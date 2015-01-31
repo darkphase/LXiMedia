@@ -86,28 +86,25 @@ private:
 public:
     explicit media_cache(
             class platform::messageloop_ref &,
-            class instance &,
             class platform::inifile &);
 
     ~media_cache();
 
-    platform::uuid uuid(const std::string &);
-    struct media_info media_info(class media &);
-    enum media_type media_type(class media &);
-
-    void scan_files(const std::vector<std::string> &);
+    platform::uuid uuid(const std::string &mrl);
+    void scan_all(const std::vector<std::string> &);
+    struct media_info media_info(const std::string &mrl);
+    enum media_type media_type(const std::string &mrl);
 
 private:
-    static int scan_files_process(platform::process &);
+    static int scan_all_process(platform::process &);
     void stop_process_pool();
     platform::process &get_process_from_pool(unsigned);
     struct media_info subtitle_info(const std::string &);
 
 private:
-    static platform::process::function_handle scan_files_function;
+    static platform::process::function_handle scan_all_function;
 
     class platform::messageloop_ref messageloop;
-    class instance &instance;
     class platform::inifile &inifile;
 
     std::map<std::string, platform::uuid> uuids;

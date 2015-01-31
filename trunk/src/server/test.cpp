@@ -18,11 +18,11 @@
 #include "test.h"
 #include "mpeg/m2ts_filter.h"
 #include "mpeg/ps_filter.h"
+#include "platform/path.h"
 #include "platform/string.h"
 #include "platform/translator.h"
 #include "resources/resources.h"
 #include "server/html/setuppage.h"
-#include "vlc/instance.h"
 #include "vlc/transcode_stream.h"
 #include <cmath>
 #include <iostream>
@@ -30,21 +30,16 @@
 
 test::test(
         class platform::messageloop_ref &messageloop,
-        class vlc::instance &instance,
         class pupnp::connection_manager &connection_manager,
         class pupnp::content_directory &content_directory,
         const class settings &settings)
     : messageloop(messageloop),
-      vlc_instance(instance),
       connection_manager(connection_manager),
       content_directory(content_directory),
       settings(settings),
       a440hz_flac(resources::a440hz_flac, "flac"),
-      a440hz_flac_media(vlc::media::from_file(vlc_instance, a440hz_flac)),
       pm5544_png(resources::pm5544_png, "png"),
-      pm5544_png_media(vlc::media::from_file(vlc_instance, pm5544_png)),
-      pm5644_png(resources::pm5644_png, "png"),
-      pm5644_png_media(vlc::media::from_file(vlc_instance, pm5644_png))
+      pm5644_png(resources::pm5644_png, "png")
 {
     content_directory.item_source_register("/", *this);
 }
@@ -129,7 +124,7 @@ pupnp::content_directory::item test::get_contentdir_item(const std::string &, co
 
         if (starts_with(path, "/formats/"))
         {
-            item.mrl = pm5544_png_media.mrl();
+            item.mrl = platform::mrl_from_path(pm5544_png);
             item.uuid = platform::uuid("fe23d774-4956-4608-aa17-78fb4af8b5a4");
             item.width = 768;
             item.height = 576;
@@ -142,7 +137,7 @@ pupnp::content_directory::item test::get_contentdir_item(const std::string &, co
         }
         else if (starts_with(path, "/resolutions/"))
         {
-            item.mrl = pm5644_png_media.mrl();
+            item.mrl = platform::mrl_from_path(pm5644_png);
             item.uuid = platform::uuid("b6a79f3c-b6ad-457b-b47a-35827d8f171c");
 
             if (path == "/resolutions/pm5644_hd_720")
@@ -291,8 +286,9 @@ int test::play_item(
         {
             std::clog << "test: creating new stream " << item.mrl << " transcode=" << transcode.str() << " mux=" << protocol.mux << std::endl;
 
-            std::unique_ptr<vlc::transcode_stream> stream(new vlc::transcode_stream(messageloop, vlc_instance));
-            stream->add_option(":input-slave=" + a440hz_flac_media.mrl());
+            std::unique_ptr<vlc::transcode_stream> stream(
+                        new vlc::transcode_stream(messageloop));
+            stream->add_option(":input-slave=" + platform::mrl_from_path(a440hz_flac));
 
             const std::string vlc_mux = (protocol.mux == "m2ts") ? "ts" : protocol.mux;
 

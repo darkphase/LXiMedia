@@ -31,14 +31,11 @@
 #include <string>
 #include <vector>
 
-namespace vlc { class instance; class transcode_stream; }
-
 class test : private pupnp::content_directory::item_source
 {
 public:
   test(
           class platform::messageloop_ref &,
-          class vlc::instance &,
           class pupnp::connection_manager &,
           class pupnp::content_directory &,
           const class settings &);
@@ -56,7 +53,6 @@ private: // From content_directory::item_source
 
 private:
   class platform::messageloop_ref messageloop;
-  class vlc::instance &vlc_instance;
   class pupnp::connection_manager &connection_manager;
   class pupnp::content_directory &content_directory;
   const class settings &settings;
@@ -65,11 +61,8 @@ private:
   std::set<std::string> items;
 
   const resources::resource_file a440hz_flac;
-  const vlc::media a440hz_flac_media;
   const resources::resource_file pm5544_png;
-  const vlc::media pm5544_png_media;
   const resources::resource_file pm5644_png;
-  const vlc::media pm5644_png_media;
 };
 
 #endif

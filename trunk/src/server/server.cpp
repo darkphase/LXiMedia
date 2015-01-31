@@ -40,10 +40,9 @@ server::server(
       connection_manager(messageloop, rootdevice),
       content_directory(messageloop, upnp, rootdevice, connection_manager),
       mediareceiver_registrar(messageloop, rootdevice),
-      vlc_instance(nullptr),
-      files(nullptr),
-      setup(nullptr),
-      test(nullptr),
+      files(),
+      setup(),
+      test(),
       mainpage(messageloop, upnp, connection_manager),
       settingspage(mainpage, settings, std::bind(&server::apply_settings, this)),
       logpage(mainpage, logfilename),
@@ -77,22 +76,6 @@ bool server::initialize()
 
     if (upnp.initialize(settings.http_port(), settings.bind_all_networks()))
     {
-        std::vector<std::string> options;
-        options.push_back("--no-sub-autodetect-file");
-
-        if (settings.verbose_logging_enabled())
-            options.push_back("-vvv");
-
-        options.push_back("--freetype-rel-fontsize");
-        switch (settings.font_size())
-        {
-        case font_size::small:  options.push_back("20"); break;
-        case font_size::normal: options.push_back("18"); break;
-        case font_size::large:  options.push_back("16"); break;
-        }
-
-        vlc_instance.reset(new class vlc::instance(options));
-
         switch (html::setuppage::setup_mode())
         {
         case html::setup_mode::disabled:
@@ -102,7 +85,6 @@ bool server::initialize()
 
             files.reset(new class files(
                             messageloop,
-                            *vlc_instance,
                             connection_manager,
                             content_directory,
                             *recommended,
@@ -120,7 +102,6 @@ bool server::initialize()
         case html::setup_mode::high_definition:
             test.reset(new class test(
                            messageloop,
-                           *vlc_instance,
                            connection_manager,
                            content_directory,
                            settings));

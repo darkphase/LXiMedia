@@ -29,9 +29,8 @@ namespace vlc {
 platform::process::function_handle image_stream::transcode_function =
         platform::process::register_function(&image_stream::transcode_process);
 
-image_stream::image_stream(class instance &instance)
+image_stream::image_stream()
     : std::istream(nullptr),
-      instance(instance),
       process()
 {
 }
@@ -43,9 +42,9 @@ image_stream::~image_stream()
 
 int image_stream::transcode_process(platform::process &process)
 {
-    std::vector<std::string> options;
-    options.push_back("--no-sub-autodetect-file");
-    vlc::instance instance(options);
+    std::vector<std::string> vlc_options;
+    vlc_options.push_back("--no-sub-autodetect-file");
+    vlc::instance instance(vlc_options);
 
     std::string mrl, mime;
     process >> mrl >> mime;

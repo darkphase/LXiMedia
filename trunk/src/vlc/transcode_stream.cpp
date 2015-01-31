@@ -45,10 +45,10 @@ struct transcode_stream::shared_info
     bool end_reached;
 };
 
-transcode_stream::transcode_stream(class platform::messageloop_ref &messageloop, class instance &instance)
+transcode_stream::transcode_stream(class platform::messageloop_ref &messageloop)
     : std::istream(nullptr),
       messageloop(messageloop),
-      instance(instance),
+      font_size(-1),
       chapter(-1),
       position(-1),
       info_offset(-1),
@@ -64,6 +64,11 @@ transcode_stream::~transcode_stream()
 void transcode_stream::add_option(const std::string &option)
 {
     options.emplace_back(option);
+}
+
+void transcode_stream::set_font_size(int s)
+{
+    font_size = s;
 }
 
 void transcode_stream::set_chapter(int ch)
@@ -90,9 +95,18 @@ void transcode_stream::set_subtitle_file(subtitles::file &&file)
 
 int transcode_stream::transcode_process(platform::process &process)
 {
-    std::vector<std::string> options;
-    options.push_back("--no-sub-autodetect-file");
-    vlc::instance instance(options);
+    std::vector<std::string> vlc_options;
+    vlc_options.push_back("--no-sub-autodetect-file");
+
+    int font_size = -1;
+    process >> font_size;
+    if (font_size > 0)
+    {
+        vlc_options.push_back("--freetype-rel-fontsize");
+        vlc_options.push_back(std::to_string(font_size));
+    }
+
+    vlc::instance instance(vlc_options);
 
     std::string mrl, transcode, mux;
     process >> mrl >> transcode >> mux;
@@ -254,7 +268,8 @@ bool transcode_stream::open(
     std::clog << "vlc::transcode_stream: " << transcode << std::endl;
 
     process.reset(new platform::process(transcode_function));
-    *process << mrl << ' '
+    *process << font_size << ' '
+             << mrl << ' '
              << to_percent(transcode) << ' '
              << mux << std::endl;
 

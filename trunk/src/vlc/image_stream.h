@@ -33,7 +33,7 @@ class instance;
 class image_stream : public std::istream
 {
 public:
-    explicit image_stream(class instance &);
+    image_stream();
     ~image_stream();
 
     bool open(
@@ -48,8 +48,6 @@ private:
 
 private:
     static platform::process::function_handle transcode_function;
-
-    class instance &instance;
 
     std::unique_ptr<platform::process> process;
 };

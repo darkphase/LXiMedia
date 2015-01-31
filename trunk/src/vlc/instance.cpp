@@ -59,6 +59,7 @@ int instance::compare_version(int major, int minor, int patch)
 static libvlc_instance_t * create_instance(const std::vector<std::string> &options) noexcept
 {
     std::vector<const char *> argv;
+    argv.push_back("-vvv");
 
     if (instance::compare_version(2, 2) >= 0)
     {

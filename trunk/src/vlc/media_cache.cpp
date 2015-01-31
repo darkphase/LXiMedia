@@ -35,15 +35,13 @@ namespace vlc {
 
 static const char revision_name[] = "rev_1";
 
-platform::process::function_handle media_cache::scan_files_function =
-        platform::process::register_function(&media_cache::scan_files_process);
+platform::process::function_handle media_cache::scan_all_function =
+        platform::process::register_function(&media_cache::scan_all_process);
 
 media_cache::media_cache(
         class platform::messageloop_ref &messageloop,
-        class instance &instance,
         class platform::inifile &inifile)
     : messageloop(messageloop),
-      instance(instance),
       inifile(inifile),
       save_inifile_timer(
           this->messageloop,
@@ -341,64 +339,6 @@ static struct media_cache::media_info media_info_from_media(
     return media_info;
 }
 
-struct media_cache::media_info media_cache::media_info(class media &media)
-{
-    const auto mrl = media.mrl();
-    const auto uuid = this->uuid(mrl);
-
-    struct media_info media_info;
-    if (section.has_value(uuid))
-    {
-        std::stringstream str(section.read(uuid));
-        str >> media_info;
-    }
-    else
-    {
-        media_info = media_info_from_media(media);
-
-        std::ostringstream str;
-        str << media_info;
-        section.write(uuid, str.str());
-    }
-
-    int max_track_id = -1;
-    for (auto &i : media_info.tracks)
-        max_track_id = std::max(max_track_id, i.id);
-
-    for (auto &i : subtitles::find_subtitle_files(platform::path_from_mrl(mrl)))
-        for (auto &j : subtitle_info(i).tracks)
-        {
-            j.id = max_track_id + 1;
-            media_info.tracks.push_back(j);
-        }
-
-    return media_info;
-}
-
-enum media_type media_cache::media_type(class media &media)
-{
-    vlc::media_type result = vlc::media_type::unknown;
-
-    bool has_audio = false, has_video = false;
-    for (auto &i : media_info(media).tracks)
-        switch (i.type)
-        {
-        case track_type::unknown:  break;
-        case track_type::audio:    has_audio = true;   break;
-        case track_type::video:    has_video = true;   break;
-        case track_type::text:     break;
-        }
-
-    if (has_audio && has_video)
-        result = vlc::media_type::video;
-    else if (has_audio)
-        result = vlc::media_type::audio;
-    else if (has_video)
-        result = vlc::media_type::picture;
-
-    return result;
-}
-
 struct media_cache::media_info media_cache::subtitle_info(const std::string &path)
 {
     const auto mrl = platform::mrl_from_path(path);
@@ -435,7 +375,7 @@ struct media_cache::media_info media_cache::subtitle_info(const std::string &pat
     return media_info;
 }
 
-int media_cache::scan_files_process(platform::process &process)
+int media_cache::scan_all_process(platform::process &process)
 {
     std::vector<std::string> options;
     options.push_back("--no-sub-autodetect-file");
@@ -502,7 +442,7 @@ platform::process & media_cache::get_process_from_pool(unsigned index)
 
         process.reset(
                     new platform::process(
-                        scan_files_function,
+                        scan_all_function,
                         platform::process::priority::low));
     }
 
@@ -511,15 +451,13 @@ platform::process & media_cache::get_process_from_pool(unsigned index)
     return *process;
 }
 
-void media_cache::scan_files(const std::vector<std::string> &files)
+void media_cache::scan_all(const std::vector<std::string> &mrls)
 {
     std::set<std::string> tasks;
 
     // Compute UUIDs.
-    for (auto &i : files)
+    for (auto &mrl : mrls)
     {
-        const auto mrl = platform::mrl_from_path(i);
-
         auto j = uuids.find(mrl);
         if (j == uuids.end())
             tasks.insert(mrl);
@@ -566,10 +504,8 @@ void media_cache::scan_files(const std::vector<std::string> &files)
     }
 
     // Scan files.
-    for (auto &i : files)
+    for (auto &mrl : mrls)
     {
-        const auto mrl = platform::mrl_from_path(i);
-
         auto j = uuids.find(mrl);
         if ((j != uuids.end()) && !section.has_value(j->second))
             tasks.insert(mrl);
@@ -620,6 +556,59 @@ void media_cache::scan_files(const std::vector<std::string> &files)
             }
         }
     }
+}
+
+struct media_cache::media_info media_cache::media_info(const std::string &mrl)
+{
+    const auto uuid = this->uuid(mrl);
+
+    if (!section.has_value(uuid))
+    {
+        std::vector<std::string> mrls;
+        mrls.push_back(mrl);
+        scan_all(mrls);
+    }
+
+    std::stringstream str(section.read(uuid));
+    struct media_info media_info;
+    str >> media_info;
+
+    int max_track_id = -1;
+    for (auto &i : media_info.tracks)
+        max_track_id = std::max(max_track_id, i.id);
+
+    for (auto &i : subtitles::find_subtitle_files(platform::path_from_mrl(mrl)))
+        for (auto &j : subtitle_info(i).tracks)
+        {
+            j.id = max_track_id + 1;
+            media_info.tracks.push_back(j);
+        }
+
+    return media_info;
+}
+
+enum media_type media_cache::media_type(const std::string &mrl)
+{
+    vlc::media_type result = vlc::media_type::unknown;
+
+    bool has_audio = false, has_video = false;
+    for (auto &i : media_info(mrl).tracks)
+        switch (i.type)
+        {
+        case track_type::unknown:  break;
+        case track_type::audio:    has_audio = true;   break;
+        case track_type::video:    has_video = true;   break;
+        case track_type::text:     break;
+        }
+
+    if (has_audio && has_video)
+        result = vlc::media_type::video;
+    else if (has_audio)
+        result = vlc::media_type::audio;
+    else if (has_video)
+        result = vlc::media_type::picture;
+
+    return result;
 }
 
 

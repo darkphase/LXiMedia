@@ -183,9 +183,6 @@ static void render_dlna_settings(const class settings &settings, std::ostream &o
            "<p><input type=\"checkbox\" name=\"video_mpegts\" value=\"on\"" << is_checked(settings.video_mpegts_enabled()) << " />" << pupnp::upnp::mime_video_mpegts << "</p>"
            "<p><input type=\"checkbox\" name=\"video_mpeg\" value=\"on\"" << is_checked(settings.video_mpeg_enabled()) << " />" << pupnp::upnp::mime_video_mpeg << "</p>"
            "</td></tr></table>"
-           "<p>" << tr("Debug") << ":</p>"
-           "<p><input type=\"checkbox\" name=\"verbose_logging\" value=\"on\"" << is_checked(settings.verbose_logging_enabled()) << " />"
-            << tr("Enable verbose logging for analyzing problems.") << "</p>"
            "</div>";
 
     out << "<p class=\"buttons\"><input type=\"submit\" name=\"save_button\" value=\"" << tr("Save") << "\" /></p>"
@@ -239,8 +236,6 @@ static void save_dlna_settings(class settings &settings, const std::map<std::str
     settings.set_video_mpegm2ts_enabled(query.find("video_mpegm2ts") != query.end());
     settings.set_video_mpegts_enabled(query.find("video_mpegts") != query.end());
     settings.set_video_mpeg_enabled(query.find("video_mpeg") != query.end());
-
-    settings.set_verbose_logging_enabled(query.find("verbose_logging") != query.end());
 }
 
 static std::string format_path(const std::string &src)

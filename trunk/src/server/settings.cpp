@@ -393,19 +393,6 @@ void settings::set_share_removable_media(bool on)
 
 static const char verbose_logging_name[] = "verbose_logging";
 
-bool settings::verbose_logging_enabled() const
-{
-    return general.read(verbose_logging_name, false);
-}
-
-void settings::set_verbose_logging_enabled(bool on)
-{
-    if (on)
-        return general.write(verbose_logging_name, true);
-    else
-        return general.erase(verbose_logging_name);
-}
-
 static const char mp2v_name[] = "mp2v";
 
 bool settings::mpeg2_enabled() const
