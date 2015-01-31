@@ -27,9 +27,6 @@
 #include <map>
 #include <string>
 #include <vector>
-#ifdef PROCESS_USES_THREAD
-# include <mutex>
-#endif
 
 struct libvlc_media_t;
 
@@ -101,22 +98,26 @@ public:
     void scan_files(const std::vector<std::string> &);
 
 private:
+    static int scan_files_process(platform::process &);
+    void stop_process_pool();
+    platform::process &get_process_from_pool(unsigned);
     struct media_info subtitle_info(const std::string &);
 
 private:
+    static platform::process::function_handle scan_files_function;
+
+    class platform::messageloop_ref messageloop;
     class instance &instance;
     class platform::inifile &inifile;
 
     std::map<std::string, platform::uuid> uuids;
-    class platform::timer timer;
+    class platform::timer save_inifile_timer;
     const std::chrono::seconds save_delay;
     class platform::inifile::section section;
 
-    const unsigned num_queues;
-#ifdef PROCESS_USES_THREAD
-    std::mutex mutex;
-    std::vector<vlc::instance> instances;
-#endif
+    std::vector<std::unique_ptr<platform::process>> process_pool;
+    platform::timer stop_process_pool_timer;
+    const std::chrono::seconds process_pool_timeout;
 };
 
 std::ostream & operator<<(std::ostream &, const struct media_cache::track &);

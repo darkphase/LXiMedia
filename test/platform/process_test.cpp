@@ -1,67 +1,70 @@
 #include "test.h"
 #include "platform/process.cpp"
-
-#if !defined(PROCESS_USES_THREAD)
-#define PROCESS_USES_THREAD
-#undef PLATFORM_PROCESS_H
-#define process process_thread
-#include "platform/process.cpp"
-#undef process
-#undef PROCESS_USES_THREAD
-#endif
+#define register_function(F) register_function(#F, F)
 
 #include <algorithm>
 #include <cstring>
 #include <thread>
 
-static std::shared_ptr<int> make_shared(const platform::process &)
-{
-    return platform::process::make_shared<int>();
-}
-
-#if !defined(PROCESS_USES_THREAD)
-static std::shared_ptr<int> make_shared(const platform::process_thread &)
-{
-    return platform::process_thread::make_shared<int>();
-}
-#endif
-
 static const struct process_test
 {
     process_test()
-        : run_process_test(this, "platform::process::run_process", &process_test::run_process<platform::process>)
-#if !defined(PROCESS_USES_THREAD)
-        , run_process_thread_test(this, "platform::process::run_process_thread", &process_test::run_process<platform::process_thread>)
-#endif
+        : child_process_name(platform::process::register_function(&process_test::child_process)),
+          run_process_test(this, "platform::process::run_process", &process_test::run_process)
     {
     }
 
+    platform::process::function_handle child_process_name;
+    static int child_process(platform::process &process)
+    {
+        unsigned value_ofs(-1);
+        process >> value_ofs;
+
+        std::string test;
+        process >> test;
+
+        auto &value = process.get_shared<int>(value_ofs);
+        value = 1234;
+
+        process << test << ' ' << std::flush;
+
+        int exit_code = -1;
+        process >> exit_code;
+
+        while (process)
+            std::this_thread::yield();
+
+        value = 5678;
+
+        return exit_code;
+    }
+
     struct test run_process_test;
-#if !defined(PROCESS_USES_THREAD)
-    struct test run_process_thread_test;
-#endif
-    template <class _Process>
     void run_process()
     {
-        auto value = make_shared(_Process());
-        test_assert(value);
-        *value = 0;
+        platform::process process(
+                    child_process_name,
+                    platform::process::priority::low);
 
+        const unsigned value_ofs = process.alloc_shared<int>();
+        test_assert(value_ofs != unsigned(-1));
+        process << value_ofs << ' ' << std::flush;
+
+        // Send data to the process.
         const std::string test = "hello_world";
-        _Process process([&](_Process &process, std::ostream &out)
-        {
-            out << test << ' ' << std::flush;
-            *value = 1234;
-
-            while (!process.term_pending())
-                std::this_thread::yield();
-        }, _Process::priority::low);
+        process << test << ' ' << std::flush;
 
         // Get data from the pipe.
         std::string result;
         process >> result;
         test_assert(process);
         test_assert(result == test);
+
+        // The shared memory value should be updated now.
+        test_assert(process.get_shared<int>(value_ofs) == 1234);
+
+        // Send the desired exit code.
+        process << 123 << ' ' << std::flush;
 
         // Terminate process
         test_assert(process.joinable());
@@ -71,9 +74,9 @@ static const struct process_test
         process >> result;
         test_assert(!process);
 
-        process.join();
+        test_assert(process.join() == 123);
 
-        // The shared memory value should be updated now.
-        test_assert(*value == 1234);
+        // The shared memory value should be updated again.
+        test_assert(process.get_shared<int>(value_ofs) == 5678);
     }
 } process_test;

@@ -19,14 +19,13 @@
 #define VLC_TRANSCODE_STREAM_H
 
 #include "platform/messageloop.h"
+#include "platform/process.h"
 #include "vlc/subtitles.h"
 #include <chrono>
 #include <istream>
 #include <memory>
 #include <string>
 #include <vector>
-
-namespace platform { class process; }
 
 namespace vlc {
 
@@ -61,10 +60,11 @@ public:
     std::function<void()> on_end_reached;
 
 private:
+    static int transcode_process(platform::process &);
     void update_info();
 
 private:
-    struct shared_info;
+    static platform::process::function_handle transcode_function;
 
     class platform::messageloop_ref messageloop;
     class instance &instance;
@@ -76,7 +76,9 @@ private:
     subtitles::file subtitle_file;
 
     std::unique_ptr<platform::process> process;
-    std::shared_ptr<shared_info> info, last_info;
+    struct shared_info;
+    std::unique_ptr<shared_info> last_info;
+    unsigned info_offset;
     platform::timer update_info_timer;
 };
 

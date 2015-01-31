@@ -1,6 +1,7 @@
 #include "platform/inifile.h"
 #include "platform/messageloop.h"
 #include "platform/path.h"
+#include "platform/process.h"
 #include "platform/string.h"
 #include "pupnp/client.h"
 #include "pupnp/upnp.h"
@@ -143,6 +144,8 @@ int main(int argc, const char *argv[])
     }
 
     setlocale(LC_ALL, "");
+
+    platform::process::process_entry(argc, argv);
 
     class platform::messageloop messageloop;
     class platform::messageloop_ref messageloop_ref(messageloop);

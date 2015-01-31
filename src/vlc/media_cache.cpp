@@ -26,6 +26,7 @@
 #include <vlc/vlc.h>
 #include <cstring>
 #include <mutex>
+#include <queue>
 #include <sstream>
 #include <thread>
 #include <unordered_set>
@@ -34,33 +35,39 @@ namespace vlc {
 
 static const char revision_name[] = "rev_1";
 
+platform::process::function_handle media_cache::scan_files_function =
+        platform::process::register_function(&media_cache::scan_files_process);
+
 media_cache::media_cache(
         class platform::messageloop_ref &messageloop,
         class instance &instance,
         class platform::inifile &inifile)
-    : instance(instance),
+    : messageloop(messageloop),
+      instance(instance),
       inifile(inifile),
-      timer(messageloop, std::bind(&platform::inifile::save, &inifile)),
+      save_inifile_timer(
+          this->messageloop,
+          std::bind(&platform::inifile::save, &inifile)),
       save_delay(5),
       section(inifile.open_section(revision_name)),
-      num_queues(std::max(std::thread::hardware_concurrency(), 1u))
+      stop_process_pool_timer(
+          this->messageloop,
+          std::bind(&media_cache::stop_process_pool, this)),
+      process_pool_timeout(15)
 {
-    inifile.on_touched = [this] { timer.start(save_delay, true); };
+    inifile.on_touched = [this] { save_inifile_timer.start(save_delay, true); };
 
     for (auto &i : inifile.sections())
         if (i != revision_name)
             inifile.erase_section(i);
 
-#ifdef PROCESS_USES_THREAD
-    std::vector<std::string> options;
-    options.push_back("--no-sub-autodetect-file");
-    for (unsigned i = 0; i < num_queues; i++)
-        instances.emplace_back(options);
-#endif
+    process_pool.resize(std::max(std::thread::hardware_concurrency(), 1u));
 }
 
 media_cache::~media_cache()
 {
+    stop_process_pool();
+
     inifile.on_touched = nullptr;
 }
 
@@ -428,114 +435,190 @@ struct media_cache::media_info media_cache::subtitle_info(const std::string &pat
     return media_info;
 }
 
-void media_cache::scan_files(const std::vector<std::string> &files)
+int media_cache::scan_files_process(platform::process &process)
 {
-    std::vector<std::list<media>> tasks;
-    tasks.resize(num_queues);
+    std::vector<std::string> options;
+    options.push_back("--no-sub-autodetect-file");
+    vlc::instance instance(options);
 
-    unsigned index = 0;
-    for (auto &i : files)
+    std::queue<std::string> mrls;
+    while (process)
     {
-        const auto queue_index = index % num_queues;
-#ifdef PROCESS_USES_THREAD
-        auto media = media::from_file(instances[queue_index], i);
-#else
-        auto media = media::from_file(instance, i);
-#endif
+        std::string cmd;
+        process >> cmd;
 
-        tasks[queue_index].emplace_back(std::move(media));
-        index++;
+        if (cmd == "uuid")
+        {
+            for (; !mrls.empty(); mrls.pop())
+            {
+                const auto path = platform::path_from_mrl(mrls.front());
+                process << mrls.front() << ' ' << std::flush
+                        << uuid_from_file(path) << std::endl;
+            }
+        }
+        else if (cmd == "scan")
+        {
+            for (; !mrls.empty(); mrls.pop())
+            {
+                auto media = media::from_mrl(instance, mrls.front());
+                process << mrls.front() << ' ' << std::flush
+                        << media_info_from_media(media) << std::endl;
+            }
+        }
+        else if (cmd == "exit")
+            break;
+        else // mrl
+            mrls.emplace(std::move(cmd));
     }
 
-    for (bool more = true; more;)
+    return 0;
+}
+
+void media_cache::stop_process_pool()
+{
+    for (auto &i : process_pool)
+        if (i != nullptr)
+        {
+            if (i->joinable())
+            {
+                *i << "exit" << std::endl;
+                i->join();
+            }
+
+            i = nullptr;
+        }
+}
+
+platform::process & media_cache::get_process_from_pool(unsigned index)
+{
+    auto &process = process_pool[index % process_pool.size()];
+    if ((process == nullptr) || !*process)
     {
-        std::vector<std::unique_ptr<platform::process>> processes;
-
-        for (unsigned i = 0; i < num_queues; i++)
+        if (process && process->joinable())
         {
-            if (!tasks[i].empty())
-            {
-                processes.emplace_back(new platform::process([this, tasks, i](platform::process &, std::ostream &out)
-                {
-                    for (auto &task : tasks[i])
-                    {
-                        const std::string mrl = task.mrl();
-                        platform::uuid uuid;
-
-#ifdef PROCESS_USES_THREAD
-                        std::unique_lock<std::mutex> l(mutex);
-#else
-                        struct { void lock() {} void unlock() {} } l;
-#endif
-
-                        auto i = uuids.find(mrl);
-                        if (i == uuids.end())
-                        {
-                            l.unlock();
-                            uuid = uuid_from_file(platform::path_from_mrl(mrl));
-                            l.lock();
-                        }
-                        else
-                            uuid = i->second;
-
-                        if (!uuid.is_null() && !section.has_value(uuid))
-                        {
-                            l.unlock();
-                            out << uuid << ' ' << std::flush;
-                            out << media_info_from_media(const_cast<class media &>(task)) << std::endl;
-                        }
-                        else
-                        {
-                            l.unlock();
-                            out << platform::uuid() << std::endl;
-                        }
-                    }
-                }));
-            }
-            else
-                processes.emplace_back(nullptr);
+            process->send_term();
+            process->join();
         }
 
-        for (unsigned i = 0; i < num_queues; i++)
+        process.reset(
+                    new platform::process(
+                        scan_files_function,
+                        platform::process::priority::low));
+    }
+
+    stop_process_pool_timer.start(process_pool_timeout, true);
+
+    return *process;
+}
+
+void media_cache::scan_files(const std::vector<std::string> &files)
+{
+    std::set<std::string> tasks;
+
+    // Compute UUIDs.
+    for (auto &i : files)
+    {
+        const auto mrl = platform::mrl_from_path(i);
+
+        auto j = uuids.find(mrl);
+        if (j == uuids.end())
+            tasks.insert(mrl);
+    }
+
+    while (!tasks.empty())
+    {
+        unsigned count = 0;
+        for (auto i = tasks.begin(); i != tasks.end(); i++)
+            get_process_from_pool(count++) << *i << std::endl;
+
+        const unsigned pools = std::min(count, unsigned(process_pool.size()));
+        for (unsigned i = 0; i < pools; i++)
+            get_process_from_pool(i) << "uuid" << std::endl;
+
+        for (unsigned i = 0; i < pools; i++)
         {
-            while (!tasks[i].empty())
+            auto &process = get_process_from_pool(i);
+
+            const unsigned num_tasks =
+                    (count / pools) +
+                    ((i < (count % pools)) ? 1 : 0);
+
+            for (unsigned j = 0; j < num_tasks; j++)
             {
+                std::string mrl;
                 platform::uuid uuid;
-                *processes[i] >> uuid;
-                if (!uuid.is_null())
+                if (process >> mrl >> uuid)
                 {
-#ifdef PROCESS_USES_THREAD
-                    std::unique_lock<std::mutex> l(mutex);
-#else
-                    struct { void lock() {} void unlock() {} } l;
-#endif
+                    tasks.erase(mrl);
 
-                    uuids[tasks[i].front().mrl()] = uuid;
-                    l.unlock();
-
-                    struct media_info media_info;
-                    *processes[i] >> media_info;
-
-                    std::ostringstream str;
-                    str << media_info;
-
-                    l.lock();
-                    section.write(uuid, str.str());
+                    uuids[mrl] = uuid;
                 }
+                else
+                {
+                    // Crashed while scanning this item, do not try again.
+                    if (!mrl.empty())
+                        tasks.erase(mrl);
 
-                tasks[i].pop_front();
-
-                if (!*processes[i])
-                    break; // Process crashed while parsing this file.
+                    break;
+                }
             }
-
-            if (processes[i] && processes[i]->joinable())
-                processes[i]->join();
         }
+    }
 
-        more = false;
-        for (unsigned i = 0; (i < num_queues) && !more; i++)
-            more |= !tasks[i].empty();
+    // Scan files.
+    for (auto &i : files)
+    {
+        const auto mrl = platform::mrl_from_path(i);
+
+        auto j = uuids.find(mrl);
+        if ((j != uuids.end()) && !section.has_value(j->second))
+            tasks.insert(mrl);
+    }
+
+    while (!tasks.empty())
+    {
+        unsigned count = 0;
+        for (auto i = tasks.begin(); i != tasks.end(); i++)
+            get_process_from_pool(count++) << *i << std::endl;
+
+        const unsigned pools = std::min(count, unsigned(process_pool.size()));
+        for (unsigned i = 0; i < pools; i++)
+            get_process_from_pool(i) << "scan" << std::endl;
+
+        for (unsigned i = 0; i < pools; i++)
+        {
+            auto &process = get_process_from_pool(i);
+
+            const unsigned num_tasks =
+                    (count / pools) +
+                    ((i < (count % pools)) ? 1 : 0);
+
+            for (unsigned j = 0; j < num_tasks; j++)
+            {
+                std::string mrl;
+                struct media_info media_info;
+                if (process >> mrl >> media_info)
+                {
+                    tasks.erase(mrl);
+
+                    auto j = uuids.find(mrl);
+                    if (j != uuids.end())
+                    {
+                        std::ostringstream str;
+                        str << media_info;
+                        section.write(j->second, str.str());
+                    }
+                }
+                else
+                {
+                    // Crashed while scanning this item, do not try again.
+                    if (!mrl.empty())
+                        tasks.erase(mrl);
+
+                    break;
+                }
+            }
+        }
     }
 }
 

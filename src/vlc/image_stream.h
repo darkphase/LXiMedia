@@ -19,6 +19,7 @@
 #define VLC_IMAGE_STREAM_H
 
 #include "platform/messageloop.h"
+#include "platform/process.h"
 #include <istream>
 #include <memory>
 #include <string>
@@ -43,6 +44,11 @@ public:
     void close();
 
 private:
+    static int transcode_process(platform::process &);
+
+private:
+    static platform::process::function_handle transcode_function;
+
     class instance &instance;
 
     std::unique_ptr<platform::process> process;

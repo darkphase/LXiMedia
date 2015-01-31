@@ -1,4 +1,5 @@
 #include "test.h"
+#include "platform/process.h"
 #include <clocale>
 #include <iostream>
 #include <stdexcept>
@@ -11,9 +12,11 @@ void test::assert_fail(const char *condition, const char *file, unsigned int lin
     throw std::runtime_error(std::string(file) + ':' + std::to_string(line) + ": " + condition);
 }
 
-int main(int /*argc*/, const char */*argv*/[])
+int main(int argc, const char *argv[])
 {
     setlocale(LC_ALL, "");
+
+    platform::process::process_entry(argc, argv);
 
     std::vector<struct test *> tests;
     for (struct test *i = test::current; i; i = i->previous)

@@ -18,42 +18,27 @@
 #ifndef PLATFORM_PROCESS_H
 #define PLATFORM_PROCESS_H
 
-#if defined(WIN32)
-# define PROCESS_USES_THREAD
-#endif
-
 #include <cstdint>
-#include <functional>
-#include <istream>
+#include <iostream>
 #include <memory>
-#include <ostream>
-#ifndef PROCESS_USES_THREAD
-# include <sys/types.h>
-#else
-# include <thread>
-#endif
+#include <sys/types.h>
 
 namespace platform {
 
-class process : public std::istream
+class process : public std::iostream
 {
 public:
     enum class priority { normal, low };
+    class function_handle { friend class process; const char *name; };
+    typedef int(* function)(process &);
 
 public:
-    template <typename _Type>
-    static std::shared_ptr<_Type> make_shared();
+    static function_handle register_function(const char *, function);
+#define register_function(F) register_function(#F, F)
 
-    process();
+    static void process_entry(int argc, const char *argv[]);
 
-    process(
-            const std::function<void(process &, int)> &,
-            priority priority_ = priority::normal);
-
-    process(
-            const std::function<void(process &, std::ostream &)> &,
-            priority priority_ = priority::normal);
-
+    process(function_handle, priority = priority::normal);
     ~process();
 
     process(const process &) = delete;
@@ -61,44 +46,62 @@ public:
     process(process &&) = delete;
     process & operator=(process &&) = delete;
 
+    operator bool() const;
+
+    template <typename _Type>
+    unsigned alloc_shared();
+    template <typename _Type>
+    volatile _Type & get_shared(unsigned off);
+    template <typename _Type>
+    const volatile _Type & get_shared(unsigned off) const;
+
+    int input_fd();
+    int output_fd();
+
     void send_term();
     bool term_pending() const;
 
     bool joinable() const;
-    void join();
+    int join();
 
 private:
-    static void * map(size_t);
-    static void unmap(void *, size_t);
-
-private:
-#ifndef PROCESS_USES_THREAD
-    pid_t child;
-#else
-    std::thread thread;
-    volatile bool term_received;
+#if defined(WIN32)
+    process(priority, void *, int, int);
 #endif
+
+    unsigned alloc_shared(size_t);
+    volatile void *get_shared(unsigned, size_t size);
+    const volatile void *get_shared(unsigned, size_t size) const;
+
+private:
+#if defined(__unix__) || defined(__APPLE__)
+    pid_t child;
+#elif defined(WIN32)
+    intptr_t child;
+    void *file_mapping;
+#endif
+    struct shm_data;
+    volatile shm_data *shm;
 };
 
 template <typename _Type>
-std::shared_ptr<_Type> process::make_shared()
+unsigned process::alloc_shared()
 {
-    struct
-    {
-        void operator()(_Type *obj)
-        {
-            if (obj)
-            {
-                obj->~_Type();
-                unmap(obj, size);
-            }
-        }
+    return alloc_shared(sizeof(_Type));
+}
 
-        _Type *obj;
-        size_t size;
-    } d = { reinterpret_cast<_Type *>(map(sizeof(_Type))), sizeof(_Type) };
+template <typename _Type>
+volatile _Type & process::get_shared(unsigned off)
+{
+    return *reinterpret_cast<volatile _Type *>(
+                get_shared(off, sizeof(_Type)));
+}
 
-    return std::shared_ptr<_Type>(reinterpret_cast<_Type *>(d.obj), d);
+template <typename _Type>
+const volatile _Type & process::get_shared(unsigned off) const
+{
+    return *reinterpret_cast<const volatile _Type *>(
+                get_shared(off, sizeof(_Type)));
 }
 
 } // End of namespace
