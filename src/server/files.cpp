@@ -106,6 +106,8 @@ static track_list list_tracks(const struct vlc::media_cache::media_info &media_i
                         else
                             name += tr("Unknown video");
                     }
+                    else // Only one track, don't explicitly select it.
+                        tracks.back().id = -2;
                 }
 
                 if (audio[a].type != vlc::track_type::unknown)
@@ -120,6 +122,8 @@ static track_list list_tracks(const struct vlc::media_cache::media_info &media_i
                         else
                             name += tr("Unknown audio");
                     }
+                    else // Only one track, don't explicitly select it.
+                        tracks.back().id = -2;
                 }
 
                 if (!name.empty()) name += ", ";
@@ -503,12 +507,12 @@ int files::play_audio_video_item(
         else if (item.position.count() > 0)
             stream->set_position(item.position);
 
-        struct vlc::track_ids track_ids;
         std::string file_path, track_name;
         split_path(item.path, file_path, track_name);
         const auto system_path = to_system_path(file_path);
         auto mrl = platform::mrl_from_path(system_path.path);
 
+        struct vlc::track_ids track_ids;
         for (auto &track : list_tracks(media_cache.media_info(mrl)))
             if ((track.first == track_name) || (track_ids.audio < 0))
                 for (auto &t : track.second)
@@ -516,7 +520,7 @@ int files::play_audio_video_item(
                     {
                     case vlc::track_type::unknown:  break;
                     case vlc::track_type::audio:    track_ids.audio = t.id; break;
-                    case vlc::track_type::video:    /* Disabled because of VLC bug. track_ids.video = t.id;*/ break;
+                    case vlc::track_type::video:    track_ids.video = t.id; break;
 
                     case vlc::track_type::text:
                         if (!t.file.empty())

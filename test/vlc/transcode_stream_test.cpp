@@ -57,8 +57,6 @@ static const struct transcode_stream_test
             const auto pm5544_png_mrl = platform::mrl_from_path(pm5544_png);
 
             struct vlc::track_ids track_ids;
-            track_ids.audio = 1;
-            /* Disabled because of VLC bug. track_ids.video = 0; */
             transcode_stream.set_track_ids(track_ids);
 
             test_assert(transcode_stream.open(pm5544_png_mrl, transcode, mux));
