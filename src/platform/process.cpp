@@ -389,6 +389,9 @@ void process::process_entry(int argc, const char *argv[])
             auto function = functions.find(argv[i + 1]);
             if (function != functions.end())
             {
+                // Suppress crash dialog
+                ::SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+
                 class process process(
                             priority(std::stoi(argv[i + 2])),
                             HANDLE(std::stoi(argv[i + 3])),
