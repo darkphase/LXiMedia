@@ -393,6 +393,7 @@ int files::play_audio_video_item(
 {
     using namespace std::placeholders;
 
+    unsigned width = 0, height = 0;
     std::ostringstream transcode;
     if (!protocol.acodec.empty() || !protocol.vcodec.empty())
     {
@@ -407,7 +408,6 @@ int files::play_audio_video_item(
             if (std::abs(frame_rate - item.frame_rate) > 0.01f)
                 transcode << ",fps=" << std::setprecision(5) << frame_rate;
 
-            unsigned width = 0, height = 0;
             switch (settings.canvas_mode())
             {
             case canvas_mode::none:
@@ -495,12 +495,13 @@ int files::play_audio_video_item(
         std::unique_ptr<vlc::transcode_stream> stream(
                     new vlc::transcode_stream(messageloop));
 
-        switch (settings.font_size())
-        {
-        case font_size::small:  stream->set_font_size(20); break;
-        case font_size::normal: stream->set_font_size(18); break;
-        case font_size::large:  stream->set_font_size(16); break;
-        }
+        if (height > 0)
+            switch (settings.font_size())
+            {
+            case font_size::small:  stream->set_font_size(height / 20); break;
+            case font_size::normal: stream->set_font_size(height / 16); break;
+            case font_size::large:  stream->set_font_size(height / 12); break;
+            }
 
         if (item.chapter > 0)
             stream->set_chapter(item.chapter);
