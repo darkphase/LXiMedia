@@ -250,6 +250,75 @@ std::string escape_xml(const std::string &input)
     return result.str();
 }
 
+bool is_utf8(const std::string &input)
+{
+    for (size_t i = 0, n = input.size(); (i + 3) < n; )
+    {
+        // ASCII.
+        if ((input[i] == 0x09) || (input[i] == 0x0a) || (input[i] == 0x0d) ||
+            ((0x20 <= input[i]) && (input[i] <= 0x7e)))
+        {
+            i++;
+        }
+        // Non-overlong 2-byte.
+        else if (((0xc2 <= input[i  ]) && (input[i  ] <= 0xdf)) &&
+                 ((0x80 <= input[i+1]) && (input[i+1] <= 0xbf)))
+        {
+            i += 2;
+        }
+        // Excluding overlongs.
+        else if ((input[i] == 0xe0) &&
+                 ((0xa0 <= input[i+1]) && (input[i+1] <= 0xbf)) &&
+                 ((0x80 <= input[i+2]) && (input[i+2] <= 0xbf)))
+        {
+            i += 3;
+        }
+        // Straight 3-byte.
+        else if ((((0xe1 <= input[i]) && (input[i] <= 0xec)) ||
+                  (input[i] == 0xee) || (input[i] == 0xef)) &&
+                 ((0x80 <= input[i+1]) && (input[i+1] <= 0xbf)) &&
+                 ((0x80 <= input[i+2]) && (input[i+2] <= 0xbf)))
+        {
+            i += 3;
+        }
+        // Excluding surrogates.
+        else if ((input[i] == 0xed) &&
+                 ((0x80 <= input[i+1]) && (input[i+1] <= 0x9f)) &&
+                 ((0x80 <= input[i+2]) && (input[i+2] <= 0xbf)))
+        {
+            i += 3;
+        }
+        // Planes 1-3.
+        else if ((input[i] == 0xf0) &&
+                 ((0x90 <= input[i+1]) && (input[i+1] <= 0xbf)) &&
+                 ((0x80 <= input[i+2]) && (input[i+2] <= 0xbf)) &&
+                 ((0x80 <= input[i+3]) && (input[i+3] <= 0xbf)))
+        {
+            i += 4;
+        }
+        // Planes 4-15.
+        else if (((0xf1 <= input[i  ]) && (input[i  ] <= 0xf3)) &&
+                 ((0x80 <= input[i+1]) && (input[i+1] <= 0xbf)) &&
+                 ((0x80 <= input[i+2]) && (input[i+2] <= 0xbf)) &&
+                 ((0x80 <= input[i+3]) && (input[i+3] <= 0xbf)))
+        {
+            i += 4;
+        }
+        // plane 16.
+        else if ((input[i] == 0xf4) &&
+                 ((0x80 <= input[i+1]) && (input[i+1] <= 0x8f)) &&
+                 ((0x80 <= input[i+2]) && (input[i+2] <= 0xbf)) &&
+                 ((0x80 <= input[i+3]) && (input[i+3] <= 0xbf)))
+        {
+            i += 4;
+        }
+        else
+            return false;
+    }
+
+    return true;
+}
+
 #if defined(__unix__) || defined(__APPLE__)
 #include <iconv.h>
 

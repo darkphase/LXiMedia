@@ -235,20 +235,24 @@ static bool language_of(
         { nullptr       , nullptr       , nullptr }
     };
 
-    auto text = to_utf32(to_lower(input));
-    const bool utf8 = !text.empty();
+    const bool utf8 = is_utf8(input);
+    auto text = utf8 ? to_utf32(input) : std::u32string();
 
     std::map<int, float> score;
     for (int i=0; frequencies[i].language; i++)
     {
         if (!utf8)
-            text = to_utf32(to_lower(input), frequencies[i].encoding);
+            text = to_utf32(input, frequencies[i].encoding);
 
         if (!text.empty())
         {
             // Count the number of characters.
             std::map<char32_t, int> count;
             for (char32_t c : text)
+            {
+                if ((c >= U'A') && (c <= U'Z'))
+                    c += (U'a' - U'A');
+
                 if (((c >= U'a') && (c <= U'z')) || (c >= 128))
                 {
                     auto j = count.find(c);
@@ -257,6 +261,7 @@ static bool language_of(
                     else
                         count[c] = 1;
                 }
+            }
 
             // Sort the characters by frequency.
             std::multimap<int, char32_t> freq;
