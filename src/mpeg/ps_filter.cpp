@@ -237,6 +237,8 @@ std::list<ps_packet> ps_filter::read_pack()
 
 void ps_filter::filter_packet()
 {
+    static const size_t max_stream_size = 4096;
+
     class ps_packet ps_packet = read_ps_packet();
     if (!ps_packet.empty())
     {
@@ -259,7 +261,29 @@ void ps_filter::filter_packet()
                     pes_packet.set_packet_length(uint16_t(pes_packet.size() - 6));
                 }
 
-                streams[stream_id].emplace_back(std::move(pes_packet));
+                auto &stream = streams[stream_id];
+                stream.emplace_back(std::move(pes_packet));
+                if (stream.size() >= max_stream_size)
+                {
+                    auto lstream_id = mpeg::stream_type::none;
+                    size_t min = size_t(-1);
+                    for (auto &i : streams)
+                        if (!i.second.empty() && (i.second.size() < min))
+                        {
+                            lstream_id = i.first;
+                            min = i.second.size();
+                        }
+
+                    if (lstream_id != mpeg::stream_type::none)
+                    {
+#ifdef DEBUG_OUTPUT
+                        std::cout << std::hex << unsigned(lstream_id) << std::dec
+                                  << " discarding lagging stream"
+                                  << std::endl;
+#endif
+                        streams.erase(lstream_id);
+                    }
+                }
             }
         }
         else if (stream_id == stream_type::system_header)
