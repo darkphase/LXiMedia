@@ -43,9 +43,8 @@ struct pipe_streambuf : public std::streambuf
 
     const int ifd, ofd;
     static const unsigned putback = 8;
-    static const unsigned buffer_size = 4096;
-    char ibuffer[buffer_size];
-    char obuffer[buffer_size];
+    char ibuffer[65536];
+    char obuffer[4096];
 };
 
 pipe_streambuf::pipe_streambuf(int ifd, int ofd)
@@ -413,8 +412,8 @@ process::process(function_handle handle, priority priority_)
 {
     // Create pipes.
     int ipipe[2], opipe[2];
-    if ((_pipe(ipipe, pipe_streambuf::buffer_size, _O_BINARY) != 0) ||
-        (_pipe(opipe, pipe_streambuf::buffer_size, _O_BINARY) != 0))
+    if ((_pipe(ipipe, sizeof(pipe_streambuf::obuffer), _O_BINARY) != 0) ||
+        (_pipe(opipe, sizeof(pipe_streambuf::ibuffer), _O_BINARY) != 0))
     {
         throw std::runtime_error("Creating pipes failed");
     }
