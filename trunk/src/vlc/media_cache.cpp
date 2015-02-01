@@ -446,6 +446,52 @@ platform::process & media_cache::get_process_from_pool(unsigned index)
     return *process;
 }
 
+void media_cache::process_tasks(
+        std::set<std::string> &tasks,
+        const std::string &action,
+        const std::function<void(platform::process &, const std::string &)> &f)
+{
+    while (!tasks.empty())
+    {
+        std::vector<platform::process *> pool;
+        pool.resize(std::min(tasks.size(), process_pool.size()));
+        for (size_t i = 0; i < pool.size(); i++)
+            pool[i] = &get_process_from_pool(i);
+
+        unsigned count = 0;
+        for (auto i = tasks.begin(); i != tasks.end(); i++)
+            *pool[count++ % pool.size()] << *i << std::endl;
+
+        for (auto &i : pool)
+            *i << action << std::endl;
+
+        for (bool done = false; !done; )
+        {
+            done = true;
+
+            for (auto &i : pool)
+            {
+                if (i && *i)
+                {
+                    std::string mrl;
+                    *i >> mrl;
+                    if (!mrl.empty() && (mrl != "(done)"))
+                    {
+                        tasks.erase(mrl);
+
+                        f(*i, mrl);
+
+                        done = false;
+                        continue;
+                    }
+                }
+
+                i = nullptr;
+            }
+        }
+    }
+}
+
 void media_cache::scan_all(const std::vector<std::string> &mrls)
 {
     std::set<std::string> tasks;
@@ -458,38 +504,14 @@ void media_cache::scan_all(const std::vector<std::string> &mrls)
             tasks.insert(mrl);
     }
 
-    while (!tasks.empty())
+    process_tasks(tasks, "uuid", [this](
+                  platform::process &process,
+                  const std::string &mrl)
     {
-        unsigned count = 0;
-        for (auto i = tasks.begin(); i != tasks.end(); i++)
-            get_process_from_pool(count++) << *i << std::endl;
-
-        const unsigned pools = std::min(count, unsigned(process_pool.size()));
-        for (unsigned i = 0; i < pools; i++)
-            get_process_from_pool(i) << "uuid" << std::endl;
-
-        for (unsigned i = 0; i < pools; i++)
-        {
-            auto &process = get_process_from_pool(i);
-            while (process)
-            {
-                std::string mrl;
-                process >> mrl;
-                if (!mrl.empty() && (mrl != "(done)"))
-                {
-                    tasks.erase(mrl);
-
-                    platform::uuid uuid;
-                    if (process >> uuid)
-                        uuids[mrl] = uuid;
-                    else // Crashed while scanning this item.
-                        break;
-                }
-                else
-                    break;
-            }
-        }
-    }
+        platform::uuid uuid;
+        if (process >> uuid)
+            uuids[mrl] = uuid;
+    });
 
     // Scan files.
     for (auto &mrl : mrls)
@@ -499,46 +521,22 @@ void media_cache::scan_all(const std::vector<std::string> &mrls)
             tasks.insert(mrl);
     }
 
-    while (!tasks.empty())
+    process_tasks(tasks, "scan", [this](
+                  platform::process &process,
+                  const std::string &mrl)
     {
-        unsigned count = 0;
-        for (auto i = tasks.begin(); i != tasks.end(); i++)
-            get_process_from_pool(count++) << *i << std::endl;
-
-        const unsigned pools = std::min(count, unsigned(process_pool.size()));
-        for (unsigned i = 0; i < pools; i++)
-            get_process_from_pool(i) << "scan" << std::endl;
-
-        for (unsigned i = 0; i < pools; i++)
+        struct media_info media_info;
+        if (process >> media_info)
         {
-            auto &process = get_process_from_pool(i);
-            while (process)
+            auto j = uuids.find(mrl);
+            if (j != uuids.end())
             {
-                std::string mrl;
-                process >> mrl;
-                if (!mrl.empty() && (mrl != "(done)"))
-                {
-                    tasks.erase(mrl);
-
-                    struct media_info media_info;
-                    if (process >> media_info)
-                    {
-                        auto j = uuids.find(mrl);
-                        if (j != uuids.end())
-                        {
-                            std::ostringstream str;
-                            str << media_info;
-                            section.write(j->second, str.str());
-                        }
-                    }
-                    else // Crashed while scanning this item.
-                        break;
-                }
-                else
-                    break;
+                std::ostringstream str;
+                str << media_info;
+                section.write(j->second, str.str());
             }
         }
-    }
+    });
 }
 
 struct media_cache::media_info media_cache::media_info(const std::string &mrl)

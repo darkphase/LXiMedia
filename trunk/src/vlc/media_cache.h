@@ -111,6 +111,11 @@ private:
     static int scan_all_process(platform::process &);
     void stop_process_pool();
     platform::process &get_process_from_pool(unsigned);
+    void process_tasks(
+            std::set<std::string> &,
+            const std::string &action,
+            const std::function<void(platform::process &, const std::string &)> &);
+
     struct media_info subtitle_info(const std::string &);
 
 private:
