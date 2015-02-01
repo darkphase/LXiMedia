@@ -499,8 +499,8 @@ void media_cache::scan_all(const std::vector<std::string> &mrls)
     // Compute UUIDs.
     for (auto &mrl : mrls)
     {
-        auto j = uuids.find(mrl);
-        if (j == uuids.end())
+        auto i = uuids.find(mrl);
+        if (i == uuids.end())
             tasks.insert(mrl);
     }
 
@@ -516,8 +516,8 @@ void media_cache::scan_all(const std::vector<std::string> &mrls)
     // Scan files.
     for (auto &mrl : mrls)
     {
-        auto j = uuids.find(mrl);
-        if ((j != uuids.end()) && !section.has_value(j->second))
+        auto i = uuids.find(mrl);
+        if ((i != uuids.end()) && !section.has_value(i->second))
             tasks.insert(mrl);
     }
 
@@ -528,12 +528,12 @@ void media_cache::scan_all(const std::vector<std::string> &mrls)
         struct media_info media_info;
         if (process >> media_info)
         {
-            auto j = uuids.find(mrl);
-            if (j != uuids.end())
+            auto i = uuids.find(mrl);
+            if (i != uuids.end())
             {
                 std::ostringstream str;
                 str << media_info;
-                section.write(j->second, str.str());
+                section.write(i->second, str.str());
             }
         }
     });
