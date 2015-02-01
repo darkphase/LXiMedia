@@ -178,19 +178,16 @@ static encode_mode to_encode_mode(const std::string &e)
     return encode_mode::slow;
 }
 
-static enum encode_mode default_encode_mode()
-{
-    return (std::thread::hardware_concurrency() > 3) ? encode_mode::slow : encode_mode::fast;
-}
+static const enum encode_mode default_encode_mode = encode_mode::fast;
 
 enum encode_mode settings::encode_mode() const
 {
-    return to_encode_mode(general.read(encode_mode_name, to_string(default_encode_mode())));
+    return to_encode_mode(general.read(encode_mode_name, to_string(default_encode_mode)));
 }
 
 void settings::set_encode_mode(enum encode_mode encode_mode)
 {
-    if (encode_mode != default_encode_mode())
+    if (encode_mode != default_encode_mode)
         return general.write(encode_mode_name, to_string(encode_mode));
     else
         return general.erase(encode_mode_name);
