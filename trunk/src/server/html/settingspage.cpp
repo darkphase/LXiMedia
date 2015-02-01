@@ -142,7 +142,6 @@ static void render_dlna_settings(const class settings &settings, std::ostream &o
            "</select><select name=\"canvas_mode\""  << is_enabled(settings.canvas_mode_enabled()) << ">"
            "<option value=\"none\""                 << is_selected(settings.canvas_mode() == canvas_mode::none      ) << ">" << tr("None") << "</option>"
            "<option value=\"pad\""                  << is_selected(settings.canvas_mode() == canvas_mode::pad       ) << ">" << tr("Add black bars") << "</option>"
-           "<option value=\"crop\""                 << is_selected(settings.canvas_mode() == canvas_mode::crop      ) << ">" << tr("Crop video") << "</option>"
            "</select></p>";
 
     if (!settings.canvas_mode_enabled())
@@ -213,7 +212,6 @@ static void save_dlna_settings(class settings &settings, const std::map<std::str
     {
         if      (canvas_mode->second == "none"      ) settings.set_canvas_mode(::canvas_mode::none      );
         else if (canvas_mode->second == "pad"       ) settings.set_canvas_mode(::canvas_mode::pad       );
-        else if (canvas_mode->second == "crop"      ) settings.set_canvas_mode(::canvas_mode::crop      );
     }
 
     auto surround_mode = query.find("surround_mode");
