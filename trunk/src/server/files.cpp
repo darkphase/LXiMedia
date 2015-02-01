@@ -51,7 +51,7 @@ files::files(
       content_directory(content_directory),
       recommended(recommended),
       settings(settings),
-      watchlist(messageloop, watchlist_file),
+      watchlist(watchlist_file),
       basedir('/' + tr("Files") + '/'),
       min_parse_time(3000),
       max_parse_time(30000),

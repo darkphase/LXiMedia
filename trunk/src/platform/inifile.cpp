@@ -68,7 +68,12 @@ class inifile::section inifile::open_section(const std::string &name)
 
 void inifile::erase_section(const std::string &name)
 {
-    values.erase(name);
+    auto i = values.find(name);
+    if (i != values.end())
+    {
+        values.erase(i);
+        hard_touch();
+    }
 }
 
 void inifile::soft_touch()
@@ -271,30 +276,48 @@ void inifile::save_file()
     case hard:
         {
             // Binary needed to support UTF-8 on Windows
-            platform::ofstream file(filename + '~', std::ios_base::binary);
+            platform::fstream file(
+                        filename + '~',
+                        std::ios_base::binary | std::ios_base::trunc |
+                        std::ios_base::in | std::ios_base::out);
 
-            bool first = true;
-            for (auto &section : values)
+            if (file.is_open())
             {
-                if (!first)
-                    file << std::endl;
-                else
-                    first = false;
-
-                if (!section.first.empty())
-                    file << '[' << escape(section.first) << ']' << std::endl;
-
-                for (auto &value : section.second)
+                bool first = true;
+                for (auto &section : values)
                 {
-                    file << escape(value.first) << '='
-                         << value.second.escaped_value() << std::endl;
+                    if (!first)
+                        file << std::endl;
+                    else
+                        first = false;
+
+                    if (!section.first.empty())
+                        file << '[' << escape(section.first) << ']' << std::endl;
+
+                    for (auto &value : section.second)
+                    {
+                        file << escape(value.first) << '='
+                             << value.second.escaped_value() << std::endl;
+                    }
+                }
+
+                file.flush();
+                this->file = nullptr;
+
+                platform::ofstream ofile(
+                            filename,
+                            std::ios_base::binary | std::ios_base::trunc);
+                if (ofile.is_open())
+                {
+                    file.seekg(0, std::ios_base::beg);
+                    ofile << file.rdbuf();
+                    file.close();
+                    ofile.close();
+                    remove_file(filename + '~');
                 }
             }
         }
 
-        this->file = nullptr;
-        remove_file(filename);
-        rename_file(filename + '~', filename);
         break;
     }
 

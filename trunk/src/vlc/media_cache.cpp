@@ -42,18 +42,12 @@ media_cache::media_cache(
         class platform::inifile &inifile)
     : messageloop(messageloop),
       inifile(inifile),
-      save_inifile_timer(
-          this->messageloop,
-          std::bind(&platform::inifile::save, &inifile)),
-      save_delay(5),
       section(inifile.open_section(revision_name)),
       stop_process_pool_timer(
           this->messageloop,
           std::bind(&media_cache::stop_process_pool, this)),
       process_pool_timeout(15)
 {
-    inifile.on_touched = [this] { save_inifile_timer.start(save_delay, true); };
-
     for (auto &i : inifile.sections())
         if (i != revision_name)
             inifile.erase_section(i);
@@ -64,8 +58,6 @@ media_cache::media_cache(
 media_cache::~media_cache()
 {
     stop_process_pool();
-
-    inifile.on_touched = nullptr;
 }
 
 static platform::uuid uuid_from_file(const std::string &path)

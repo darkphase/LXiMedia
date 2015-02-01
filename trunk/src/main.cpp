@@ -69,8 +69,24 @@ static int run_server(
         std::clog << "bound address: " << i << ":" << upnp.bound_port() << std::endl;
 
     class platform::messageloop_ref messageloop_ref(messageloop);
+
     class platform::inifile media_cache_file(platform::config_dir() + "/media_cache");
+    class platform::timer save_media_cache_timer(
+                messageloop_ref,
+                std::bind(&platform::inifile::save, &media_cache_file));
+    media_cache_file.on_touched = [&save_media_cache_timer]
+    {
+        save_media_cache_timer.start(std::chrono::seconds(5), true);
+    };
+
     class platform::inifile watchlist_file(platform::config_dir() + "/watchlist");
+    class platform::timer save_watchlist_timer(
+                messageloop_ref,
+                std::bind(&platform::inifile::save, &watchlist_file));
+    watchlist_file.on_touched = [&save_watchlist_timer]
+    {
+        save_watchlist_timer.start(std::chrono::seconds(1), true);
+    };
 
     server::recreate_server = [
             &messageloop, &messageloop_ref,

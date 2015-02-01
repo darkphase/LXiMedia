@@ -37,6 +37,7 @@ public:
     ~basic_ifstream();
 
     bool is_open() const;
+    void close();
 };
 
 template <class _type, class _traits = std::char_traits<_type>>
@@ -47,6 +48,7 @@ public:
    ~basic_ofstream();
 
    bool is_open() const;
+   void close();
 };
 
 template <class _type, class _traits = std::char_traits<_type>>
@@ -57,6 +59,7 @@ public:
    ~basic_fstream();
 
    bool is_open() const;
+   void close();
 };
 
 typedef basic_ifstream<char> ifstream;

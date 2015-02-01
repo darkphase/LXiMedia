@@ -30,19 +30,19 @@ namespace platform {
 template <class _type, class _traits>
 static __gnu_cxx::stdio_filebuf<_type, _traits> * create_filebuf(const std::string &filename, std::ios_base::openmode mode)
 {
-    int flags = 0, pmode = 0;
+    int flags = _O_NOINHERIT, pmode = 0;
     if ((mode & std::ios_base::in) && (mode & std::ios_base::out))
     {
-        flags = _O_RDWR | _O_CREAT;
-        pmode = _S_IREAD | _S_IWRITE;
+        flags |= _O_RDWR | _O_CREAT;
+        pmode |= _S_IREAD | _S_IWRITE;
     }
     else if (mode & std::ios_base::out)
     {
-        flags = _O_WRONLY | _O_CREAT;
-        pmode = _S_IREAD | _S_IWRITE;
+        flags |= _O_WRONLY | _O_CREAT;
+        pmode |= _S_IREAD | _S_IWRITE;
     }
     else if (mode & std::ios_base::in)
-        flags = _O_RDONLY;
+        flags |= _O_RDONLY;
 
     if (mode & std::ios_base::app)
         flags |= _O_APPEND;
@@ -80,6 +80,12 @@ bool basic_ifstream<_type, _traits>::is_open() const
     return static_cast<__gnu_cxx::stdio_filebuf<_type, _traits> *>(this->rdbuf())->is_open();
 }
 
+template <class _type, class _traits>
+void basic_ifstream<_type, _traits>::close()
+{
+    static_cast<__gnu_cxx::stdio_filebuf<_type, _traits> *>(this->rdbuf())->close();
+}
+
 template class basic_ifstream<char>;
 
 
@@ -101,6 +107,12 @@ bool basic_ofstream<_type, _traits>::is_open() const
     return static_cast<__gnu_cxx::stdio_filebuf<_type, _traits> *>(this->rdbuf())->is_open();
 }
 
+template <class _type, class _traits>
+void basic_ofstream<_type, _traits>::close()
+{
+     static_cast<__gnu_cxx::stdio_filebuf<_type, _traits> *>(this->rdbuf())->close();
+}
+
 template class basic_ofstream<char>;
 
 
@@ -120,6 +132,12 @@ template <class _type, class _traits>
 bool basic_fstream<_type, _traits>::is_open() const
 {
     return static_cast<__gnu_cxx::stdio_filebuf<_type, _traits> *>(this->rdbuf())->is_open();
+}
+
+template <class _type, class _traits>
+void basic_fstream<_type, _traits>::close()
+{
+    static_cast<__gnu_cxx::stdio_filebuf<_type, _traits> *>(this->rdbuf())->close();
 }
 
 template class basic_fstream<char>;
