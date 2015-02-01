@@ -465,6 +465,8 @@ std::vector<std::string> list_files(
         {
             struct __stat64 stat;
             if ((find_data.cFileName[0] != L'.') &&
+                ((find_data.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) == 0) &&
+                ((find_data.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM) == 0) &&
                 (::_wstat64((wpath + find_data.cFileName).c_str(), &stat) == 0))
             {
                 std::wstring name = find_data.cFileName, lname = to_lower(name);
