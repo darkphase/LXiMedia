@@ -42,7 +42,8 @@ file::file(const std::string &path, const std::string &encoding)
     const size_t ldot = path.find_last_of('.');
     if ((ldot != path.npos) && !encoding.empty() && (encoding != "UTF-8"))
     {
-        platform::ifstream ifile(path);
+        // Binary needed to support UTF-8 on Windows
+        platform::ifstream ifile(path, std::ios_base::binary);
         if (ifile.is_open())
         {
             ifile.seekg(0, std::ios_base::end);
@@ -316,7 +317,8 @@ bool determine_subtitle_language(
         const char *&language,
         const char *&encoding)
 {
-    platform::ifstream file(path);
+    // Binary needed to support UTF-8 on Windows
+    platform::ifstream file(path, std::ios_base::binary);
     if (file.is_open())
     {
         file.seekg(0, std::ios_base::end);
