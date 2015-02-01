@@ -245,7 +245,6 @@ static const char * to_string(canvas_mode e)
     {
     case canvas_mode::none  : return "none";
     case canvas_mode::pad   : return "pad";
-    case canvas_mode::crop  : return "crop";
     }
 
     assert(false);
@@ -256,7 +255,6 @@ static canvas_mode to_canvas_mode(const std::string &e)
 {
     if      (e == to_string(canvas_mode::none)) return canvas_mode::none;
     else if (e == to_string(canvas_mode::pad))  return canvas_mode::pad;
-    else if (e == to_string(canvas_mode::crop)) return canvas_mode::crop;
 
     assert(false);
     return canvas_mode::none;

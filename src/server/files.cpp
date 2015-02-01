@@ -353,23 +353,6 @@ static void min_scale(const std::string &codec, unsigned srcw, unsigned srch, un
     }
 }
 
-static void max_scale(const std::string &codec, unsigned srcw, unsigned srch, unsigned dstw, unsigned dsth, unsigned &w, unsigned &h)
-{
-    const unsigned block = codec_block(codec);
-    if ((srcw > 0) && (srch > 0))
-    {
-        const unsigned f = std::max((dstw * 65536) / srcw, (dsth * 65536) / srch);
-
-        w = ((srcw * f / 65536) + (block / 2) - 1) & ~(block - 1);
-        h = ((srch * f / 65536) + (block / 2) - 1) & ~(block - 1);
-    }
-    else
-    {
-        w = (dstw + (block / 2) - 1) & ~(block - 1);
-        h = (dsth + (block / 2) - 1) & ~(block - 1);
-    }
-}
-
 bool files::correct_protocol(const pupnp::content_directory::item &item, pupnp::connection_manager::protocol &protocol)
 {
     if ((settings.canvas_mode() == canvas_mode::none) || item.is_image())
@@ -379,6 +362,10 @@ bool files::correct_protocol(const pupnp::content_directory::item &item, pupnp::
                     item.width, item.height,
                     protocol.width, protocol.height,
                     protocol.width, protocol.height);
+
+        protocol.aspect = (protocol.height > 0)
+                ? (float(protocol.width) / float(protocol.height))
+                : 1.0f;
     }
 
     return true;
@@ -393,7 +380,6 @@ int files::play_audio_video_item(
 {
     using namespace std::placeholders;
 
-    unsigned width = 0, height = 0;
     std::ostringstream transcode;
     if (!protocol.acodec.empty() || !protocol.vcodec.empty())
     {
@@ -408,45 +394,29 @@ int files::play_audio_video_item(
             if (std::abs(frame_rate - item.frame_rate) > 0.01f)
                 transcode << ",fps=" << std::setprecision(5) << frame_rate;
 
+            const float aspect = (protocol.height > 0)
+                    ? (float(protocol.width * protocol.aspect) / float(protocol.height))
+                    : 1.0f;
+
             switch (settings.canvas_mode())
             {
             case canvas_mode::none:
-                width = protocol.width;
-                height = protocol.height;
+                transcode << ",width=" << protocol.width
+                          << ",height=" << protocol.height;
                 break;
 
             case canvas_mode::pad:
-                min_scale(
-                            protocol.vcodec,
-                            unsigned((item.width / protocol.aspect) + 0.5f), item.height,
-                            protocol.width, protocol.height,
-                            width, height);
-                break;
-
-            case canvas_mode::crop:
-                max_scale(
-                            protocol.vcodec,
-                            unsigned((item.width / protocol.aspect) + 0.5f), item.height,
-                            protocol.width, protocol.height,
-                            width, height);
-                break;
-            }
-
-            transcode << ",width=" << protocol.width << ",height=" << protocol.height;
-
-            if ((width != protocol.width) || (height != protocol.height))
-            {
                 transcode
                         << ",vfilter=canvas{width=" << protocol.width
                         << ",height=" << protocol.height;
 
-                const float aspect = float(protocol.width * protocol.aspect) / float(protocol.height);
                 if (std::abs(aspect - 1.33333f) < 0.1f)
                     transcode << ",aspect=4:3";
                 else if (std::abs(aspect - 1.77778f) < 0.1f)
                     transcode << ",aspect=16:9";
 
                 transcode << ",padd=true}";
+                break;
             }
 
             switch (settings.encode_mode())
@@ -495,12 +465,12 @@ int files::play_audio_video_item(
         std::unique_ptr<vlc::transcode_stream> stream(
                     new vlc::transcode_stream(messageloop));
 
-        if (height > 0)
+        if (protocol.height > 0)
             switch (settings.font_size())
             {
-            case font_size::small:  stream->set_font_size(height / 20); break;
-            case font_size::normal: stream->set_font_size(height / 16); break;
-            case font_size::large:  stream->set_font_size(height / 12); break;
+            case font_size::small:  stream->set_font_size(protocol.height / 20); break;
+            case font_size::normal: stream->set_font_size(protocol.height / 16); break;
+            case font_size::large:  stream->set_font_size(protocol.height / 12); break;
             }
 
         if (item.chapter > 0)

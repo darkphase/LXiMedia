@@ -27,7 +27,7 @@
 
 enum class encode_mode { slow, fast };
 enum class video_mode { auto_, vcd, dvd, hdtv_720, hdtv_1080 };
-enum class canvas_mode { none, pad, crop };
+enum class canvas_mode { none, pad };
 enum class font_size { small, normal, large };
 enum class surround_mode { stereo, surround51 };
 enum class path_type { auto_, music, pictures, videos };
