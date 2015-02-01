@@ -372,12 +372,12 @@ static const std::unordered_set<std::wstring> & hidden_dirs()
     std::call_once(flag, []
     {
         const wchar_t *dir = _wgetenv(L"SystemDrive");
-        if (dir == nullptr) dir = L"C:";
-        hidden_dirs.insert(clean_path(dir) + L"\\program files");
-        hidden_dirs.insert(clean_path(dir) + L"\\program files (x86)");
-        hidden_dirs.insert(clean_path(dir) + L"\\windows");
-        hidden_dirs.insert(clean_path(dir) + L"\\temp");
-        hidden_dirs.insert(clean_path(dir) + L"\\recycler");
+        if (dir == nullptr) dir = L"c:";
+        hidden_dirs.insert(to_lower(clean_path(dir) + L"\\program files"));
+        hidden_dirs.insert(to_lower(clean_path(dir) + L"\\program files (x86)"));
+        hidden_dirs.insert(to_lower(clean_path(dir) + L"\\windows"));
+        hidden_dirs.insert(to_lower(clean_path(dir) + L"\\temp"));
+        hidden_dirs.insert(to_lower(clean_path(dir) + L"\\recycler"));
 
         dir = _wgetenv(L"ProgramFiles");
         if (dir) hidden_dirs.insert(to_lower(clean_path(dir)));
@@ -408,6 +408,7 @@ static const std::unordered_set<std::wstring> & hidden_names()
     {
         hidden_names.insert(L"@eadir");
         hidden_names.insert(L"lost+found");
+        hidden_names.insert(L"recycler");
     });
 
     return hidden_names;
