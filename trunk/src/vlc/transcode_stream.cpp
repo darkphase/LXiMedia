@@ -18,6 +18,7 @@
 #include "vlc/transcode_stream.h"
 #include "vlc/media.h"
 #include "vlc/instance.h"
+#include "platform/path.h"
 #include "platform/string.h"
 #include <vlc/vlc.h>
 #include <cmath>
@@ -93,7 +94,7 @@ int transcode_stream::transcode_process(platform::process &process)
     process >> font_size;
     if (font_size > 0)
     {
-        vlc_options.push_back("--freetype-rel-fontsize");
+        vlc_options.push_back("--freetype-fontsize");
         vlc_options.push_back(std::to_string(font_size));
     }
 
@@ -113,7 +114,13 @@ int transcode_stream::transcode_process(platform::process &process)
     std::string subtitle_file;
     process >> subtitle_file;
     if (subtitle_file != "(none)")
-        libvlc_media_add_option(media, (":sub-file=" + from_percent(subtitle_file)).c_str());
+    {
+        std::string file = from_percent(subtitle_file);
+#ifdef WIN32
+        file = from_utf16(platform::to_windows_path(file));
+#endif
+        libvlc_media_add_option(media, (":sub-file=" + file).c_str());
+    }
 
     size_t num_options = 0;
     process >> num_options;
