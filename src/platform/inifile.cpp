@@ -79,21 +79,16 @@ void inifile::erase_section(const std::string &name)
 void inifile::soft_touch()
 {
     if (touched == none)
-    {
         touched = soft;
-        if (on_touched) on_touched();
-    }
+
+    if (on_touched) on_touched();
 }
 
 void inifile::hard_touch()
 {
-    if (touched == none)
-    {
-        touched = hard;
-        if (on_touched) on_touched();
-    }
-    else if (touched == soft)
-        touched = hard;
+    touched = hard;
+
+    if (on_touched) on_touched();
 }
 
 static std::string unescape(const std::string &input)
