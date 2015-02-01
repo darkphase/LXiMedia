@@ -514,8 +514,10 @@ int files::play_audio_video_item(
         auto mrl = platform::mrl_from_path(system_path.path);
 
         struct vlc::track_ids track_ids;
+        bool first_track = true;
         for (auto &track : list_tracks(media_cache.media_info(mrl)))
-            if ((track.first == track_name) || (track_ids.audio < 0))
+            if ((track.first == track_name) || first_track)
+            {
                 for (auto &t : track.second)
                     switch (t.type)
                     {
@@ -526,10 +528,15 @@ int files::play_audio_video_item(
                     case vlc::track_type::text:
                         if (!t.file.empty())
                             stream->set_subtitle_file(vlc::subtitles::file(t.file, t.text.encoding));
+                        else
+                            stream->set_subtitle_file(vlc::subtitles::file());
 
                         track_ids.text = t.id;
                         break;
                     }
+
+                first_track = false;
+            }
 
         stream->set_track_ids(track_ids);
 
