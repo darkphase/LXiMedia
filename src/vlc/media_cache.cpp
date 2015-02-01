@@ -32,7 +32,7 @@
 
 namespace vlc {
 
-static const char revision_name[] = "rev_1";
+static const char revision_name[] = "rev_2";
 
 platform::process::function_handle media_cache::scan_all_function =
         platform::process::register_function(&media_cache::scan_all_process);
@@ -289,9 +289,8 @@ static bool read_track_list(
                     {
                         track.video.width = track_list[i]->video->i_width;
                         track.video.height = track_list[i]->video->i_height;
-                        track.video.frame_rate =
-                                float(track_list[i]->video->i_frame_rate_num) /
-                                float(track_list[i]->video->i_frame_rate_den);
+                        track.video.frame_rate_num = track_list[i]->video->i_frame_rate_num;
+                        track.video.frame_rate_den = track_list[i]->video->i_frame_rate_den;
 
                         media_info.tracks.emplace_back(std::move(track));
                     }
@@ -386,6 +385,8 @@ int media_cache::scan_all_process(platform::process &process)
                 process << mrls.front() << ' ' << std::flush
                         << uuid_from_file(path) << std::endl;
             }
+
+            process << "(done)" << std::endl;
         }
         else if (cmd == "scan")
         {
@@ -395,6 +396,8 @@ int media_cache::scan_all_process(platform::process &process)
                 process << mrls.front() << ' ' << std::flush
                         << media_info_from_media(media) << std::endl;
             }
+
+            process << "(done)" << std::endl;
         }
         else if (cmd == "exit")
             break;
@@ -428,6 +431,7 @@ platform::process & media_cache::get_process_from_pool(unsigned index)
         if (process && process->joinable())
         {
             process->send_term();
+            *process << "exit" << std::endl;
             process->join();
         }
 
@@ -467,29 +471,22 @@ void media_cache::scan_all(const std::vector<std::string> &mrls)
         for (unsigned i = 0; i < pools; i++)
         {
             auto &process = get_process_from_pool(i);
-
-            const unsigned num_tasks =
-                    (count / pools) +
-                    ((i < (count % pools)) ? 1 : 0);
-
-            for (unsigned j = 0; j < num_tasks; j++)
+            while (process)
             {
                 std::string mrl;
-                platform::uuid uuid;
-                if (process >> mrl >> uuid)
+                process >> mrl;
+                if (!mrl.empty() && (mrl != "(done)"))
                 {
                     tasks.erase(mrl);
 
-                    uuids[mrl] = uuid;
+                    platform::uuid uuid;
+                    if (process >> uuid)
+                        uuids[mrl] = uuid;
+                    else // Crashed while scanning this item.
+                        break;
                 }
                 else
-                {
-                    // Crashed while scanning this item, do not try again.
-                    if (!mrl.empty())
-                        tasks.erase(mrl);
-
                     break;
-                }
             }
         }
     }
@@ -515,35 +512,30 @@ void media_cache::scan_all(const std::vector<std::string> &mrls)
         for (unsigned i = 0; i < pools; i++)
         {
             auto &process = get_process_from_pool(i);
-
-            const unsigned num_tasks =
-                    (count / pools) +
-                    ((i < (count % pools)) ? 1 : 0);
-
-            for (unsigned j = 0; j < num_tasks; j++)
+            while (process)
             {
                 std::string mrl;
-                struct media_info media_info;
-                if (process >> mrl >> media_info)
+                process >> mrl;
+                if (!mrl.empty() && (mrl != "(done)"))
                 {
                     tasks.erase(mrl);
 
-                    auto j = uuids.find(mrl);
-                    if (j != uuids.end())
+                    struct media_info media_info;
+                    if (process >> media_info)
                     {
-                        std::ostringstream str;
-                        str << media_info;
-                        section.write(j->second, str.str());
+                        auto j = uuids.find(mrl);
+                        if (j != uuids.end())
+                        {
+                            std::ostringstream str;
+                            str << media_info;
+                            section.write(j->second, str.str());
+                        }
                     }
+                    else // Crashed while scanning this item.
+                        break;
                 }
                 else
-                {
-                    // Crashed while scanning this item, do not try again.
-                    if (!mrl.empty())
-                        tasks.erase(mrl);
-
                     break;
-                }
             }
         }
     }
@@ -646,11 +638,15 @@ std::ostream & operator<<(std::ostream &str, const struct media_cache::track &tr
     switch (track.type)
     {
     case track_type::audio:
-        str << ' ' << track.audio.sample_rate << ' ' << track.audio.channels;
+        str << ' ' << track.audio.sample_rate
+            << ' ' << track.audio.channels;
         break;
 
     case track_type::video:
-        str << ' ' << track.video.width << ' ' << track.video.height << ' ' << track.video.frame_rate;
+        str << ' ' << track.video.width
+            << ' ' << track.video.height
+            << ' ' << track.video.frame_rate_num
+            << ' ' << track.video.frame_rate_den;
         break;
 
     case track_type::text:
@@ -685,11 +681,15 @@ std::istream & operator>>(std::istream &str, struct media_cache::track &track)
     switch (track.type)
     {
     case track_type::audio:
-        str >> track.audio.sample_rate >> track.audio.channels;
+        str >> track.audio.sample_rate
+            >> track.audio.channels;
         break;
 
     case track_type::video:
-        str >> track.video.width >> track.video.height >> track.video.frame_rate;
+        str >> track.video.width
+            >> track.video.height
+            >> track.video.frame_rate_num
+            >> track.video.frame_rate_den;
         break;
 
     case track_type::text:
@@ -697,7 +697,10 @@ std::istream & operator>>(std::istream &str, struct media_cache::track &track)
             std::string encoding;
             str >> encoding;
             if (encoding.length() >= 2)
-                track.text.encoding = from_percent(encoding.substr(1, encoding.length() - 2));
+            {
+                track.text.encoding = from_percent(
+                            encoding.substr(1, encoding.length() - 2));
+            }
         }
         break;
 
