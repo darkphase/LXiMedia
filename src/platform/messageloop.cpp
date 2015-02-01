@@ -67,15 +67,11 @@ int messageloop::run()
                         message = messageloop::message { nullptr, (*i)->timeout };
 
                         if ((*i)->once)
-                        {
-                            auto timer = *i;
                             timer_remove(**i);
-
-                            i = timers.lower_bound(timer);
-                            continue;
-                        }
                         else
                             (*i)->next += (*i)->interval;
+
+                        break;
                     }
 
                     i++;
@@ -286,11 +282,15 @@ timer::timer(class messageloop_ref &messageloop, const std::function<void()> &ti
 
 timer::~timer()
 {
+    std::lock_guard<std::mutex> _(messageloop.mutex);
+
     messageloop.timer_remove(*this);
 }
 
 void timer::start(std::chrono::nanoseconds interval, bool once)
 {
+    std::lock_guard<std::mutex> _(messageloop.mutex);
+
     this->interval = interval;
     this->next = messageloop.clock.now() + interval;
     this->once = once;
@@ -300,6 +300,8 @@ void timer::start(std::chrono::nanoseconds interval, bool once)
 
 void timer::stop()
 {
+    std::lock_guard<std::mutex> _(messageloop.mutex);
+
     messageloop.timer_remove(*this);
 }
 
