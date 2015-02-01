@@ -695,7 +695,15 @@ static void fill_item(
                     break;
                 }
 
-                item.frame_rate = track.video.frame_rate;
+                if ((track.video.frame_rate_num > 0) &&
+                    (track.video.frame_rate_den > 0))
+                {
+                    item.frame_rate =
+                            float(track.video.frame_rate_num) /
+                            float(track.video.frame_rate_den);
+                }
+                else
+                    item.frame_rate = 0.0f;
             }
             else if (media_type == vlc::media_type::picture)
             {

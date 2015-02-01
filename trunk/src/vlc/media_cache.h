@@ -54,10 +54,22 @@ public:
         track_type type;
         union
         {
-            struct { unsigned sample_rate, channels; } audio;
-            struct { unsigned width, height; float frame_rate; } video;
+            struct
+            {
+                unsigned sample_rate, channels;
+            } audio;
+
+            struct
+            {
+                unsigned width, height;
+                unsigned frame_rate_num, frame_rate_den;
+            } video;
         };
-        struct { std::string encoding; } text;
+
+        struct
+        {
+            std::string encoding;
+        } text;
     };
 
     struct media_info
