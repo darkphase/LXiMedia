@@ -215,7 +215,7 @@ static bool language_of(
         { "Danish"      , "ISO-8859-15" , U"enadtrslgiohmkvufbpøjycéxqwèzüàóêç" },
         { "Dutch"       , "ISO-8859-15" , U"enatirodslghvkmubpwjczfxyëéóq" },
         { "English"     , "ISO-8859-15" , U"etaoinsrhldcumfpgwybvkxjqz" },
-        { "Finnish"     , "ISO-8859-15" , U"enatrsildokgmvfuphäcböjyxzwq" },
+        { "Finnish"     , "ISO-8859-15" , U"aintesloukämrvjhpydögbcfwzxqå" },
         { "French"      , "ISO-8859-15" , U"esaitnrulodcmpévqfbghjàxèyêzçôùâûîœwkïëüæñ" },
         { "German"      , "ISO-8859-15" , U"enisratdhulcgmobwfkzvüpäßjöyqx" },
         { "Greek"       , "ISO-8859-7"  , U"αοιετσνηυρπκμλωδγχθφβξζψ" },
