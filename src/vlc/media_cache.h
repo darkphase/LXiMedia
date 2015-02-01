@@ -84,7 +84,7 @@ private:
     };
 
 public:
-    explicit media_cache(
+    media_cache(
             class platform::messageloop_ref &,
             class platform::inifile &);
 
@@ -108,8 +108,6 @@ private:
     class platform::inifile &inifile;
 
     std::map<std::string, platform::uuid> uuids;
-    class platform::timer save_inifile_timer;
-    const std::chrono::seconds save_delay;
     class platform::inifile::section section;
 
     std::vector<std::unique_ptr<platform::process>> process_pool;

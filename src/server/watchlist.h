@@ -46,10 +46,7 @@ public:
     };
 
 public:
-    watchlist(
-            class platform::messageloop_ref &,
-            class platform::inifile &);
-
+    explicit watchlist(class platform::inifile &);
     ~watchlist();
 
     std::vector<struct entry> watched_items() const;
@@ -60,10 +57,7 @@ public:
     static bool watched_till_end(const struct entry &);
 
 private:
-    class platform::messageloop_ref messageloop;
     class platform::inifile &inifile;
-    class platform::timer timer;
-    const std::chrono::milliseconds save_delay;
 };
 
 #endif

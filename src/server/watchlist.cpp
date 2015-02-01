@@ -74,16 +74,9 @@ static watchlist::entry to_entry(const std::string &str)
     return result;
 }
 
-watchlist::watchlist(
-        class platform::messageloop_ref &messageloop,
-        class platform::inifile &inifile)
-    : messageloop(messageloop),
-      inifile(inifile),
-      timer(messageloop, std::bind(&platform::inifile::save, &inifile)),
-      save_delay(250)
+watchlist::watchlist(class platform::inifile &inifile)
+    : inifile(inifile)
 {
-    inifile.on_touched = [this] { timer.start(save_delay, true); };
-
 //    // Convert file.
 //    auto section = inifile.open_section();
 //    for (auto &uuid : section.names())
@@ -92,7 +85,6 @@ watchlist::watchlist(
 
 watchlist::~watchlist()
 {
-    inifile.on_touched = nullptr;
 }
 
 std::vector<struct watchlist::entry> watchlist::watched_items() const
