@@ -390,12 +390,15 @@ int files::play_audio_video_item(
         {
             transcode << protocol.vcodec;
 
-            const float frame_rate = float(protocol.frame_rate_num) / float(protocol.frame_rate_den);
+            const float frame_rate = (protocol.frame_rate_den > 0)
+                    ? (float(protocol.frame_rate_num) / protocol.frame_rate_den)
+                    : 25.0f;
+
             if (std::abs(frame_rate - item.frame_rate) > 0.01f)
                 transcode << ",fps=" << std::setprecision(5) << frame_rate;
 
             const float aspect = (protocol.height > 0)
-                    ? (float(protocol.width * protocol.aspect) / float(protocol.height))
+                    ? ((protocol.width * protocol.aspect) / protocol.height)
                     : 1.0f;
 
             switch (settings.canvas_mode())

@@ -384,6 +384,8 @@ void process::process_entry(int argc, const char *argv[])
     for (int i = 1; (i + 5) < argc; i++)
         if (strcmp(argv[i], child_process_arg) == 0)
         {
+            int exit_code = 1;
+
             const auto &functions = ::functions();
             auto function = functions.find(argv[i + 1]);
             if (function != functions.end())
@@ -397,10 +399,12 @@ void process::process_entry(int argc, const char *argv[])
                             std::stoi(argv[i + 4]),
                             std::stoi(argv[i + 5]));
 
-                ::exit(function->second(process));
+                exit_code = function->second(process);
             }
+            else
+                throw std::runtime_error("Failed to find child function");
 
-            throw std::runtime_error("Failed to find child function");
+            ::exit(exit_code);
         }
 }
 
