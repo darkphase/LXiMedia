@@ -186,6 +186,7 @@ int main(int argc, const char *argv[])
             {
                 if (urls.empty())
                 {
+                    settings = nullptr;
                     settings.reset(new class settings(messageloop_ref, false));
                     return run_server(messageloop, *settings, upnp, false);
                 }
@@ -223,6 +224,7 @@ int main(int argc, const char *argv[])
             return open_url(get_url(urls)) ? 0 : 1;
 
         // Otherwise start and open this one in browser.
+        settings = nullptr;
         settings.reset(new class settings(messageloop_ref, false));
         return run_server(messageloop, *settings, upnp, true);
     }
