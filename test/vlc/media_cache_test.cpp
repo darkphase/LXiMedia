@@ -37,7 +37,7 @@ static const struct media_cache_test
         auto mrl = platform::mrl_from_path(pm5544_png);
         test_assert(!mrl.empty());
 
-        class platform::inifile inifile(media_cache_file);
+        class platform::inifile inifile(media_cache_file, false);
         class media_cache media_cache(messageloop_ref, inifile);
 
         static const platform::uuid ref_uuid("6c9a8849-dbd4-5b7e-8f50-0916d1294251");

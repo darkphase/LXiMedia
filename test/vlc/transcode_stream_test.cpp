@@ -39,7 +39,7 @@ static const struct transcode_stream_test
         class platform::messageloop messageloop;
         class platform::messageloop_ref messageloop_ref(messageloop);
 
-        class platform::inifile inifile(media_cache_file);
+        class platform::inifile inifile(media_cache_file, false);
         class media_cache media_cache(messageloop_ref, inifile);
 
         if (!out_file.empty())

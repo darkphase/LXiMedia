@@ -22,8 +22,9 @@
 
 namespace platform {
 
-inifile::inifile(const std::string &filename)
+inifile::inifile(const std::string &filename, bool read_only)
     : filename(filename),
+      read_only(read_only),
       file(),
       touched(none)
 {
@@ -32,14 +33,19 @@ inifile::inifile(const std::string &filename)
 
 inifile::~inifile()
 {
-    save_file();
+    if (!read_only)
+        save_file();
 }
 
 void inifile::save()
 {
-    save_file();
-    if (!file)
-        load_file();
+    assert(!read_only);
+    if (!read_only)
+    {
+        save_file();
+        if (!file)
+            load_file();
+    }
 }
 
 std::set<std::string> inifile::sections() const
@@ -68,27 +74,39 @@ class inifile::section inifile::open_section(const std::string &name)
 
 void inifile::erase_section(const std::string &name)
 {
-    auto i = values.find(name);
-    if (i != values.end())
+    assert(!read_only);
+    if (!read_only)
     {
-        values.erase(i);
-        hard_touch();
+        auto i = values.find(name);
+        if (i != values.end())
+        {
+            values.erase(i);
+            hard_touch();
+        }
     }
 }
 
 void inifile::soft_touch()
 {
-    if (touched == none)
-        touched = soft;
+    assert(!read_only);
+    if (!read_only)
+    {
+        if (touched == none)
+            touched = soft;
 
-    if (on_touched) on_touched();
+        if (on_touched) on_touched();
+    }
 }
 
 void inifile::hard_touch()
 {
-    touched = hard;
+    assert(!read_only);
+    if (!read_only)
+    {
+        touched = hard;
 
-    if (on_touched) on_touched();
+        if (on_touched) on_touched();
+    }
 }
 
 static std::string unescape(const std::string &input)
@@ -136,9 +154,11 @@ void inifile::load_file()
     values.clear();
 
     // Binary needed to support UTF-8 on Windows
-    file.reset(new platform::fstream(
-                   filename,
-                   std::ios_base::binary | std::ios_base::in | std::ios_base::out));
+    std::ios_base::openmode mode = std::ios_base::binary | std::ios_base::in;
+    if (!read_only)
+        mode |= std::ios_base::out;
+
+    file.reset(new platform::fstream(filename, mode));
 
     for (std::string section; *file;)
     {

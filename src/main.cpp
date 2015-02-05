@@ -74,7 +74,9 @@ static int run_server(
 
     class platform::messageloop_ref messageloop_ref(messageloop);
 
-    class platform::inifile media_cache_file(platform::config_dir() + "/media_cache");
+    class platform::inifile media_cache_file(
+                platform::config_dir() + "/media_cache", false);
+
     class platform::timer save_media_cache_timer(
                 messageloop_ref,
                 std::bind(&platform::inifile::save, &media_cache_file));
@@ -83,7 +85,9 @@ static int run_server(
         save_media_cache_timer.start(std::chrono::seconds(5), true);
     };
 
-    class platform::inifile watchlist_file(platform::config_dir() + "/watchlist");
+    class platform::inifile watchlist_file(
+                platform::config_dir() + "/watchlist", false);
+
     class platform::timer save_watchlist_timer(
                 messageloop_ref,
                 std::bind(&platform::inifile::save, &watchlist_file));
@@ -169,18 +173,22 @@ int main(int argc, const char *argv[])
 
     class platform::messageloop messageloop;
     class platform::messageloop_ref messageloop_ref(messageloop);
-    class settings settings(messageloop_ref);
+    std::unique_ptr<class settings> settings(
+                new class settings(messageloop_ref, true));
 
     class pupnp::upnp upnp(messageloop_ref);
-    if (upnp.initialize(settings.http_port(), false))
+    if (upnp.initialize(settings->http_port(), false))
     {
-        const auto urls = find_server(messageloop, settings, upnp);
+        const auto urls = find_server(messageloop, *settings, upnp);
 
         for (int i = 1; i < argc; i++)
             if (strcmp(argv[i], "--run") == 0)
             {
                 if (urls.empty())
-                    return run_server(messageloop, settings, upnp, false);
+                {
+                    settings.reset(new class settings(messageloop_ref, false));
+                    return run_server(messageloop, *settings, upnp, false);
+                }
                 else
                     std::cerr << "LXiMediaServer already running." << std::endl;
 
@@ -215,7 +223,8 @@ int main(int argc, const char *argv[])
             return open_url(get_url(urls)) ? 0 : 1;
 
         // Otherwise start and open this one in browser.
-        return run_server(messageloop, settings, upnp, true);
+        settings.reset(new class settings(messageloop_ref, false));
+        return run_server(messageloop, *settings, upnp, true);
     }
 
     return 1;

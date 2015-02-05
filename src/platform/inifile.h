@@ -103,7 +103,7 @@ public:
     };
 
 public:
-    explicit inifile(const std::string &);
+    inifile(const std::string &, bool read_only);
     ~inifile();
 
     std::function<void()> on_touched;
@@ -124,6 +124,7 @@ private:
 
 private:
     const std::string filename;
+    const bool read_only;
     std::unique_ptr<std::iostream> file;
     std::map<std::string, std::map<std::string, string_ref>> values;
     enum { none, soft, hard } touched;
