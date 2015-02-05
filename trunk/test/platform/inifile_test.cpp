@@ -31,14 +31,14 @@ static const struct inifile_test
 
         // Write first file
         {
-            platform::inifile ini(filename);
+            platform::inifile ini(filename, false);
             ini.open_section("section[1]\\").write("string=", data);
             ini.open_section("section[1]\\").write("int1=", 1234);
         }
 
         // Soft-touch by appending.
         {
-            platform::inifile ini(filename);
+            platform::inifile ini(filename, false);
             test_assert(ini.open_section("section[1]\\").names().size() == 2);
             test_assert(ini.open_section("section[1]\\").read("string=", std::string()) == data);
             test_assert(ini.open_section("section[1]\\").read("int1=", 0) == 1234);
@@ -50,7 +50,7 @@ static const struct inifile_test
 
         // Soft-touch by modifying value with same length.
         {
-            platform::inifile ini(filename);
+            platform::inifile ini(filename, false);
             test_assert(ini.open_section("section[1]\\").names().size() == 3);
             test_assert(ini.open_section("section[1]\\").read("string=", std::string()) == data);
             test_assert(ini.open_section("section[1]\\").read("int1=", 0) == 1234);
@@ -63,7 +63,7 @@ static const struct inifile_test
 
         // Hard-touch by creating new section.
         {
-            platform::inifile ini(filename);
+            platform::inifile ini(filename, false);
             test_assert(ini.open_section("section[1]\\").names().size() == 3);
             test_assert(ini.open_section("section[1]\\").read("string=", std::string()) == data);
             test_assert(ini.open_section("section[1]\\").read("int1=", 0) == 3456);
@@ -74,7 +74,7 @@ static const struct inifile_test
 
         // Verify final file.
         {
-            const platform::inifile ini(filename);
+            const platform::inifile ini(filename, true);
             test_assert(ini.open_section("section[1]\\").names().size() == 3);
             test_assert(ini.open_section("section[1]\\").read("string=", std::string()) == data);
             test_assert(ini.open_section("section[1]\\").read("int1=", 0) == 3456);

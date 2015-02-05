@@ -30,9 +30,10 @@ static struct user_dirs user_dirs();
 
 static const char clean_exit_name[] = "_clean_exit";
 
-settings::settings(class platform::messageloop_ref &messageloop)
+settings::settings(class platform::messageloop_ref &messageloop, bool read_only)
     : messageloop(messageloop),
-      inifile(platform::config_dir() + "/settings"),
+      read_only(read_only),
+      inifile(platform::config_dir() + "/settings", read_only),
       general(inifile.open_section()),
       codecs(inifile.open_section("codecs")),
       formats(inifile.open_section("formats")),
@@ -41,20 +42,26 @@ settings::settings(class platform::messageloop_ref &messageloop)
       save_delay(250),
       last_clean_exit(general.read(clean_exit_name, true))
 {
-    inifile.on_touched = [this] { timer.start(save_delay, true); };
-
-    general.write(clean_exit_name, false);
+    if (!read_only)
+    {
+        inifile.on_touched = [this] { timer.start(save_delay, true); };
+        general.write(clean_exit_name, false);
+    }
 }
 
 settings::~settings()
 {
-    general.erase(clean_exit_name);
+    if (!read_only)
+        general.erase(clean_exit_name);
 }
 
 void settings::save()
 {
-    timer.stop();
-    inifile.save();
+    if (!read_only)
+    {
+        timer.stop();
+        inifile.save();
+    }
 }
 
 bool settings::was_clean_exit() const
@@ -71,6 +78,8 @@ bool settings::is_configure_required() const
 
 void settings::set_configure_required(bool on)
 {
+    assert(!read_only);
+
     if (on)
         return general.erase(is_configure_required_name);
     else
@@ -82,7 +91,7 @@ static const char uuid_name[] = "uuid";
 platform::uuid settings::uuid()
 {
     auto value = general.read(uuid_name);
-    if (value.empty())
+    if (value.empty() && !read_only)
     {
         value = platform::uuid::generate();
         general.write(uuid_name, value);
@@ -102,6 +111,8 @@ std::string settings::upnp_devicename() const
 
 void settings::set_upnp_devicename(const std::string &upnp_devicename)
 {
+    assert(!read_only);
+
     if (upnp_devicename != default_upnp_devicename())
         return general.write(upnp_devicename_name, upnp_devicename);
     else
@@ -119,6 +130,8 @@ uint16_t settings::http_port() const
 
 void settings::set_http_port(uint16_t http_port)
 {
+    assert(!read_only);
+
     if (http_port != default_http_port)
         return general.write(http_port_name, http_port);
     else
@@ -134,6 +147,8 @@ bool settings::bind_all_networks() const
 
 void settings::set_bind_all_networks(bool on)
 {
+    assert(!read_only);
+
     if (on)
         return general.write(bind_all_networks_name, true);
     else
@@ -149,6 +164,8 @@ bool settings::republish_rootdevice() const
 
 void settings::set_republish_rootdevice(bool on)
 {
+    assert(!read_only);
+
     if (on)
         return general.erase(republish_rootdevice_name);
     else
@@ -187,6 +204,8 @@ enum encode_mode settings::encode_mode() const
 
 void settings::set_encode_mode(enum encode_mode encode_mode)
 {
+    assert(!read_only);
+
     if (encode_mode != default_encode_mode)
         return general.write(encode_mode_name, to_string(encode_mode));
     else
@@ -231,6 +250,8 @@ enum video_mode settings::video_mode() const
 
 void settings::set_video_mode(enum video_mode video_mode)
 {
+    assert(!read_only);
+
     if (video_mode != default_video_mode)
         return general.write(video_mode_name, to_string(video_mode));
     else
@@ -278,6 +299,8 @@ enum canvas_mode settings::canvas_mode() const
 
 void settings::set_canvas_mode(enum canvas_mode canvas_mode)
 {
+    assert(!read_only);
+
     if (canvas_mode != default_canvas_mode)
         return general.write(canvas_mode_name, to_string(canvas_mode));
     else
@@ -325,6 +348,8 @@ enum surround_mode settings::surround_mode() const
 
 void settings::set_surround_mode(enum surround_mode surround_mode)
 {
+    assert(!read_only);
+
     if (surround_mode != default_surround_mode)
         return general.write(surround_mode_name, to_string(surround_mode));
     else
@@ -365,6 +390,8 @@ enum font_size settings::font_size() const
 
 void settings::set_font_size(enum font_size font_size)
 {
+    assert(!read_only);
+
     if (font_size != default_font_size)
         return general.write(font_size_name, to_string(font_size));
     else
@@ -380,6 +407,8 @@ bool settings::share_removable_media() const
 
 void settings::set_share_removable_media(bool on)
 {
+    assert(!read_only);
+
     if (!on)
         return general.write(share_removable_media_name, false);
     else
@@ -397,6 +426,8 @@ bool settings::mpeg2_enabled() const
 
 void settings::set_mpeg2_enabled(bool on)
 {
+    assert(!read_only);
+
     if (on)
         return codecs.erase(mp2v_name);
     else
@@ -417,6 +448,8 @@ bool settings::mpeg4_enabled() const
 
 void settings::set_mpeg4_enabled(bool on)
 {
+    assert(!read_only);
+
     if (on == default_mpeg4_enabled())
         return codecs.erase(h264_name);
     else
@@ -432,6 +465,8 @@ bool settings::video_mpegm2ts_enabled() const
 
 void settings::set_video_mpegm2ts_enabled(bool on)
 {
+    assert(!read_only);
+
     if (on)
         return formats.erase(mpeg_m2ts_name);
     else
@@ -447,6 +482,8 @@ bool settings::video_mpegts_enabled() const
 
 void settings::set_video_mpegts_enabled(bool on)
 {
+    assert(!read_only);
+
     if (on)
         return formats.erase(mpeg_ts_name);
     else
@@ -462,6 +499,8 @@ bool settings::video_mpeg_enabled() const
 
 void settings::set_video_mpeg_enabled(bool on)
 {
+    assert(!read_only);
+
     if (on)
         return formats.erase(mpeg_ps_name);
     else
@@ -523,6 +562,8 @@ std::vector<root_path> settings::root_paths() const
 
 void settings::set_root_paths(const std::vector<root_path> &root_paths)
 {
+    assert(!read_only);
+
     const auto default_paths = default_root_paths();
 
     size_t defaults = 0;
@@ -577,7 +618,7 @@ static std::string unquote_and_replace_home(const std::string &src, const std::s
 static struct user_dirs user_dirs()
 {
     const std::string home = platform::home_dir();
-    const class platform::inifile inifile(home + "/.config/user-dirs.dirs");
+    const class platform::inifile inifile(home + "/.config/user-dirs.dirs", true);
     const auto section = inifile.open_section();
 
     struct user_dirs user_dirs;

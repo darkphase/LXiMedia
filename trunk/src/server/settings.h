@@ -36,7 +36,7 @@ struct root_path { path_type type; std::string path; };
 class settings
 {
 public:
-    explicit settings(class platform::messageloop_ref &);
+    settings(class platform::messageloop_ref &, bool read_only);
     ~settings();
 
     void save();
@@ -89,6 +89,7 @@ public:
 
 private:
     class platform::messageloop_ref messageloop;
+    const bool read_only;
     class platform::inifile inifile;
     class platform::inifile::section general;
     class platform::inifile::section codecs;
