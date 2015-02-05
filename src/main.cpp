@@ -69,6 +69,9 @@ static int run_server(
     for (auto &i : upnp.bound_addresses())
         std::clog << "bound address: " << i << ":" << upnp.bound_port() << std::endl;
 
+    // To improve initialization performance of child processes.
+    vlc::instance instance;
+
     class platform::messageloop_ref messageloop_ref(messageloop);
 
     class platform::inifile media_cache_file(platform::config_dir() + "/media_cache");
@@ -200,7 +203,9 @@ int main(int argc, const char *argv[])
             }
             else if (strcmp(argv[i], "--probeplugins") == 0)
             {
-                vlc::instance instance;
+                std::vector<std::string> vlc_options;
+                vlc_options.push_back("--reset-plugins-cache");
+                vlc::instance instance(vlc_options);
 
                 return 0;
             }
