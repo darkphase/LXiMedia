@@ -7,6 +7,7 @@
 #include "pupnp/upnp.h"
 #include "server/server.h"
 #include "server/settings.h"
+#include "vlc/instance.h"
 #include <clocale>
 #include <cstdio>
 #include <cstdlib>
@@ -194,6 +195,12 @@ int main(int argc, const char *argv[])
                 }
                 else
                     std::cerr << "LXiMediaServer not running." << std::endl;
+
+                return 0;
+            }
+            else if (strcmp(argv[i], "--probeplugins") == 0)
+            {
+                vlc::instance instance;
 
                 return 0;
             }

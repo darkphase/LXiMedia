@@ -36,7 +36,7 @@ Section "-Files" SecFiles
   CreateShortCut "$SMPROGRAMS\LXiMediaServer.lnk" "$INSTDIR\lximediaserver.exe" "" "$INSTDIR\lximediaserver.exe" 0
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "LXiMediaServer" '"$INSTDIR\lximediaserver.exe" --run'
 
-  Exec '"$INSTDIR\lximediaserver.exe"'
+  ExecWait '"$INSTDIR\lximediaserver.exe" --probeplugins'
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\LXiMediaServer" "DisplayName" "LeX-Interactive MediaServer"
