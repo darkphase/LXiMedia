@@ -415,8 +415,6 @@ void settings::set_share_removable_media(bool on)
         return general.erase(share_removable_media_name);
 }
 
-static const char verbose_logging_name[] = "verbose_logging";
-
 static const char mp2v_name[] = "mp2v";
 
 bool settings::mpeg2_enabled() const

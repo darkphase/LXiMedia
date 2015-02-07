@@ -122,7 +122,6 @@ private:
     static platform::process::function_handle scan_all_function;
 
     class platform::messageloop_ref messageloop;
-    class platform::inifile &inifile;
 
     std::map<std::string, platform::uuid> uuids;
     class platform::inifile::section section;

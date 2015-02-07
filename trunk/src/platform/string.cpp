@@ -250,8 +250,11 @@ std::string escape_xml(const std::string &input)
     return result.str();
 }
 
-bool is_utf8(const std::string &input)
+bool is_utf8(const std::string &src)
 {
+    const auto &input =
+            reinterpret_cast<const std::basic_string<uint8_t> &>(src);
+
     for (size_t i = 0, n = input.size(); (i + 3) < n; )
     {
         // ASCII.
