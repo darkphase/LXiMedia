@@ -41,7 +41,6 @@ media_cache::media_cache(
         class platform::messageloop_ref &messageloop,
         class platform::inifile &inifile)
     : messageloop(messageloop),
-      inifile(inifile),
       section(inifile.open_section(revision_name)),
       stop_process_pool_timer(
           this->messageloop,
