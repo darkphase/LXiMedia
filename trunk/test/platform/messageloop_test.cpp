@@ -26,16 +26,17 @@ static const struct messageloop_test
     {
         class platform::messageloop messageloop;
 
-        int exitcode = -1;
-        std::thread looper([&messageloop, &exitcode] { exitcode = messageloop.run(); });
-
         int test = 0;
-        messageloop.send([&test] { test = 456; });
-        test_assert(test == 456);
+        std::thread sender([&messageloop, &test]
+        {
+            messageloop.send([&test] { test = 456; });
+            messageloop.stop(123);
+        });
 
-        messageloop.stop(123);
-        looper.join();
-        test_assert(exitcode == 123);
+        test_assert(messageloop.run() == 123);
+
+        sender.join();
+        test_assert(test == 456);
     }
 
     struct test process_events_test;
@@ -47,7 +48,7 @@ static const struct messageloop_test
         int test = 0;
         messageloop_ref.post([&test] { test = 456; });
         test_assert(test == 0);
-        messageloop.process_events(std::chrono::seconds(0));
+        test_assert(messageloop.process_events(std::chrono::seconds(0)) == -1);
         test_assert(test == 456);
     }
 
