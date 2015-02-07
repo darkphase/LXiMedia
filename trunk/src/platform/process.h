@@ -18,10 +18,17 @@
 #ifndef PLATFORM_PROCESS_H
 #define PLATFORM_PROCESS_H
 
+// For debugging:
+//#define PROCESS_USE_THREAD
+
 #include <cstdint>
 #include <iostream>
 #include <memory>
-#include <sys/types.h>
+#if defined(PROCESS_USE_THREAD)
+# include <thread>
+#else
+# include <sys/types.h>
+#endif
 
 namespace platform {
 
@@ -65,7 +72,11 @@ public:
     int join();
 
 private:
-#if defined(WIN32)
+    struct shm_data;
+
+#if defined(PROCESS_USE_THREAD)
+    process(volatile shm_data *, int, int);
+#elif defined(WIN32)
     process(priority, void *, int, int);
 #endif
 
@@ -74,13 +85,15 @@ private:
     const volatile void *get_shared(unsigned, size_t size) const;
 
 private:
-#if defined(__unix__) || defined(__APPLE__)
+#if defined(PROCESS_USE_THREAD)
+    std::unique_ptr<std::thread> thread;
+    int exit_code;
+#elif defined(__unix__) || defined(__APPLE__)
     pid_t child;
 #elif defined(WIN32)
     intptr_t child;
     void *file_mapping;
 #endif
-    struct shm_data;
     volatile shm_data *shm;
 };
 

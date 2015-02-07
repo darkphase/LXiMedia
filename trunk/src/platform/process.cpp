@@ -207,7 +207,93 @@ const volatile void * process::get_shared(unsigned offset, size_t size) const
 
 } // End of namespace
 
-#if defined(__unix__) || defined(__APPLE__)
+#if defined(PROCESS_USE_THREAD)
+namespace platform {
+
+void process::process_entry(int, const char *[])
+{
+}
+
+process::process(function_handle handle, priority priority_)
+    : std::iostream(nullptr),
+      thread(),
+      exit_code(-1),
+      shm(nullptr)
+{
+    const auto &functions = ::functions();
+    auto function = functions.find(handle.name);
+    if (function == functions.end())
+        throw std::runtime_error("Failed to find child function");
+
+    // Create pipes.
+    int ipipe[2], opipe[2];
+    if ((pipe(ipipe) != 0) || (pipe(opipe) != 0))
+        throw std::runtime_error("Creating pipes failed");
+
+    // Create shared memory.
+    shm = new shm_data();
+
+    // Will get offset 0; used to emulate the term signal.
+    alloc_shared<bool>();
+
+    // Spawn thread
+    thread.reset(new std::thread([this, function, ipipe, opipe]
+    {
+        class process process(shm, ipipe[0], opipe[1]);
+        exit_code = function->second(process);
+    }));
+
+    std::iostream::rdbuf(new pipe_streambuf(opipe[0], ipipe[1]));
+}
+
+process::process(volatile shm_data *shm, int ifd, int ofd)
+    : std::iostream(new pipe_streambuf(ifd, ofd)),
+      thread(),
+      exit_code(-1),
+      shm(shm)
+{
+}
+
+process::~process()
+{
+    if (thread != nullptr)
+        delete shm;
+
+    delete std::iostream::rdbuf(nullptr);
+}
+
+void process::send_term()
+{
+    if ((thread != nullptr) && shm)
+        get_shared<bool>(0) = true;
+}
+
+bool process::term_pending() const
+{
+    if ((thread == nullptr) && shm)
+        return get_shared<bool>(0);
+
+    return false;
+}
+
+bool process::joinable() const
+{
+    return thread != nullptr;
+}
+
+int process::join()
+{
+    if (thread != nullptr)
+    {
+        thread->join();
+        return exit_code;
+    }
+    else
+        throw std::runtime_error("Process not joinable.");
+}
+
+} // End of namespace
+#elif defined(__unix__) || defined(__APPLE__)
 #include <cstdio>
 #include <sys/mman.h>
 #include <sys/wait.h>
@@ -227,6 +313,8 @@ void process::process_entry(int, const char *[])
 static volatile bool term_received = false;
 static void signal_handler(int /*signal*/)
 {
+    std::cout << "signal_handler" << std::endl;
+
     term_received = true;
 }
 
