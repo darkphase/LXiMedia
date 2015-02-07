@@ -28,6 +28,8 @@ namespace vlc {
 class instance
 {
 public:
+    static void initialize(int argc, const char *argv[]);
+
     /*! returns:
      *  <0 if the actual version is older than the specified version.
      *   0 if the actual version equals the specified version.

@@ -17,9 +17,27 @@
 
 #include "instance.h"
 #include <vlc/vlc.h>
+#include <cstdlib>
 #include <iostream>
 
 namespace vlc {
+
+void instance::initialize(int argc, const char *argv[])
+{
+#if defined(__APPLE__)
+    static std::string vlc_plugin_path;
+
+    if (argc > 0)
+    {
+        std::string path = argv[0];
+        while (!path.empty() && (path[path.length() - 1] != '/'))
+            path.pop_back();
+
+        vlc_plugin_path = "VLC_PLUGIN_PATH=" + path + "plugins";
+        ::putenv(&vlc_plugin_path[0]);
+    }
+#endif
+}
 
 int instance::compare_version(int major, int minor, int patch)
 {
@@ -59,7 +77,9 @@ int instance::compare_version(int major, int minor, int patch)
 static libvlc_instance_t * create_instance(const std::vector<std::string> &options) noexcept
 {
     std::vector<const char *> argv;
+#if !defined(TEST_H)
     argv.push_back("-vvv");
+#endif
 
     if (instance::compare_version(2, 2) >= 0)
     {

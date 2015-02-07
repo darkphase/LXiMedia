@@ -69,9 +69,6 @@ static int run_server(
     for (auto &i : upnp.bound_addresses())
         std::clog << "bound address: " << i << ":" << upnp.bound_port() << std::endl;
 
-    // To improve initialization performance of child processes.
-    vlc::instance instance;
-
     class platform::messageloop_ref messageloop_ref(messageloop);
 
     class platform::inifile media_cache_file(
@@ -170,6 +167,8 @@ int main(int argc, const char *argv[])
     setlocale(LC_ALL, "");
 
     platform::process::process_entry(argc, argv);
+
+    vlc::instance::initialize(argc, argv);
 
     class platform::messageloop messageloop;
     class platform::messageloop_ref messageloop_ref(messageloop);
