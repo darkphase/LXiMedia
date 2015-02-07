@@ -1,5 +1,6 @@
 #include "test.h"
 #include "platform/process.h"
+#include "vlc/instance.h"
 #include <clocale>
 #include <iostream>
 #include <stdexcept>
@@ -17,6 +18,8 @@ int main(int argc, const char *argv[])
     setlocale(LC_ALL, "");
 
     platform::process::process_entry(argc, argv);
+
+    vlc::instance::initialize(argc, argv);
 
     std::vector<struct test *> tests;
     for (struct test *i = test::current; i; i = i->previous)

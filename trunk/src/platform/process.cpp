@@ -313,8 +313,6 @@ void process::process_entry(int, const char *[])
 static volatile bool term_received = false;
 static void signal_handler(int /*signal*/)
 {
-    std::cout << "signal_handler" << std::endl;
-
     term_received = true;
 }
 
