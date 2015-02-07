@@ -145,7 +145,6 @@ void timer::stop()
 } // End of namespace
 
 #if defined(__unix__) || defined(__APPLE__)
-#include <iostream>
 #include <signal.h>
 
 namespace platform {
@@ -164,10 +163,6 @@ messageloop::messageloop()
         {
             static void signal_handler(int signal)
             {
-                std::clog << "platform::messageloop: received \""
-                          << strsignal(signal) << "\" signal"
-                          << std::endl;
-
                 if ((signal == SIGINT) || (signal == SIGTERM))
                 {
                     // Can't lock from a signal
@@ -352,7 +347,6 @@ int messageloop::process_events(std::chrono::milliseconds duration)
 } // End of namespace
 
 #elif defined(WIN32)
-#include <iostream>
 #include <windows.h>
 
 namespace platform {
