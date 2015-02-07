@@ -422,9 +422,10 @@ static UINT to_codepage(const char *encoding)
 
 std::string to_utf8(const std::string &src, const std::string &encoding)
 {
-    const UINT codepage = to_codepage(encoding.c_str());
+    std::string dst;
 
-    if (codepage)
+    const auto codepage = to_codepage(encoding.c_str());
+    if (codepage && IsValidCodePage(codepage))
     {
         std::wstring tmp;
         tmp.resize(src.length());
@@ -433,40 +434,55 @@ std::string to_utf8(const std::string &src, const std::string &encoding)
                 &src[0], src.length(),
                 &tmp[0], tmp.length()));
 
-        std::string dst;
         dst.resize(tmp.length() * 4);
         dst.resize(WideCharToMultiByte(
                 CP_UTF8, 0,
                 &tmp[0], tmp.length(),
                 &dst[0], dst.length(),
                 NULL, NULL));
-
-        return dst;
     }
 
-    return src;
+    return dst;
+}
+
+static std::u32string to_utf32(const std::wstring &src)
+{
+    std::u32string dst;
+    dst.reserve(src.size());
+
+    for (size_t i = 0, n = src.size(); i < n; i++)
+    {
+        const char16_t ch = src[i];
+        if ((ch >= 0xD800) && (ch <= 0xDBFF) && (i + 1 < n))
+        {
+            dst.push_back(
+                        (char32_t(ch - 0xD800) << 10) +
+                        char32_t(src[++i] - 0xDC00) +
+                        0x0010000);
+        }
+        else
+            dst.push_back(char32_t(ch));
+    }
+
+    return dst;
 }
 
 std::u32string to_utf32(const std::string &src, const char *encoding)
 {
-    const UINT codepage = to_codepage(encoding);
+    std::u32string dst;
 
-    std::wstring tmp;
-    if (codepage)
+    const auto codepage = to_codepage(encoding);
+    if (codepage && IsValidCodePage(codepage))
     {
+        std::wstring tmp;
         tmp.resize(src.length());
         tmp.resize(MultiByteToWideChar(
                 codepage, 0,
                 &src[0], src.length(),
                 &tmp[0], tmp.length()));
-    }
 
-    // This is wrong!
-    // TODO: Implement proper conversion from UTF-16 to UTF-32.
-    std::u32string dst;
-    dst.reserve(tmp.length());
-    for (auto i : tmp)
-        dst.push_back(i);
+        dst = to_utf32(tmp);
+    }
 
     return dst;
 }
