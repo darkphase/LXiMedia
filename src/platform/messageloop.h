@@ -43,35 +43,36 @@ public:
     void stop(int);
     void send(const std::function<void()> &);
 
-    void process_events(const std::chrono::milliseconds &duration);
+    int process_events(std::chrono::milliseconds duration);
 
 private:
     void post(class messageloop_ref &, const std::function<void()> &);
     void post(class messageloop_ref &, std::function<void()> &&);
     void abort(class messageloop_ref &);
 
-    void abort();
-    void timer_add(class timer &);
+    void timer_add(class timer &, std::chrono::nanoseconds);
     void timer_remove(class timer &);
 
 private:
-    std::mutex mutex;
-    std::condition_variable message_added;
-    std::condition_variable send_processed;
-
-    bool stopped;
-    int exitcode;
-
     struct message
     {
         class messageloop_ref *ref;
         std::function<void()> func;
     };
 
+    std::mutex mutex;
+    std::condition_variable send_processed;
     std::list<message> messages;
-
     std::set<timer *> timers;
     std::chrono::steady_clock clock;
+    int exitcode;
+
+#if defined(__unix__) || defined(__APPLE__)
+    std::condition_variable message_added;
+    bool stopped;
+#elif defined(WIN32)
+    void *window_handle;
+#endif
 };
 
 class messageloop_ref
@@ -89,7 +90,7 @@ public:
     void post(const std::function<void()> &);
     void post(std::function<void()> &&);
 
-    void process_events(const std::chrono::milliseconds &duration);
+    int process_events(const std::chrono::milliseconds &duration);
 
 private:
     class messageloop &messageloop;
@@ -120,8 +121,10 @@ private:
     class messageloop &messageloop;
     const std::function<void()> timeout;
 
+#if defined(__unix__) || defined(__APPLE__)
     std::chrono::nanoseconds interval;
     std::chrono::steady_clock::time_point next;
+#endif
     bool once;
 };
 

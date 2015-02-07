@@ -165,11 +165,6 @@ if(${CMAKE_BUILD_TYPE} STREQUAL Debug)
         set_target_properties(lximediaserver_test PROPERTIES LINK_FLAGS "-mconsole libvlc.dll")
         add_dependencies(lximediaserver_test vlc)
     endif()
-
-    if(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
-        add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/testreport.txt COMMAND ${CMAKE_BINARY_DIR}/lximediaserver_test > testreport.txt DEPENDS lximediaserver_test VERBATIM)
-        add_custom_target(testreport ALL DEPENDS testreport.txt VERBATIM)
-    endif()
 endif()
 
 #######################################
