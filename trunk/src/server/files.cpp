@@ -186,11 +186,9 @@ std::vector<pupnp::content_directory::item> files::list_contentdir_items(
         size_t start, size_t &count)
 {
     const bool return_all = count == 0;
-    const size_t chunk_size = count;
-
     const auto &files = list_files(path, start == 0);
 
-    std::vector<std::string> paths, next_paths;
+    std::vector<std::string> paths;
     for (auto &file : files)
         if (return_all || (count > 0))
         {
@@ -204,19 +202,10 @@ std::vector<pupnp::content_directory::item> files::list_contentdir_items(
             else
                 start--;
         }
-        else if ((start == 0) && (next_paths.size() < chunk_size))
-            next_paths.emplace_back(path + file);
         else
             break;
 
     media_cache.scan_all(scan_files_mrls(paths));
-    if (!next_paths.empty())
-    {
-        messageloop.post([this, next_paths]
-        {
-            media_cache.scan_all(scan_files_mrls(next_paths));
-        });
-    }
 
     std::vector<pupnp::content_directory::item> result;
     for (auto &path : paths)
