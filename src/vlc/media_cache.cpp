@@ -62,15 +62,19 @@ media_cache::~media_cache()
 
 static platform::uuid uuid_from_file(const std::string &path)
 {
-    platform::ifstream file(path, std::ios_base::binary);
-    if (file.is_open())
+#if defined(__unix__) || defined(__APPLE__)
+    auto file = fopen(path.c_str(), "r");
+#elif defined(WIN32)
+    auto file = _wfopen(to_windows_path(path).c_str(), L"rb");
+#endif
+    if (file)
     {
         static const int block_count = 8;
         static const uint64_t block_size = 65536;
 
-        file.seekg(0, std::ios_base::end);
-        const uint64_t length = file.tellg();
-        file.seekg(0, std::ios_base::beg);
+        fseeko(file, 0, SEEK_END);
+        const uint64_t length = ftello(file);
+        fseeko(file, 0, SEEK_SET);
 
         std::vector<char> buffer;
         if (length >= (block_size * block_count))
@@ -81,9 +85,13 @@ static platform::uuid uuid_from_file(const std::string &path)
             int num_blocks = 0;
             for (; num_blocks < block_count; num_blocks++)
             {
-                file.read(&buffer[num_blocks * block_size], block_size);
-                if (uint64_t(file.gcount()) == block_size)
-                    file.seekg(chunk - block_size, std::ios_base::cur);
+                const size_t read = fread(
+                            &buffer[num_blocks * block_size],
+                            block_size, 1,
+                            file);
+
+                if (read == 1)
+                    fseeko(file, chunk - block_size, SEEK_CUR);
                 else
                     break;
             }
@@ -93,19 +101,26 @@ static platform::uuid uuid_from_file(const std::string &path)
         else
         {
             buffer.resize(length);
-            file.read(&buffer[0], buffer.size());
+            if (fread(&buffer[0], buffer.size(), 1, file) != 1)
+                buffer.clear();
         }
 
-        unsigned char hash[20];
-        memset(hash, 0, sizeof(hash));
-        sha1::calc(buffer.data(), buffer.size(), hash);
+        fclose(file);
+        file = nullptr;
 
-        struct platform::uuid uuid;
-        memcpy(uuid.value, hash, std::min(sizeof(uuid.value), sizeof(hash)));
-        uuid.value[6] = (uuid.value[6] & 0x0F) | 0x50;
-        uuid.value[8] = (uuid.value[8] & 0x3F) | 0x80;
+        if (!buffer.empty())
+        {
+            unsigned char hash[20];
+            memset(hash, 0, sizeof(hash));
+            sha1::calc(buffer.data(), buffer.size(), hash);
 
-        return uuid;
+            struct platform::uuid uuid;
+            memcpy(uuid.value, hash, std::min(sizeof(uuid.value), sizeof(hash)));
+            uuid.value[6] = (uuid.value[6] & 0x0F) | 0x50;
+            uuid.value[8] = (uuid.value[8] & 0x3F) | 0x80;
+
+            return uuid;
+        }
     }
 
     return platform::uuid();
