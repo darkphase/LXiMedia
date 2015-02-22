@@ -293,7 +293,13 @@ std::string config_dir()
     const std::string home = home_dir();
     if (!home.empty())
     {
-        const std::string result = home + "/.config/lximediaserver";
+        const auto result = home +
+#if defined(__APPLE__)
+                "/Library/Application Support/net.sf.lximediaserver";
+#else
+                "/.config/lximediaserver";
+#endif
+
         mkdir(result.c_str(), S_IRWXU);
 
         return result;
