@@ -65,7 +65,7 @@ static platform::uuid uuid_from_file(const std::string &path)
 #if defined(__unix__) || defined(__APPLE__)
     auto file = fopen(path.c_str(), "r");
 #elif defined(WIN32)
-    auto file = _wfopen(to_windows_path(path).c_str(), L"rb");
+    auto file = _wfopen(platform::to_windows_path(path).c_str(), L"rb");
 #endif
     if (file)
     {

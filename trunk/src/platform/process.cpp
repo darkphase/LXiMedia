@@ -209,6 +209,10 @@ const volatile void * process::get_shared(unsigned offset, size_t size) const
 } // End of namespace
 
 #if defined(PROCESS_USE_THREAD)
+#if defined(WIN32)
+#  include <fcntl.h>
+#endif
+
 namespace platform {
 
 void process::process_entry(int, const char *[])
@@ -233,8 +237,15 @@ process::process(function_handle handle, priority priority_)
 
     // Create pipes.
     int ipipe[2], opipe[2];
+#if !defined(WIN32)
     if ((pipe(ipipe) != 0) || (pipe(opipe) != 0))
+#else
+    if ((_pipe(ipipe, sizeof(pipe_streambuf::obuffer), _O_BINARY) != 0) ||
+        (_pipe(opipe, sizeof(pipe_streambuf::ibuffer), _O_BINARY) != 0))
+#endif
+    {
         throw std::runtime_error("Creating pipes failed");
+    }
 
     // Create shared memory.
     shm = new shm_data();
