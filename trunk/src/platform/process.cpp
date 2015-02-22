@@ -23,6 +23,7 @@
 #include <cstring>
 #include <functional>
 #include <map>
+#include <thread>
 
 #if defined(__unix__) || defined(__APPLE__)
 # include <unistd.h>
@@ -214,6 +215,11 @@ void process::process_entry(int, const char *[])
 {
 }
 
+unsigned process::hardware_concurrency()
+{
+    return 1;
+}
+
 process::process(function_handle handle, priority priority_)
     : std::iostream(nullptr),
       thread(),
@@ -308,6 +314,11 @@ namespace platform {
 
 void process::process_entry(int, const char *[])
 {
+}
+
+unsigned process::hardware_concurrency()
+{
+    return std::thread::hardware_concurrency();
 }
 
 static volatile bool term_received = false;
@@ -492,6 +503,11 @@ void process::process_entry(int argc, const char *argv[])
 
             ::exit(exit_code);
         }
+}
+
+unsigned process::hardware_concurrency()
+{
+    return std::thread::hardware_concurrency();
 }
 
 process::process(function_handle handle, priority priority_)

@@ -19,7 +19,9 @@
 #define PLATFORM_PROCESS_H
 
 // For debugging:
-//#define PROCESS_USE_THREAD
+#ifndef NDEBUG
+# define PROCESS_USE_THREAD
+#endif
 
 #include <cstdint>
 #include <iostream>
@@ -44,6 +46,7 @@ public:
 #define register_function(F) register_function(#F, F)
 
     static void process_entry(int argc, const char *argv[]);
+    static unsigned hardware_concurrency();
 
     process(function_handle, priority = priority::normal);
     ~process();

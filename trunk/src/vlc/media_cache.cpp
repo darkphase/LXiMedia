@@ -28,7 +28,6 @@
 #include <mutex>
 #include <queue>
 #include <sstream>
-#include <thread>
 
 namespace vlc {
 
@@ -51,7 +50,9 @@ media_cache::media_cache(
         if (i != revision_name)
             inifile.erase_section(i);
 
-    process_pool.resize(std::max(std::thread::hardware_concurrency(), 1u));
+    process_pool.resize(std::max(
+                            platform::process::hardware_concurrency(),
+                            1u));
 }
 
 media_cache::~media_cache()
