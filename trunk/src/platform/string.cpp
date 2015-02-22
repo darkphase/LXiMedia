@@ -325,6 +325,7 @@ bool is_utf8(const std::string &src)
 
 #if defined(__unix__) || defined(__APPLE__)
 #include <iconv.h>
+#include <sys/param.h>
 
 std::string to_utf8(const std::string &src, const std::string &encoding)
 {
@@ -356,7 +357,16 @@ std::u32string to_utf32(const std::string &src, const char *encoding)
 {
     std::u32string dst;
 
-    auto handle = iconv_open("UTF-32", encoding ? encoding : "UTF-8");
+    auto handle = iconv_open(
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+                "UTF-32LE",
+#elif __BYTE_ORDER == __BIG_ENDIAN
+                "UTF-32BE",
+#else
+                "UTF-32",
+#endif
+                encoding ? encoding : "UTF-8");
+
     if (handle != iconv_t(-1))
     {
         char *inptr = const_cast<char *>(&src[0]);
