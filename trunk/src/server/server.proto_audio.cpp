@@ -36,21 +36,21 @@ void server::add_audio_protocols()
                 "MP2",
                 pupnp::upnp::mime_audio_mpeg, "mp2",
                 44100, 2,
-                "acodec=mpga,ab=256",
+                "mpga", 256,
                 "dummy");
 
     connection_manager.add_source_audio_protocol(
                 "MP3",
                 pupnp::upnp::mime_audio_mp3, "mp3",
                 44100, 2,
-                "acodec=mp3,ab=160",
+                "mp3", 160,
                 "dummy");
 
     connection_manager.add_source_audio_protocol(
                 "AC3",
                 pupnp::upnp::mime_audio_ac3, "ac3",
                 48000, 2,
-                "acodec=a52,ab=192",
+                "a52", 192,
                 "dummy");
 
     if (has_surround51)
@@ -58,6 +58,6 @@ void server::add_audio_protocols()
                     "AC3",
                     pupnp::upnp::mime_audio_ac3, "ac3",
                     48000, 6,
-                    "acodec=a52,ab=504",
+                    "a52", 504,
                     "dummy");
 }

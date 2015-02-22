@@ -38,29 +38,32 @@ public:
     struct protocol
     {
         protocol();
-        protocol(const std::string &network_protocol,
-                 const std::string &content_format,
-                 bool conversion_indicator,
-                 bool operations_range,
-                 bool operations_timeseek,
-                 const std::string &profile,
-                 const std::string &suffix,
-                 unsigned sample_rate = 0, unsigned channels = 0,
-                 unsigned width = 0, unsigned height = 0, float aspect = 1.0f,
-                 unsigned frame_rate_num = 0, unsigned frame_rate_den = 0);
+        protocol(
+                const std::string &network_protocol,
+                const std::string &content_format,
+                bool conversion_indicator,
+                bool operations_range,
+                bool operations_timeseek,
+                const std::string &profile,
+                const std::string &suffix,
+                unsigned sample_rate = 0, unsigned channels = 0,
+                unsigned width = 0, unsigned height = 0, float aspect = 1.0f,
+                unsigned frame_rate_num = 0, unsigned frame_rate_den = 0);
 
-        std::string to_string(bool brief = false) const;  //!< Returns the DLNA protocol string.
-        std::string content_features() const;             //!< Returns the DLNA contentFeatures string.
+        std::string to_string(bool brief = false) const;    //!< Returns the DLNA protocol string.
+        std::string content_features() const;               //!< Returns the DLNA contentFeatures string.
 
-        std::string network_protocol;                     //!< The network protocol used (e.g. "http-get").
-        std::string network;                              //!< The network used, usually not needed.
-        std::string content_format;                       //!< The content format used with the protocol (e.g. MIME-type for "http-get").
+        size_t data_rate() const;                           //!< Returns the total data rate in bytes/sec.
 
-        std::string profile;                              //!< The profile name of the protocol (e.g. "JPEG_TN").
-        bool play_speed;                                  //!< false = invalid play speed, true = normal play speed.
-        bool conversion_indicator;                        //!< false = not transcoded, true = transcoded.
-        bool operations_range;                            //!< true = range supported.
-        bool operations_timeseek;                         //!< true = time seek range supported.
+        std::string network_protocol;                       //!< The network protocol used (e.g. "http-get").
+        std::string network;                                //!< The network used, usually not needed.
+        std::string content_format;                         //!< The content format used with the protocol (e.g. MIME-type for "http-get").
+
+        std::string profile;                                //!< The profile name of the protocol (e.g. "JPEG_TN").
+        bool play_speed;                                    //!< false = invalid play speed, true = normal play speed.
+        bool conversion_indicator;                          //!< false = not transcoded, true = transcoded.
+        bool operations_range;                              //!< true = range supported.
+        bool operations_timeseek;                           //!< true = time seek range supported.
 
         /*! DLNA.ORG_FLAGS, padded with 24 trailing 0s
            80000000  31  senderPaced
@@ -78,7 +81,7 @@ public:
 
            Example: (1 << 24) | (1 << 22) | (1 << 21) | (1 << 20)
              DLNA.ORG_FLAGS=01700000[000000000000000000000000] // [] show padding
-     */
+         */
         std::string flags;
 
         std::string suffix;                               //!< The file extension (including .).
@@ -88,7 +91,8 @@ public:
         float aspect;
         unsigned frame_rate_num, frame_rate_den;
 
-        std::string acodec, vcodec, mux;
+        std::string audio_codec, video_codec, mux;
+        unsigned audio_rate, video_rate; // kbit/sec
 
         std::string fast_encode_options;
         std::string slow_encode_options;
@@ -142,7 +146,8 @@ public:
             const char *name,
             const char *mime, const char *suffix,
             unsigned sample_rate, unsigned channels,
-            const char *acodec, const char *mux);
+            const char *audio_codec, unsigned audio_rate,
+            const char *mux);
 
     void add_source_video_protocol(
             const char *name,
@@ -150,7 +155,9 @@ public:
             unsigned sample_rate, unsigned channels,
             unsigned width, unsigned height, float aspect,
             unsigned frame_rate_num, unsigned frame_rate_den,
-            const char *acodec, const char *vcodec, const char *mux,
+            const char *audio_codec, unsigned audio_rate,
+            const char *video_codec, unsigned video_rate,
+            const char *mux,
             const char *fast_encode_options, const char *slow_encode_options);
 
     void add_source_image_protocol(
