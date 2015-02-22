@@ -61,6 +61,8 @@ int image_stream::transcode_process(platform::process &process)
 
             if (e->type == libvlc_MediaPlayerEncounteredError)
                 t->encountered_error = true;
+            else if (e->type == libvlc_MediaPlayerTimeChanged)
+                t->position = e->u.media_player_time_changed.new_time;
 
             t->condition.notify_one();
         }
@@ -86,6 +88,7 @@ int image_stream::transcode_process(platform::process &process)
         std::condition_variable condition;
         bool displayed;
         bool encountered_error;
+        libvlc_time_t position;
         image pixel_buffer;
 
         libvlc_media_player_t *player;
@@ -93,6 +96,7 @@ int image_stream::transcode_process(platform::process &process)
 
     t.displayed = false;
     t.encountered_error = false;
+    t.position = 0;
     t.pixel_buffer = image(width, height);
 
     t.player = libvlc_media_player_new_from_media(media);
@@ -113,8 +117,11 @@ int image_stream::transcode_process(platform::process &process)
         {
             std::unique_lock<std::mutex> l(t.mutex);
 
-            while (!t.displayed && !t.encountered_error && process)
+            while (!t.displayed && !t.encountered_error &&
+                   (t.position < 5000) && process)
+            {
                 t.condition.wait(l);
+            }
 
             l.unlock();
             libvlc_media_player_stop(t.player);
