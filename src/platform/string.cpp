@@ -224,7 +224,8 @@ std::string to_percent(const std::string &input)
     {
         const char c = input[i];
         if (((c >= 'A') && (c <= 'Z')) || ((c >= 'a') && (c <= 'z')) ||
-            ((c >= '0') && (c <= '9')) || (c == '_'))
+            ((c >= '0') && (c <= '9')) ||
+            (c == '-') || (c == '_') || (c == '.') || (c == '~') || (c == '/'))
         {
             result << c;
         }
