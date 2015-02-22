@@ -330,10 +330,10 @@ pupnp::content_directory::item files::get_contentdir_item(const std::string &cli
 
 static unsigned codec_block(const std::string &codec)
 {
-    if      (codec.find("mp1v") != codec.npos) return 16;
-    else if (codec.find("mp2v") != codec.npos) return 8;
-    else if (codec.find("h264") != codec.npos) return 8;
-    else                                       return 8;
+    if      (codec == "mp1v") return 16;
+    else if (codec == "mp2v") return 8;
+    else if (codec == "h264") return 8;
+    else                      return 8;
 }
 
 static void min_scale(const std::string &codec, unsigned srcw, unsigned srch, unsigned dstw, unsigned dsth, unsigned &w, unsigned &h)
@@ -358,7 +358,7 @@ bool files::correct_protocol(const pupnp::content_directory::item &item, pupnp::
     if ((settings.canvas_mode() == canvas_mode::none) || item.is_image())
     {
         min_scale(
-                    protocol.vcodec,
+                    protocol.video_codec,
                     item.width, item.height,
                     protocol.width, protocol.height,
                     protocol.width, protocol.height);
@@ -381,14 +381,15 @@ int files::play_audio_video_item(
     using namespace std::placeholders;
 
     std::ostringstream transcode;
-    if (!protocol.acodec.empty() || !protocol.vcodec.empty())
+    if (!protocol.audio_codec.empty() || !protocol.video_codec.empty())
     {
         // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
         transcode << "#transcode{";
 
-        if (!protocol.vcodec.empty())
+        if (!protocol.video_codec.empty())
         {
-            transcode << protocol.vcodec;
+            transcode << "vcodec=" << protocol.video_codec
+                      << ",vb=" << protocol.video_rate;
 
             const float frame_rate = (protocol.frame_rate_den > 0)
                     ? (float(protocol.frame_rate_num) / protocol.frame_rate_den)
@@ -440,12 +441,13 @@ int files::play_audio_video_item(
             transcode << ",soverlay";
         }
 
-        if (!protocol.acodec.empty())
+        if (!protocol.audio_codec.empty())
         {
-            if (!protocol.vcodec.empty()) transcode << ',';
+            if (!protocol.video_codec.empty()) transcode << ',';
 
             transcode
-                    << protocol.acodec
+                    << "acodec=" << protocol.audio_codec
+                    << ",ab=" << protocol.audio_rate
                     << ",samplerate=" << protocol.sample_rate
                     << ",channels=" << protocol.channels;
         }
@@ -524,15 +526,23 @@ int files::play_audio_video_item(
             if (protocol.mux == "ps")
             {
                 std::unique_ptr<mpeg::ps_filter> filter(new mpeg::ps_filter(std::move(stream)));
-                proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter), false);
+                proxy = std::make_shared<pupnp::connection_proxy>(
+                            std::move(filter),
+                            protocol.data_rate());
             }
             else if (protocol.mux == "m2ts")
             {
                 std::unique_ptr<mpeg::m2ts_filter> filter(new mpeg::m2ts_filter(std::move(stream)));
-                proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter), false);
+                proxy = std::make_shared<pupnp::connection_proxy>(
+                            std::move(filter),
+                            protocol.data_rate());
             }
             else
-                proxy = std::make_shared<pupnp::connection_proxy>(std::move(stream), false);
+            {
+                proxy = std::make_shared<pupnp::connection_proxy>(
+                            std::move(stream),
+                            protocol.data_rate());
+            }
 
             connection_manager.add_output_connection(proxy, protocol, item.mrl, source_address, opt.str());
             response = proxy;
@@ -565,7 +575,8 @@ int files::get_image_item(
                     protocol.width,
                     protocol.height))
         {
-            auto proxy = std::make_shared<pupnp::connection_proxy>(std::move(stream), true);
+            auto proxy = std::make_shared<pupnp::connection_proxy>(
+                        std::move(stream), 0);
 
             connection_manager.add_output_connection(proxy, protocol, item.mrl, source_address);
             response = proxy;

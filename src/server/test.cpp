@@ -210,14 +210,15 @@ int test::play_item(
     {
         float rate = 1.0f;
         std::ostringstream transcode;
-        if (!protocol.acodec.empty() || !protocol.vcodec.empty())
+        if (!protocol.audio_codec.empty() || !protocol.video_codec.empty())
         {
             // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
             transcode << "#transcode{";
 
-            if (!protocol.vcodec.empty())
+            if (!protocol.video_codec.empty())
             {
-                transcode << protocol.vcodec;
+                transcode << "vcodec=" << protocol.video_codec
+                          << ",vb=" << protocol.video_rate;
 
                 const float frame_rate = float(protocol.frame_rate_num) / float(protocol.frame_rate_den);
                 if (std::abs(frame_rate - item.frame_rate) > 0.3f)
@@ -263,12 +264,13 @@ int test::play_item(
                 transcode << ",soverlay";
             }
 
-            if (!protocol.acodec.empty())
+            if (!protocol.audio_codec.empty())
             {
-                if (!protocol.vcodec.empty()) transcode << ',';
+                if (!protocol.video_codec.empty()) transcode << ',';
 
                 transcode
-                        << protocol.acodec
+                        << "acodec=" << protocol.audio_codec
+                        << ",ab=" << protocol.audio_rate
                         << ",samplerate=" << protocol.sample_rate
                         << ",channels=" << protocol.channels;
             }
@@ -308,15 +310,23 @@ int test::play_item(
                 if (protocol.mux == "ps")
                 {
                     std::unique_ptr<mpeg::ps_filter> filter(new mpeg::ps_filter(std::move(stream)));
-                    proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter), false);
+                    proxy = std::make_shared<pupnp::connection_proxy>(
+                                std::move(filter),
+                                protocol.data_rate());
                 }
                 else if (protocol.mux == "m2ts")
                 {
                     std::unique_ptr<mpeg::m2ts_filter> filter(new mpeg::m2ts_filter(std::move(stream)));
-                    proxy = std::make_shared<pupnp::connection_proxy>(std::move(filter), false);
+                    proxy = std::make_shared<pupnp::connection_proxy>(
+                                std::move(filter),
+                                protocol.data_rate());
                 }
                 else
-                    proxy = std::make_shared<pupnp::connection_proxy>(std::move(stream), false);
+                {
+                    proxy = std::make_shared<pupnp::connection_proxy>(
+                                std::move(stream),
+                                protocol.data_rate());
+                }
 
                 connection_manager.add_output_connection(proxy, protocol, item.mrl, source_address, opt.str());
                 response = proxy;

@@ -44,7 +44,8 @@ void connection_manager::add_source_audio_protocol(
         const char *name,
         const char *mime, const char *suffix,
         unsigned sample_rate, unsigned channels,
-        const char *acodec, const char *mux)
+        const char *audio_codec, unsigned audio_rate,
+        const char *mux)
 {
     std::clog << "pupnp::connection_manager: enabled audio protocol "
               << name << " " << sample_rate << "/" << channels
@@ -57,7 +58,8 @@ void connection_manager::add_source_audio_protocol(
                                                 sample_rate, channels));
 
     auto &protocol = source_audio_protocol_list.back();
-    protocol.acodec = acodec;
+    protocol.audio_codec = audio_codec;
+    protocol.audio_rate = audio_rate;
     protocol.mux = mux;
 }
 
@@ -67,7 +69,9 @@ void connection_manager::add_source_video_protocol(
         unsigned sample_rate, unsigned channels,
         unsigned width, unsigned height, float aspect,
         unsigned frame_rate_num, unsigned frame_rate_den,
-        const char *acodec, const char *vcodec, const char *mux,
+        const char *audio_codec, unsigned audio_rate,
+        const char *video_codec, unsigned video_rate,
+        const char *mux,
         const char *fast_encode_options, const char *slow_encode_options)
 {
     std::clog << "pupnp::connection_manager: enabled video protocol "
@@ -84,8 +88,10 @@ void connection_manager::add_source_video_protocol(
                                                 frame_rate_num, frame_rate_den));
 
     auto &protocol = source_video_protocol_list.back();
-    protocol.acodec = acodec;
-    protocol.vcodec = vcodec;
+    protocol.audio_codec = audio_codec;
+    protocol.audio_rate = audio_rate;
+    protocol.video_codec = video_codec;
+    protocol.video_rate = video_rate;
     protocol.mux = mux;
     protocol.fast_encode_options = fast_encode_options;
     protocol.slow_encode_options = slow_encode_options;
@@ -445,7 +451,9 @@ connection_manager::protocol::protocol()
     : play_speed(true), conversion_indicator(false),
       operations_range(false), operations_timeseek(false),
       sample_rate(0), channels(0),
-      width(0), height(0)
+      width(0), height(0), aspect(0.0f),
+      frame_rate_num(0), frame_rate_den(0),
+      audio_rate(0), video_rate(0)
 {
 }
 
@@ -465,7 +473,8 @@ connection_manager::protocol::protocol(const std::string &network_protocol,
       flags(starts_with(content_format, "image/") ? "00100000" : "01700000"),
       suffix(suffix), sample_rate(sample_rate), channels(channels),
       width(width), height(height), aspect(aspect),
-      frame_rate_num(frame_rate_num), frame_rate_den(frame_rate_den)
+      frame_rate_num(frame_rate_num), frame_rate_den(frame_rate_den),
+      audio_rate(0), video_rate(0)
 {
 }
 
@@ -502,6 +511,11 @@ std::string connection_manager::protocol::content_features(void) const
         result += ";DLNA.ORG_FLAGS=" + flags + "000000000000000000000000";
 
     return result;
+}
+
+size_t connection_manager::protocol::data_rate() const
+{
+    return size_t(audio_rate + video_rate) * (1024 / 8);
 }
 
 

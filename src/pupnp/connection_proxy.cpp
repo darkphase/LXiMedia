@@ -26,7 +26,6 @@
 #include <vector>
 
 static const size_t block_size = 1048576;
-static const size_t block_count = 16;
 
 namespace pupnp {
 
@@ -50,7 +49,7 @@ private:
 class connection_proxy::source
 {
 public:
-    source(std::unique_ptr<std::istream> &&input, bool buffer_all);
+    source(std::unique_ptr<std::istream> &&input, size_t data_rate);
     ~source();
 
     bool attach(class streambuf &);
@@ -70,7 +69,7 @@ private:
 
 private:
     const std::unique_ptr<std::istream> input;
-    const bool buffer_all;
+    const size_t data_rate;
 
     std::unique_ptr<std::thread> consume_thread;
     std::mutex mutex;
@@ -78,6 +77,8 @@ private:
     bool stream_end;
     std::set<class streambuf *> streambufs;
 
+    size_t preload_threshold;
+    size_t detach_threshold;
     std::vector<char> buffer;
     std::condition_variable buffer_condition;
     size_t buffer_offset;
@@ -91,9 +92,11 @@ connection_proxy::connection_proxy()
 {
 }
 
-connection_proxy::connection_proxy(std::unique_ptr<std::istream> &&input, bool buffer_all)
+connection_proxy::connection_proxy(
+        std::unique_ptr<std::istream> &&input,
+        size_t data_rate)
     : std::istream(new class streambuf(*this)),
-      source(new class source(std::move(input), buffer_all))
+      source(new class source(std::move(input), data_rate))
 {
     source->attach(static_cast<class streambuf &>(*std::istream::rdbuf()));
 }
@@ -131,16 +134,36 @@ void connection_proxy::subscribe_detach(platform::messageloop_ref &messageloop_r
 }
 
 
-connection_proxy::source::source(std::unique_ptr<std::istream> &&input, bool buffer_all)
+connection_proxy::source::source(
+        std::unique_ptr<std::istream> &&input,
+        size_t data_rate)
     : input(std::move(input)),
-      buffer_all(buffer_all),
+      data_rate(data_rate),
       stream_end(false),
+      preload_threshold(block_size),
+      detach_threshold(block_size * 2),
       buffer_offset(0),
       buffer_used(0)
 {
-    buffer.resize(block_size * block_count);
+    if (data_rate > 0)
+    {
+        static const unsigned duration = 30; // seconds
+        const auto block_count =
+                ((data_rate * duration) + block_size - 1) / block_size;
 
-    consume_thread.reset(new std::thread(std::bind(&connection_proxy::source::consume, this)));
+        preload_threshold = std::max(block_count / 6, size_t(1)) * block_size;
+        detach_threshold = preload_threshold + block_size;
+
+        buffer.resize(std::max(
+                          block_count * block_size,
+                          detach_threshold + block_size));
+    }
+    else
+        buffer.resize(block_size);
+
+    consume_thread.reset(new std::thread(std::bind(
+                                             &connection_proxy::source::consume,
+                                             this)));
 }
 
 connection_proxy::source::~source()
@@ -195,7 +218,7 @@ void connection_proxy::source::consume()
                 write_block = &buffer[write_block_pos];
                 write_block_size = std::min(block_size, buffer.size() - write_block_pos);
             }
-            else if (buffer_all)
+            else if (data_rate == 0)
                 buffer.resize(buffer.size() + block_size);
             else
                 buffer_condition.wait(l);
@@ -226,8 +249,12 @@ bool connection_proxy::source::read(class streambuf &streambuf)
     streambuf.buffer_available = 0;
     recompute_buffer_offset(l);
 
-    while (!stream_end && ((buffer_offset + buffer_used) <= streambuf.buffer_offset))
+    while (!stream_end &&
+           (((buffer_offset + buffer_used) <= streambuf.buffer_offset) ||
+            ((buffer_offset == 0) && (buffer_used < preload_threshold))))
+    {
         buffer_condition.wait(l);
+    }
 
     if ((buffer_offset + buffer_used) > streambuf.buffer_offset)
     {
@@ -278,7 +305,7 @@ bool connection_proxy::source::seek(class streambuf &streambuf, size_t pos)
 
 size_t connection_proxy::source::size()
 {
-    if (buffer_all)
+    if (data_rate == 0)
     {
         std::unique_lock<std::mutex> l(mutex);
         while (!stream_end)
@@ -292,14 +319,14 @@ size_t connection_proxy::source::size()
 
 void connection_proxy::source::recompute_buffer_offset(std::unique_lock<std::mutex> &)
 {
-    if (!buffer_all)
+    if (data_rate != 0)
     {
         size_t new_offset = size_t(-1);
         for (auto &i : streambufs)
             new_offset = std::min(new_offset, i->buffer_offset);
 
         if ((new_offset != size_t(-1)) && (new_offset >= (buffer_offset + block_size)) &&
-            ((buffer_offset > 0) || (new_offset >= (buffer.size() * 3 / 4))))
+            ((buffer_offset > 0) || (new_offset >= detach_threshold)))
         {
             if (buffer_offset == 0)
             {
