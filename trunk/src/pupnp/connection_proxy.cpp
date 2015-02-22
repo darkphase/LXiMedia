@@ -335,33 +335,36 @@ int connection_proxy::streambuf::underflow()
 
 std::streambuf::pos_type connection_proxy::streambuf::seekoff(off_type off, std::ios_base::seekdir dir, std::ios_base::openmode which)
 {
-    switch (dir)
+    if (size_t size = parent.source->size())
     {
-    case std::ios_base::beg:
-        return seekpos(pos_type(off), which);
+        switch (dir)
+        {
+        case std::ios_base::beg:
+            return seekpos(pos_type(off), which);
 
-    case std::ios_base::cur:
-        return seekpos(buffer_offset + (gptr() - eback()) + off, which);
+        case std::ios_base::cur:
+            return seekpos(buffer_offset + (gptr() - eback()) + off, which);
 
-    case std::ios_base::end:
-        if (parent.source->size())
-            return seekpos(parent.source->size() + off, which);
+        case std::ios_base::end:
+            return seekpos(size + off, which);
 
-        break;
-
-    default:
-        break;
+        default:
+            break;
+        }
     }
 
-    return pos_type(off_type(-1));
+    return std::streambuf::seekoff(off, dir, which);
 }
 
-std::streambuf::pos_type connection_proxy::streambuf::seekpos(pos_type pos, std::ios_base::openmode)
+std::streambuf::pos_type connection_proxy::streambuf::seekpos(pos_type pos, std::ios_base::openmode which)
 {
-    if (parent.source->seek(*this, pos))
-        return pos;
+    if (parent.source->size())
+    {
+        if (parent.source->seek(*this, pos))
+            return pos;
+    }
 
-    return pos_type(off_type(-1));
+    return std::streambuf::seekpos(pos, which);
 }
 
 } // End of namespace
