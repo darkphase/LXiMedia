@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <set>
@@ -21,6 +22,10 @@ static FILE * logfile_open(const std::string &location);
 static bool open_url(const std::string &location);
 static bool is_root();
 static void detach();
+#if defined(__APPLE__)
+static void register_agent(const char *argv0, const char *);
+#endif
+
 static std::unique_ptr<class server> server_ptr;
 
 static std::set<std::string> find_server(
@@ -230,6 +235,11 @@ int main(int argc, const char *argv[])
 
         // Otherwise start and open this one in browser.
         settings = nullptr;
+
+#if defined(__APPLE__)
+        register_agent(argv[0], "net.sf.lximediaserver");
+#endif
+
         settings.reset(new class settings(messageloop_ref, false));
         return run_server(messageloop, *settings, upnp, true);
     }
@@ -238,6 +248,7 @@ int main(int argc, const char *argv[])
 }
 
 #if defined(__unix__) || defined(__APPLE__)
+#include <sys/stat.h>
 #include <unistd.h>
 
 static std::string log_location(const std::string &location, int i)
@@ -289,6 +300,36 @@ static void detach()
         }
     }
 }
+
+#if defined(__APPLE__)
+static void register_agent(const char *argv0, const char *name)
+{
+    const std::string home = platform::home_dir();
+    if (!home.empty())
+    {
+        const auto launch_agents = home + "/Library/LaunchAgents/";
+        mkdir(launch_agents.c_str(), S_IRWXU);
+
+        std::ofstream file(launch_agents + name + ".plist");
+        if (file.is_open())
+        {
+            file << "<plist version=\"1.0\">\n"
+                 << " <dict>\n"
+                 << "  <key>Label</key>\n"
+                 << "  <string>" << escape_xml(name) << ".agent</string>\n"
+                 << "  <key>RunAtLoad</key>\n"
+                 << "  <true/>\n"
+                 << "  <key>ProgramArguments</key>\n"
+                 << "  <array>\n"
+                 << "   <string>" << escape_xml(argv0) << "</string>\n"
+                 << "   <string>--run</string>\n"
+                 << "  </array>\n"
+                 << " </dict>\n"
+                 << "</plist>\n";
+        }
+    }
+}
+#endif
 
 #elif defined(WIN32)
 #include <windows.h>
