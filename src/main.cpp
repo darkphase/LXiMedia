@@ -20,6 +20,7 @@
 static FILE * logfile_open(const std::string &location);
 static bool open_url(const std::string &location);
 static bool is_root();
+static void detach();
 static std::unique_ptr<class server> server_ptr;
 
 static std::set<std::string> find_server(
@@ -170,6 +171,9 @@ int main(int argc, const char *argv[])
 
     platform::process::process_entry(argc, argv);
 
+    if (argc == 1)
+        detach();
+
     vlc::instance::initialize(argc, argv);
 
     class platform::messageloop messageloop;
@@ -248,7 +252,8 @@ static FILE * logfile_open(const std::string &location)
     for (int i = 5; i > 0; i--)
         std::rename(log_location(location, i - 1).c_str(), log_location(location, i).c_str());
 
-    return freopen(location.c_str(), "w", stderr);
+    ::fclose(::stdout);
+    return ::freopen(location.c_str(), "w", ::stderr);
 }
 
 static bool is_root()
@@ -263,6 +268,26 @@ static bool open_url(const std::string &location)
 #elif defined(__APPLE__)
     return system(("open " + location).c_str()) == 0;
 #endif
+}
+
+static void detach()
+{
+    // Spawn child process
+    ::fflush(::stdout);
+    ::fflush(::stderr);
+
+    const auto child = fork();
+    if (child >= 0)
+    {
+        if (child == 0)
+        {   // Child process
+            return;
+        }
+        else
+        {   // Parent process
+            ::_exit(0);
+        }
+    }
 }
 
 #elif defined(WIN32)
@@ -293,6 +318,20 @@ static bool is_root()
         return _wcsicmp(buffer, L"SYSTEM") == 0;
 
     return false;
+}
+
+static void detach()
+{
+    // Spawn child process
+    const auto child = _spawnl(
+                P_NOWAIT,
+                argv[0],
+                argv[0],
+                "--detached",
+                NULL);
+
+    if (child != -1)
+        ::_exit(0);
 }
 
 static bool open_url(const std::string &location)
