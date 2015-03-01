@@ -108,6 +108,8 @@ public:
     enum media_type media_type(const std::string &mrl);
 
 private:
+    struct media_info read_info(const std::string &mrl);
+
     static int scan_all_process(platform::process &);
     void stop_process_pool();
     platform::process &get_process_from_pool(unsigned);

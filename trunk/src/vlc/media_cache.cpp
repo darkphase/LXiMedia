@@ -554,7 +554,7 @@ void media_cache::scan_all(const std::vector<std::string> &mrls)
     });
 }
 
-struct media_cache::media_info media_cache::media_info(const std::string &mrl)
+struct media_cache::media_info media_cache::read_info(const std::string &mrl)
 {
     const auto uuid = this->uuid(mrl);
 
@@ -568,6 +568,13 @@ struct media_cache::media_info media_cache::media_info(const std::string &mrl)
     std::stringstream str(section.read(uuid));
     struct media_info media_info;
     str >> media_info;
+
+    return media_info;
+}
+
+struct media_cache::media_info media_cache::media_info(const std::string &mrl)
+{
+    auto media_info = read_info(mrl);
 
     int max_track_id = -1;
     for (auto &i : media_info.tracks)
@@ -588,7 +595,7 @@ enum media_type media_cache::media_type(const std::string &mrl)
     vlc::media_type result = vlc::media_type::unknown;
 
     bool has_audio = false, has_video = false;
-    for (auto &i : media_info(mrl).tracks)
+    for (auto &i : read_info(mrl).tracks)
         switch (i.type)
         {
         case track_type::unknown:  break;
