@@ -384,6 +384,7 @@ int media_cache::scan_all_process(platform::process &process)
 {
     std::vector<std::string> options;
     options.push_back("--no-sub-autodetect-file");
+    options.push_back("--avcodec-fast");
     vlc::instance instance(options);
 
     std::queue<std::string> mrls;
