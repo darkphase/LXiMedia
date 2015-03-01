@@ -66,8 +66,6 @@ static int run_server(
     FILE * logfilehandle = logfile_open(logfile);
 
     std::clog << "starting LXiMediaServer version " << VERSION << std::endl;
-    for (auto &i : upnp.bound_addresses())
-        std::clog << "bound address: " << i << ":" << upnp.bound_port() << std::endl;
 
     class platform::messageloop_ref messageloop_ref(messageloop);
 
@@ -110,7 +108,11 @@ static int run_server(
         }
     };
 
+    upnp.close();
     server::recreate_server();
+
+    for (auto &i : upnp.bound_addresses())
+        std::clog << "bound address: " << i << ":" << upnp.bound_port() << std::endl;
 
     // If the last exit was not clean, the server is re-initialized immediately
     // to make sure all cleints get a bye-bye message followed by an alive
