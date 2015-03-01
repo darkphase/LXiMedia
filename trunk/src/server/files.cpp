@@ -378,6 +378,9 @@ int files::play_audio_video_item(
         if (!protocol.video_codec.empty())
         {
             transcode
+#if defined(WIN32)
+                    << "threads=2,"
+#endif
                     << "vcodec=" << protocol.video_codec
                     << ",vb=" << protocol.video_rate;
 
