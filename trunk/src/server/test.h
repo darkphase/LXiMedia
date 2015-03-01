@@ -60,7 +60,7 @@ private:
   std::set<std::string> clients;
   std::set<std::string> items;
 
-  const resources::resource_file a440hz_flac;
+  const resources::resource_file a440hz_mp2;
   const resources::resource_file pm5544_png;
   const resources::resource_file pm5644_png;
 };

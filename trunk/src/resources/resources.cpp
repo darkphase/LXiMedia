@@ -19,9 +19,9 @@
 
 namespace resources {
 
-const unsigned char a440hz_flac[83069] =
+const unsigned char a440hz_mp2[79412] =
 {
-#include "440hz.flac.h"
+#include "440hz.mp2.h"
 };
 
 const unsigned char pm5544_png[15118] =

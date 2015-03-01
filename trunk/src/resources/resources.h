@@ -20,7 +20,7 @@
 
 namespace resources {
 
-extern const unsigned char a440hz_flac[83069];
+extern const unsigned char a440hz_mp2[79412];
 extern const unsigned char pm5544_png[15118];
 extern const unsigned char pm5644_png[17125];
 
