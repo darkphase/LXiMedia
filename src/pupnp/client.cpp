@@ -52,6 +52,7 @@ void client::close(void)
 
         // Ugly, but needed as UpnpUnRegisterClient waits for callbacks.
         bool finished = false;
+        messageloop.process_events(std::chrono::milliseconds(16));
         std::thread finish([this, &finished] { ::UpnpUnRegisterClient(client_handle); finished = true; });
         do messageloop.process_events(std::chrono::milliseconds(16)); while (!finished);
         finish.join();

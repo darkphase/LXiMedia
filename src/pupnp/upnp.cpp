@@ -197,6 +197,7 @@ void upnp::close(void)
 
         // Ugly, but needed as UpnpFinish waits for callbacks from the HTTP server.
         bool finished = false;
+        messageloop.process_events(std::chrono::milliseconds(16));
         std::thread finish([&finished] { ::UpnpFinish(); finished = true; });
         do messageloop.process_events(std::chrono::milliseconds(16)); while (!finished);
         finish.join();
