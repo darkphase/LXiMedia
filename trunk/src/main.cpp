@@ -366,8 +366,8 @@ static void detach()
     // Spawn child process
     const auto child = _spawnl(
                 P_NOWAIT,
-                argv[0],
-                argv[0],
+                __argv[0],
+                __argv[0],
                 "--detached",
                 NULL);
 
