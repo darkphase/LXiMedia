@@ -10,7 +10,7 @@ static const struct resource_file_test
     std::string filename;
 
     resource_file_test()
-        : a440hz_flac_test(this, "resources::resource_file::a440hz_flac", &resource_file_test::a440hz_flac),
+        : a440hz_mp2_test(this, "resources::resource_file::a440hz_mp2", &resource_file_test::a440hz_mp2),
           pm5544_png_test(this, "resources::resource_file::pm5544_png", &resource_file_test::pm5544_png),
           pm5644_png_test(this, "resources::resource_file::pm5644_png", &resource_file_test::pm5644_png)
     {
@@ -22,11 +22,11 @@ static const struct resource_file_test
             ::remove(filename.c_str());
     }
 
-    struct test a440hz_flac_test;
-    void a440hz_flac()
+    struct test a440hz_mp2_test;
+    void a440hz_mp2()
     {
         {
-            resource_file file(resources::a440hz_flac, "flac");
+            resource_file file(resources::a440hz_mp2, "mp2");
             filename = file;
 
             platform::ifstream stream(filename, std::ios_base::binary);

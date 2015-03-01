@@ -37,7 +37,7 @@ test::test(
       connection_manager(connection_manager),
       content_directory(content_directory),
       settings(settings),
-      a440hz_flac(resources::a440hz_flac, "flac"),
+      a440hz_mp2(resources::a440hz_mp2, "mp2"),
       pm5544_png(resources::pm5544_png, "png"),
       pm5644_png(resources::pm5644_png, "png")
 {
@@ -290,7 +290,7 @@ int test::play_item(
 
             std::unique_ptr<vlc::transcode_stream> stream(
                         new vlc::transcode_stream(messageloop));
-            stream->add_option(":input-slave=" + platform::mrl_from_path(a440hz_flac));
+            stream->add_option(":input-slave=" + platform::mrl_from_path(a440hz_mp2));
 
             const std::string vlc_mux = (protocol.mux == "m2ts") ? "ts" : protocol.mux;
 

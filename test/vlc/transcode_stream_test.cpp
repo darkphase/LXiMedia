@@ -11,12 +11,12 @@ namespace vlc {
 
 static const struct transcode_stream_test
 {
-    const resources::resource_file a440hz_flac;
+    const resources::resource_file a440hz_mp2;
     const resources::resource_file pm5544_png;
     std::string media_cache_file, out_file;
 
     transcode_stream_test()
-        : a440hz_flac(resources::a440hz_flac, "flac"),
+        : a440hz_mp2(resources::a440hz_mp2, "mp2"),
           pm5544_png(resources::pm5544_png, "png"),
           media_cache_file(platform::temp_file_path("ini")),
           transcode_mp2v_ps_test(this, "vlc::transcode_stream::transcode_mp2v_ps", &transcode_stream_test::transcode_mp2v_ps),
@@ -51,8 +51,8 @@ static const struct transcode_stream_test
         {
             class transcode_stream transcode_stream(messageloop_ref);
 
-            const auto a440hz_flac_mrl = platform::mrl_from_path(a440hz_flac);
-            transcode_stream.add_option(":input-slave=" + a440hz_flac_mrl);
+            const auto a440hz_mp2_mrl = platform::mrl_from_path(a440hz_mp2);
+            transcode_stream.add_option(":input-slave=" + a440hz_mp2_mrl);
 
             const auto pm5544_png_mrl = platform::mrl_from_path(pm5544_png);
 
