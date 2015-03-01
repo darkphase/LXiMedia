@@ -151,7 +151,7 @@ connection_proxy::source::source(
         const auto block_count =
                 ((data_rate * duration) + block_size - 1) / block_size;
 
-        preload_threshold = std::max(block_count / 6, size_t(1)) * block_size;
+        preload_threshold = std::max(block_count / 10, size_t(1)) * block_size;
         detach_threshold = preload_threshold + block_size;
 
         buffer.resize(std::max(
