@@ -377,8 +377,9 @@ int files::play_audio_video_item(
 
         if (!protocol.video_codec.empty())
         {
-            transcode << ",vcodec=" << protocol.video_codec
-                      << ",vb=" << protocol.video_rate;
+            transcode
+                    << ",vcodec=" << protocol.video_codec
+                    << ",vb=" << protocol.video_rate;
 
             const float frame_rate = (protocol.frame_rate_den > 0)
                     ? (float(protocol.frame_rate_num) / protocol.frame_rate_den)
@@ -394,8 +395,9 @@ int files::play_audio_video_item(
             switch (settings.canvas_mode())
             {
             case canvas_mode::none:
-                transcode << ",width=" << protocol.width
-                          << ",height=" << protocol.height;
+                transcode
+                        << ",width=" << protocol.width
+                        << ",height=" << protocol.height;
                 break;
 
             case canvas_mode::pad:
