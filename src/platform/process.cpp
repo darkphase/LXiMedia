@@ -475,6 +475,7 @@ int process::join()
 
 } // End of namespace
 #elif defined(WIN32)
+#include <cstdlib>
 #include <fcntl.h>
 #include <windows.h>
 
@@ -498,7 +499,8 @@ void process::process_entry(int argc, const char *argv[])
             auto function = functions.find(argv[i + 1]);
             if (function != functions.end())
             {
-                // Suppress crash dialog
+                // Suppress crash dialogs
+                ::_set_error_mode(_OUT_TO_STDERR);
                 ::SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
 
                 class process process(
