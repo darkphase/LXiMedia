@@ -176,7 +176,7 @@ int main(int argc, const char *argv[])
                 new class settings(messageloop_ref, true));
 
     class pupnp::upnp upnp(messageloop_ref);
-    if (upnp.initialize(settings->http_port(), false))
+    if (upnp.initialize(0, false))
     {
         const auto urls = find_server(messageloop, *settings, upnp);
 
