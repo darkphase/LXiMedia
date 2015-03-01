@@ -469,11 +469,9 @@ std::vector<std::string> list_files(
 
         do
         {
-            struct __stat64 stat;
             if ((find_data.cFileName[0] != L'.') &&
                 ((find_data.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) == 0) &&
-                ((find_data.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM) == 0) &&
-                (::_wstat64((wpath + find_data.cFileName).c_str(), &stat) == 0))
+                ((find_data.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM) == 0))
             {
                 std::wstring name = find_data.cFileName, lname = to_lower(name);
                 if ((find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
@@ -487,10 +485,17 @@ std::vector<std::string> list_files(
                     result.emplace_back(from_utf16(name));
                 }
                 else if ((filter == file_filter::large_files) &&
-                         (size_t(stat.st_size) >= min_file_size) &&
-                         (hidden_suffixes.find(suffix_of(lname)) == hidden_suffixes.end()))
+                         (hidden_suffixes.find(suffix_of(lname)) ==
+                          hidden_suffixes.end()))
                 {
-                    result.emplace_back(from_utf16(name));
+                    struct __stat64 stat;
+                    if ((::_wstat64(
+                                (wpath + find_data.cFileName).c_str(),
+                                &stat) == 0) &&
+                        (size_t(stat.st_size) >= min_file_size))
+                    {
+                        result.emplace_back(from_utf16(name));
+                    }
                 }
             }
         } while((result.size() < max_count) && (FindNextFile(handle, &find_data) != 0));
