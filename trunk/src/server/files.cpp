@@ -373,11 +373,11 @@ int files::play_audio_video_item(
     if (!protocol.audio_codec.empty() || !protocol.video_codec.empty())
     {
         // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
-        transcode << "#transcode{";
+        transcode << "#transcode{threads=2";
 
         if (!protocol.video_codec.empty())
         {
-            transcode << "vcodec=" << protocol.video_codec
+            transcode << ",vcodec=" << protocol.video_codec
                       << ",vb=" << protocol.video_rate;
 
             const float frame_rate = (protocol.frame_rate_den > 0)
@@ -432,10 +432,8 @@ int files::play_audio_video_item(
 
         if (!protocol.audio_codec.empty())
         {
-            if (!protocol.video_codec.empty()) transcode << ',';
-
             transcode
-                    << "acodec=" << protocol.audio_codec
+                    << ",acodec=" << protocol.audio_codec
                     << ",ab=" << protocol.audio_rate
                     << ",samplerate=" << protocol.sample_rate
                     << ",channels=" << protocol.channels;
