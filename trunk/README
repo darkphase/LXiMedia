@@ -1,5 +1,5 @@
 ================================================================================
-LeX-Interactive Media (LXiMedia) README Copyright 2009-2012 by A.J. Admiraal
+LeX-Interactive MediaServer README Copyright 2009-2015 by A.J. Admiraal
 ================================================================================
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 3 as published by
@@ -17,47 +17,39 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Introduction
 ------------
-LXiMedia is a multi-platform multimedia framework. Which is based around a set
-of streaming media libraries, and provides a DLNA/UPnP based media center
-application.
+LXiMediaServer can be used to play media files from a PC over a local network on 
+a DLNA capable device (e.g. television, game console, media center).
+LXiMediaServer aims at compatibility with a large range of devices by
+transcoding all media to a standard MPEG2 stream that can be played on almost 
+any DLNA capable device, also subtitles and audio language selection are 
+supported. Furthermore, several common timing and synchronization errors in
+media files are fixed on the fly while transcoding.
 
 
 Compilation
 -----------
-To compile LXiMedia on a Linux machine, first ensure all compilers and 
+To compile LXiMediaServer on Linux or Mac, first ensure all compilers and 
 development libraries are installed. On a Debian based system (e.g. Ubuntu) this
 can be done from a command shell with the following command:
 
 # sudo apt-get install debhelper dpkg-dev bash doxygen g++ gcc make binutils-dev
-libvlc-dev libvlccore-dev uuid-dev
+cmake libvlc-dev libvlccore-dev uuid-dev
 
-Open a shell and enter the lximedia source directory, run qmake and make to 
+Open a shell and enter the lximediaserver source directory, run cmake and make to 
 build:
 
-# cd lximedia
-# qmake
+# cmake -DCMAKE_BUILD_TYPE=Release
 # make
 
-Building from source on Windows is a little more involved. First, a Qt
-development environment is needed, QtCreator is recommended.
+To build Windows binaries on Linux, install mingw. On a Debian based system this
+can be done from a command shell with the following command:
 
-For QtCreator:
+# sudo apt-get install mingw-w64
 
-Download and install the latest version of the QtSDK from 
-http://qt-project.org/downloads. Make sure you install the QtSDK in a directory
-without spaces (for example C:\QtSDK\). Download the latest version of MSYS and
-install it in the C:\QtSDK\Tools\MinGW\ directory. And download YASM for mingw 
-and copy yasm.exe to C:\QtSDK\Tools\MinGW\bin.
+Open a shell and enter the lximediaserver source directory, run cmake and make to 
+build:
 
-Start QtCreator. Select ''File -> Open File or Project'' from the menu. Then
-select the ''lximedia.pro'' file from the lximedia directory that was checked
-out above. A ''project setup'' dialog pops up, select the Qt for desktop
-version and click ''Finish'' to continue.
+# cmake -DCMAKE_TOOLCHAIN_FILE=deploy/win32/Toolchain-i686-w64-mingw32.cmake 
+-DCMAKE_BUILD_TYPE=Release
+# make
 
-Next select ''Build -> Run qmake'' from the menu and wait until a green ''Build''
-bar appears above the project button. This may take a long time as it will
-build all library dependencies.
-
-Next, select ''Build -> Build All'' from the menu to build the entire project.
-This may take some time, press the ''Compile Output'' button to monitor the build
-progress.
