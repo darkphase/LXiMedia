@@ -1,5 +1,5 @@
 /******************************************************************************
- *   Copyright (C) 2014  A.J. Admiraal                                        *
+ *   Copyright (C) 2015  A.J. Admiraal                                        *
  *   code@admiraal.dds.nl                                                     *
  *                                                                            *
  *   This program is free software: you can redistribute it and/or modify     *
@@ -265,7 +265,7 @@ int mainpage::render_mainpage(const struct pupnp::upnp::request &, std::ostream 
     out << "</div><div class=\"footer\"><div class=\"tiles\">"
            "<div><img src=\"/img/vlc-icon.svg\" alt=\"VLC\" /><p><a href=\"http://www.videolan.org/vlc/\">Powered by VLC</a></p></div>"
            "</div><div class=\"copyright\">"
-           "<p>Copyright &copy; 2014 A.J. Admiraal</p><p>This program is free software: you can redistribute it and/or modify "
+           "<p>Copyright &copy; 2015 A.J. Admiraal</p><p>This program is free software: you can redistribute it and/or modify "
            "it under the terms of the GNU General Public License version 3 as published by the Free Software Foundation.</p>"
            "</div></div>";
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- *   Copyright (C) 2014  A.J. Admiraal                                        *
+ *   Copyright (C) 2015  A.J. Admiraal                                        *
  *   code@admiraal.dds.nl                                                     *
  *                                                                            *
  *   This program is free software: you can redistribute it and/or modify     *
@@ -220,7 +220,7 @@ int helppage::render_page(const struct pupnp::upnp::request &, std::ostream &out
 
     out << "<h1>About</h1>"
            "<p>LXiMediaServer version " << VERSION << "</p>"
-           "<p>Copyright &copy; 2014 A.J. Admiraal</p>"
+           "<p>Copyright &copy; 2015 A.J. Admiraal</p>"
            "<p>This program is free software: you can redistribute it and/or modify "
            "it under the terms of the GNU General Public License version 3 as published "
            "by the Free Software Foundation.</p>"
