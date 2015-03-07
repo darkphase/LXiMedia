@@ -300,7 +300,7 @@ static void render_path_settings(const std::map<std::string, std::string> &query
     const auto paths = settings.root_paths();
     for (size_t i = 0, n = paths.size(); i < n; i++)
     {
-        out << "<tr><td><input type=\"text\" size=\"50\" name=\"path_" << i << "\" disabled=\"disabled\" "
+        out << "<tr><td><input type=\"text\" size=\"45\" name=\"path_" << i << "\" disabled=\"disabled\" "
                "value=\"" << escape_xml(format_path(paths[i].path)) << "\" /></td>";
         out << "<td class=\"right\"><select name=\"path_type_" << i << "\">"
                "<option value=\"auto\""     << is_selected(paths[i].type == path_type::auto_    ) << ">" << tr("Automatic") << "</option>"
