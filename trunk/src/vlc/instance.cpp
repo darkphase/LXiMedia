@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "instance.h"
+#include "platform/string.h"
 #include <vlc/vlc.h>
 #include <cstdlib>
 #include <iostream>
@@ -30,7 +31,7 @@ void instance::initialize(int argc, const char *argv[])
     if (argc > 0)
     {
         std::string path = argv[0];
-        while (!path.empty() && (path[path.length() - 1] != '/'))
+        while (!path.empty() && (path.back() != '/'))
             path.pop_back();
 
         vlc_plugin_path = "VLC_PLUGIN_PATH=" + path + "plugins";
@@ -39,39 +40,9 @@ void instance::initialize(int argc, const char *argv[])
 #endif
 }
 
-int instance::compare_version(int major, int minor, int patch)
+std::string instance::version()
 {
-    static const char number[] = "0123456789";
-    const std::string version = libvlc_get_version();
-
-    const auto major_b = version.find_first_of(number);
-    const auto major_e = version.find_first_not_of(number, major_b + 1);
-    if ((major_b != version.npos) && (major_e != version.npos))
-    {
-        const int comp = std::stoi(version.substr(major_b, major_e - major_b)) - major;
-        if ((comp != 0) || (minor < 0))
-            return comp;
-
-        const auto minor_b = version.find_first_of(number, major_e);
-        const auto minor_e = version.find_first_not_of(number, minor_b + 1);
-        if ((minor_b != version.npos) && (minor_e != version.npos))
-        {
-            const int comp = std::stoi(version.substr(minor_b, minor_e - minor_b)) - minor;
-            if ((comp != 0) || (patch < 0))
-                return comp;
-
-            const auto patch_b = version.find_first_of(number, minor_e);
-            if (patch_b != version.npos)
-            {
-                auto patch_e = version.find_first_not_of(number, patch_b + 1);
-                if (patch_e == version.npos) patch_e = version.length();
-
-                return std::stoi(version.substr(patch_b, patch_e - patch_b)) - patch;
-            }
-        }
-    }
-
-    return -1;
+    return libvlc_get_version();
 }
 
 static libvlc_instance_t * create_instance(const std::vector<std::string> &options) noexcept
@@ -81,7 +52,7 @@ static libvlc_instance_t * create_instance(const std::vector<std::string> &optio
     argv.push_back("-vvv");
 #endif
 
-    if (instance::compare_version(2, 2) >= 0)
+    if (compare_version(instance::version(), "2.2") >= 0)
     {
         argv.push_back("--avcodec-hw");
         argv.push_back("disable");

@@ -81,7 +81,7 @@ int helppage::render_page(const struct pupnp::upnp::request &, std::ostream &out
            "capable device, also subtitles and audio language selection are "
            "supported. Furthermore, several common timing and synchronization "
            "errors in media files are fixed on the fly while transcoding.</p>"
-           "<ul><li>DVD and High Definition resolutions (720p and 1080p)."
+           "<ul><li>DVD and High Definition resolutions (720p and 1080p).</li>"
            "<li>Stereo and multi-channel (5.1 surround) audio.</li>"
            "<li>DVD title playback.</li>"
            "<li>Subtitle overlay, support for embedded subtitles and subtitle files.</li>"

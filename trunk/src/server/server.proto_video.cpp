@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "server.h"
+#include "platform/string.h"
 #include "pupnp/upnp.h"
 #include "vlc/instance.h"
 
@@ -181,7 +182,7 @@ static void add_source_video_protocols(
 
 void server::add_video_protocols()
 {
-    const bool vlc_2_1 = vlc::instance::compare_version(2, 1) == 0;
+    const bool vlc_2_1 = compare_version(vlc::instance::version(), "2.1") == 0;
     const auto surround_mode = settings.surround_mode();
     const bool has_surround51 = (surround_mode == ::surround_mode::surround51);
     const auto video_mode = settings.video_mode();

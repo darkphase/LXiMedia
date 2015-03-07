@@ -16,6 +16,8 @@
  ******************************************************************************/
 
 #include "server.h"
+#include "platform/string.h"
+#include "platform/translator.h"
 #include "files.h"
 #include "recommended.h"
 #include "setup.h"
@@ -43,7 +45,7 @@ server::server(
       files(),
       setup(),
       test(),
-      mainpage(messageloop, upnp, connection_manager),
+      mainpage(messageloop, upnp, connection_manager, settings),
       settingspage(mainpage, settings, std::bind(&server::apply_settings, this)),
       logpage(mainpage, logfilename),
       helppage(mainpage),
@@ -64,6 +66,7 @@ server::~server()
     connection_manager.numconnections_changed.erase(this);
 }
 
+
 bool server::initialize()
 {
     const std::string upnp_devicename = settings.upnp_devicename();
@@ -80,8 +83,8 @@ bool server::initialize()
         {
         case html::setup_mode::disabled:
         case html::setup_mode::name:
-            recommended.reset(new class recommended(
-                                  content_directory));
+            update.reset(new check_for_update(*this));
+            recommended.reset(new class recommended(content_directory));
 
             files.reset(new class files(
                             messageloop,
@@ -178,3 +181,72 @@ void server::force_apply_settings()
     // Wait a bit before restarting to handle pending requests from the webbrowser.
     recreate_server_timer.start(recreate_server_timeout, true);
 }
+
+
+server::check_for_update::check_for_update(server &parent)
+    : parent(parent),
+      basedir('/' + tr("Update available") + '/')
+{
+    parent.content_directory.item_source_register(basedir, *this);
+}
+
+server::check_for_update::~check_for_update()
+{
+    parent.content_directory.item_source_unregister(basedir);
+}
+
+std::vector<pupnp::content_directory::item> server::check_for_update::list_contentdir_items(
+        const std::string &client,
+        const std::string &,
+        size_t start, size_t &count)
+{
+    const bool return_all = count == 0;
+
+    std::vector<pupnp::content_directory::item> items;
+    if (compare_version(VERSION, parent.settings.latest_version()) < 0)
+        items.emplace_back(get_contentdir_item(client, basedir + "update"));
+
+    std::vector<pupnp::content_directory::item> result;
+    for (size_t i=start, n=0; (i<items.size()) && (return_all || (n<count)); i++, n++)
+        result.emplace_back(std::move(items[i]));
+
+    count = items.size();
+
+    return result;
+}
+
+pupnp::content_directory::item server::check_for_update::get_contentdir_item(
+        const std::string &,
+        const std::string &path)
+{
+    pupnp::content_directory::item item;
+
+    if (ends_with(path, "/update"))
+    {
+        item.is_dir = false;
+        item.path = path;
+        item.mrl = "file:///";
+        item.type = pupnp::content_directory::item_type::none;
+        item.title = tr("Version") + ' ' + parent.settings.latest_version();
+    }
+
+    return item;
+}
+
+bool server::check_for_update::correct_protocol(
+        const pupnp::content_directory::item &,
+        pupnp::connection_manager::protocol &)
+{
+    return true;
+}
+
+int server::check_for_update::play_item(
+        const std::string &,
+        const pupnp::content_directory::item &,
+        const std::string &,
+        std::string &,
+        std::shared_ptr<std::istream> &)
+{
+    return pupnp::upnp::http_not_found;
+}
+

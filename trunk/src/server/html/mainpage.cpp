@@ -38,10 +38,15 @@ static const char base_css[] = {
 
 namespace html {
 
-mainpage::mainpage(class platform::messageloop_ref &messageloop, class pupnp::upnp &upnp, class pupnp::connection_manager &connection_manager)
+mainpage::mainpage(
+        class platform::messageloop_ref &messageloop,
+        class pupnp::upnp &upnp,
+        class pupnp::connection_manager &connection_manager,
+        class settings &settings)
     : messageloop(messageloop),
       upnp(upnp),
-      connection_manager(connection_manager)
+      connection_manager(connection_manager),
+      settings(settings)
 {
     using namespace std::placeholders;
 
@@ -203,6 +208,14 @@ void mainpage::render_headers(const struct pupnp::upnp::request &request, std::o
 
 int mainpage::render_mainpage(const struct pupnp::upnp::request &, std::ostream &out)
 {
+    if (compare_version(VERSION, settings.latest_version()) < 0)
+    {
+        out << "<div class=\"update\"><p><a href=\"http://www.admiraal.dds.nl/lximediaserver/\">"
+            << tr("Version") << ' ' << settings.latest_version() << ' '
+            << tr("available, click here to download it.")
+            << "</a></p></div>";
+    }
+
     out << "<div class=\"buttons\">";
 
     for (const auto &i : page_order)

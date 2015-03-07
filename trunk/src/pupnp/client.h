@@ -45,7 +45,7 @@ public:
 
   void start_search(const std::string &target, int mx = 3);
 
-  std::string get(const std::string &location);
+  static std::string get(const std::string &location);
   bool read_device_description(const std::string &location, struct device_description &device_description);
 
   std::function<void(const std::string &, const std::string &)> device_discovered;

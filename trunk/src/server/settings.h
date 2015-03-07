@@ -44,6 +44,7 @@ public:
     bool was_clean_exit() const;
     bool is_configure_required() const;
     void set_configure_required(bool);
+    std::string latest_version();
 
     platform::uuid uuid();
     std::string upnp_devicename() const;

@@ -35,6 +35,13 @@ std::string from_percent(const std::string &);
 std::string to_percent(const std::string &);
 std::string escape_xml(const std::string &);
 
+/*! returns:
+ *  <0 if the actual version is older than the specified version.
+ *   0 if the actual version equals the specified version.
+ *  >0 if the actual version is newer than the specified version.
+ */
+int compare_version(const std::string &actual, const std::string &specified);
+
 bool is_utf8(const std::string &);
 
 #if defined(WIN32)

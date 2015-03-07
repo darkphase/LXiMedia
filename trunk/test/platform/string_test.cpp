@@ -31,7 +31,8 @@ static const struct string_test
           from_base64_test(this, "string::from_base64", &string_test::from_base64),
           to_percent_test(this, "string::to_percent", &string_test::to_percent),
           from_percent_test(this, "string::from_percent", &string_test::from_percent),
-          escape_xml_test(this, "string::escape_xml", &string_test::escape_xml)
+          escape_xml_test(this, "string::escape_xml", &string_test::escape_xml),
+          compare_version_test(this, "string::compare_version", &string_test::compare_version)
     {
     }
 
@@ -94,5 +95,21 @@ static const struct string_test
     {
         const std::string result = ::escape_xml(escape_xml_src);
         test_assert(result == escape_xml_ref);
+    }
+
+    struct test compare_version_test;
+    void compare_version()
+    {
+        test_assert(::compare_version("1.2.3", "1.2.3") == 0);
+        test_assert(::compare_version("1.2.3", "1.2") == 0);
+        test_assert(::compare_version("1.2.3", "1") == 0);
+
+        test_assert(::compare_version("1.2.3", "1.2.4") < 0);
+        test_assert(::compare_version("1.2.3", "1.3") < 0);
+        test_assert(::compare_version("1.2.3", "2") < 0);
+
+        test_assert(::compare_version("1.2.3", "1.2.2") > 0);
+        test_assert(::compare_version("1.2.3", "1.1") > 0);
+        test_assert(::compare_version("1.2.3", "0") > 0);
     }
 } string_test;

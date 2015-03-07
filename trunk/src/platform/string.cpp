@@ -21,6 +21,7 @@
 #include <cstring>
 #include <iomanip>
 #include <sstream>
+#include <stdexcept>
 
 bool starts_with(const std::string &text, const std::string &find)
 {
@@ -249,6 +250,61 @@ std::string escape_xml(const std::string &input)
     }
 
     return result.str();
+}
+
+static void extract_version(
+        const std::string &ver,
+        int &major, int &minor, int &patch)
+{
+    static const char number[] = "0123456789";
+
+    major = minor = patch = -1;
+    try
+    {
+        const auto major_b = ver.find_first_of(number);
+        if (major_b != ver.npos)
+        {
+            auto major_e = ver.find_first_not_of(number, major_b + 1);
+            if (major_e == ver.npos) major_e = ver.length();
+            major = std::stoi(ver.substr(major_b, major_e - major_b));
+
+            const auto minor_b = ver.find_first_of(number, major_e);
+            if (minor_b != ver.npos)
+            {
+                auto minor_e = ver.find_first_not_of(number, minor_b + 1);
+                if (minor_e == ver.npos) minor_e = ver.length();
+                minor = std::stoi(ver.substr(minor_b, minor_e - minor_b));
+
+                const auto patch_b = ver.find_first_of(number, minor_e);
+                if (patch_b != ver.npos)
+                {
+                    auto patch_e = ver.find_first_not_of(number, patch_b + 1);
+                    if (patch_e == ver.npos) patch_e = ver.length();
+
+                    patch = std::stoi(ver.substr(patch_b, patch_e - patch_b));
+                }
+            }
+        }
+    }
+    catch (const std::invalid_argument &) { }
+    catch (const std::out_of_range &) { }
+}
+
+int compare_version(const std::string &actual, const std::string &specified)
+{
+    int a_major, a_minor, a_patch;
+    extract_version(actual, a_major, a_minor, a_patch);
+    int b_major, b_minor, b_patch;
+    extract_version(specified, b_major, b_minor, b_patch);
+
+    if ((a_major >= 0) && (b_major >= 0) && (a_major != b_major))
+        return a_major - b_major;
+    else if ((a_minor >= 0) && (b_minor >= 0) && (a_minor != b_minor))
+        return a_minor - b_minor;
+    else if ((a_patch >= 0) && (b_patch >= 0) && (a_patch != b_patch))
+        return a_patch - b_patch;
+    else
+        return 0;
 }
 
 bool is_utf8(const std::string &src)
