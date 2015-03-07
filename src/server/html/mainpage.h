@@ -26,6 +26,8 @@
 #include <ostream>
 #include <string>
 
+class settings;
+
 namespace html {
 
 class mainpage
@@ -54,7 +56,12 @@ public:
     };
 
 public:
-    mainpage(class platform::messageloop_ref &, class pupnp::upnp &, class pupnp::connection_manager &);
+    mainpage(
+            class platform::messageloop_ref &,
+            class pupnp::upnp &,
+            class pupnp::connection_manager &,
+            class settings &);
+
     ~mainpage();
 
     void set_devicename(const std::string &);
@@ -75,6 +82,7 @@ private:
     class platform::messageloop_ref messageloop;
     class pupnp::upnp &upnp;
     class pupnp::connection_manager &connection_manager;
+    class settings &settings;
     std::string devicename;
 
     std::map<std::string, page> pages;

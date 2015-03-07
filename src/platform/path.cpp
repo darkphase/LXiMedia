@@ -40,7 +40,7 @@ std::string clean_path(const std::string &path)
         ls = i == '/';
     }
 
-    if ((result.size() > 1) && (result[result.size() - 1] == '/'))
+    if ((result.size() > 1) && (result.back() == '/'))
         result.pop_back();
 
     return result;
@@ -167,7 +167,7 @@ std::vector<std::string> list_files(
         size_t max_count)
 {
     std::string cpath = path;
-    while (!cpath.empty() && (cpath[cpath.length() - 1] == '/')) cpath.pop_back();
+    while (!cpath.empty() && (cpath.back() == '/')) cpath.pop_back();
     cpath.push_back('/');
 
     auto &hidden_dirs = platform::hidden_dirs();
@@ -360,7 +360,7 @@ bool starts_with(const std::wstring &text, const std::wstring &find)
 static const std::wstring clean_path(const std::wstring &input)
 {
     std::wstring result = input;
-    while (!result.empty() && (result[result.length() - 1] == L'\\')) result.pop_back();
+    while (!result.empty() && (result.back() == L'\\')) result.pop_back();
     return result;
 }
 

@@ -30,24 +30,24 @@
 class setup : private pupnp::content_directory::item_source
 {
 public:
-  setup(
-          class platform::messageloop_ref &,
-          pupnp::content_directory &);
+    setup(
+            class platform::messageloop_ref &,
+            pupnp::content_directory &);
 
-  virtual ~setup();
+    virtual ~setup();
 
 private: // From content_directory::item_source
-  std::vector<pupnp::content_directory::item> list_contentdir_items(const std::string &client, const std::string &path, size_t start, size_t &count) override;
-  pupnp::content_directory::item get_contentdir_item(const std::string &client, const std::string &path) override;
-  bool correct_protocol(const pupnp::content_directory::item &, pupnp::connection_manager::protocol &) override;
-  int play_item(const std::string &, const pupnp::content_directory::item &, const std::string &, std::string &, std::shared_ptr<std::istream> &) override;
+    std::vector<pupnp::content_directory::item> list_contentdir_items(const std::string &client, const std::string &path, size_t start, size_t &count) override;
+    pupnp::content_directory::item get_contentdir_item(const std::string &client, const std::string &path) override;
+    bool correct_protocol(const pupnp::content_directory::item &, pupnp::connection_manager::protocol &) override;
+    int play_item(const std::string &, const pupnp::content_directory::item &, const std::string &, std::string &, std::shared_ptr<std::istream> &) override;
 
 private:
-  class platform::messageloop_ref messageloop;
-  class pupnp::content_directory &content_directory;
-  const std::string basedir;
+    class platform::messageloop_ref messageloop;
+    class pupnp::content_directory &content_directory;
+    const std::string basedir;
 
-  bool shutdown_pending;
+    bool shutdown_pending;
 };
 
 #endif

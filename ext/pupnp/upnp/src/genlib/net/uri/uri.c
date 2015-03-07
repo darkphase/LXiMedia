@@ -402,7 +402,7 @@ static int parse_hostport(
 					}
 				}
 				freeaddrinfo(res0);
-				if (res == NULL)
+                if (ret == 0)
 					/* Didn't find an AF_INET or AF_INET6 address. */
 					return UPNP_E_INVALID_URL;
 			} else

@@ -44,6 +44,24 @@ class server
 public:
     static std::function<void()> recreate_server;
 
+private:
+    class check_for_update : private pupnp::content_directory::item_source
+    {
+    public:
+        check_for_update(server &);
+        ~check_for_update();
+
+    private: // From content_directory::item_source
+        std::vector<pupnp::content_directory::item> list_contentdir_items(const std::string &, const std::string &, size_t, size_t &) override;
+        pupnp::content_directory::item get_contentdir_item(const std::string &, const std::string &) override;
+        bool correct_protocol(const pupnp::content_directory::item &, pupnp::connection_manager::protocol &) override;
+        int play_item(const std::string &, const pupnp::content_directory::item &, const std::string &, std::string &, std::shared_ptr<std::istream> &) override;
+
+    private:
+        server &parent;
+        const std::string basedir;
+    };
+
 public:
     server(
             class platform::messageloop_ref &,
@@ -80,6 +98,7 @@ private:
     class pupnp::content_directory content_directory;
     class pupnp::mediareceiver_registrar mediareceiver_registrar;
 
+    std::unique_ptr<check_for_update> update;
     std::unique_ptr<class recommended> recommended;
     std::unique_ptr<class files> files;
     std::unique_ptr<class setup> setup;

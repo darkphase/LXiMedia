@@ -1,3 +1,19 @@
+div.update {
+ padding: 4em;
+}
+.update p {
+ padding: 0;
+ margin: 0;
+ text-align: center;
+ font-size: 1.5em;
+ background-color: #FFE8E8;
+ border: 2px solid #D08080;
+}
+.update a:link      { color: #D08080; text-decoration: none; }
+.update a:visited   { color: #D08080; text-decoration: none; }
+.update a:active    { color: #D08080; text-decoration: none; }
+.update a:hover     { color: #D08080; text-decoration: none; }
+
 div.buttons {
  position: absolute;
  top: 35%;

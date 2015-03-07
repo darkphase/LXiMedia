@@ -19,11 +19,16 @@
 #include "platform/fstream.h"
 #include "platform/path.h"
 #include "platform/string.h"
+#include "pupnp/client.h"
 #include "vlc/instance.h"
 #include <algorithm>
 #include <cassert>
+#include <cctype>
+#include <chrono>
 #include <sstream>
 #include <thread>
+
+using std::chrono::duration_cast;
 
 struct user_dirs { std::string download, music, pictures, videos; };
 static struct user_dirs user_dirs();
@@ -84,6 +89,39 @@ void settings::set_configure_required(bool on)
         return general.erase(is_configure_required_name);
     else
         return general.write(is_configure_required_name, false);
+}
+
+static const char last_version_check_name[] = "last_version_check";
+static const char latest_version_name[] = "latest_version";
+
+std::string settings::latest_version()
+{
+    const auto now = duration_cast<std::chrono::hours>(
+                std::chrono::system_clock::now().time_since_epoch()).count();
+
+    auto last_version_check = general.read(last_version_check_name, 0);
+    if ((now - last_version_check) >= 168)
+    {
+        std::ostringstream url;
+        url << "http://www.admiraal.dds.nl/lximediaserver/version.php"
+            << "?uuid=" << uuid()
+            << "&version=" << VERSION
+            << "&platform=" << PLATFORM;
+
+        auto latest_version = pupnp::client::get(url.str());
+        while (!latest_version.empty() && std::isspace(latest_version.back()))
+            latest_version.pop_back();
+
+        if (!latest_version.empty() && (latest_version.length() <= 8))
+        {
+            general.write(last_version_check_name, now);
+            general.write(latest_version_name, latest_version);
+
+            return latest_version;
+        }
+    }
+
+    return general.read(latest_version_name, VERSION);
 }
 
 static const char uuid_name[] = "uuid";
@@ -284,7 +322,7 @@ static canvas_mode to_canvas_mode(const std::string &e)
 bool settings::canvas_mode_enabled() const
 {
     // Workaround for ticket https://trac.videolan.org/vlc/ticket/10148
-    return vlc::instance::compare_version(2, 1) != 0;
+    return compare_version(vlc::instance::version(), "2.1") != 0;
 }
 
 static enum canvas_mode default_canvas_mode = canvas_mode::pad;
@@ -333,7 +371,7 @@ static surround_mode to_surround_mode(const std::string &e)
 bool settings::surround_mode_enabled() const
 {
     // Workaround for ticket https://trac.videolan.org/vlc/ticket/1897
-    return vlc::instance::compare_version(2, 2) >= 0;
+    return compare_version(vlc::instance::version(), "2.2") >= 0;
 }
 
 static enum surround_mode default_surround_mode = surround_mode::stereo;

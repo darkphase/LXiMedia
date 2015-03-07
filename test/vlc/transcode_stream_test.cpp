@@ -84,7 +84,7 @@ static const struct transcode_stream_test
                         platform::mrl_from_path(out_file));
 
             test_assert(media_info.tracks.size() == 2);
-            if (instance::compare_version(2, 1) != 0)
+            if (compare_version(instance::version(), "2.1") != 0)
             {
                 test_assert(
                             (media_info.duration.count() == 0) ||
@@ -125,7 +125,7 @@ static const struct transcode_stream_test
                   << "vcodec=mp2v,scale=Auto,fps=25,width=768,height=576,";
 
         // Workaround for ticket https://trac.videolan.org/vlc/ticket/10148
-        if (instance::compare_version(2, 1) != 0)
+        if (compare_version(instance::version(), "2.1") != 0)
             transcode << "vfilter=canvas{width=768,height=576},soverlay,";
 
         transcode << "acodec=mpga,samplerate=44100,channels=2"
@@ -142,7 +142,7 @@ static const struct transcode_stream_test
                   << "vcodec=mp2v,scale=Auto,fps=25,width=768,height=576,";
 
         // Workaround for ticket https://trac.videolan.org/vlc/ticket/10148
-        if (instance::compare_version(2, 1) != 0)
+        if (compare_version(instance::version(), "2.1") != 0)
             transcode << "vfilter=canvas{width=768,height=576},soverlay,";
 
         transcode << "acodec=mpga,samplerate=44100,channels=2"
@@ -159,7 +159,7 @@ static const struct transcode_stream_test
                   << "vcodec=h264,scale=Auto,fps=25,width=768,height=576,";
 
         // Workaround for ticket https://trac.videolan.org/vlc/ticket/10148
-        if (instance::compare_version(2, 1) != 0)
+        if (compare_version(instance::version(), "2.1") != 0)
             transcode << "vfilter=canvas{width=768,height=576},soverlay,";
 
         transcode << "acodec=a52,samplerate=44100,channels=2"

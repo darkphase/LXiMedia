@@ -125,7 +125,7 @@ file(GLOB_RECURSE SRC_LIST src/*.cpp)
 
 set_source_files_properties(
     ${SRC_LIST}
-    PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -DUPNP_STATIC_LIB -DVERSION=\\\"${VERSION}\\\"")
+    PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -DUPNP_STATIC_LIB -DVERSION=\\\"${VERSION}\\\" -DPLATFORM=\\\"${CMAKE_SYSTEM_NAME}\\\"")
 
 if(${CMAKE_BUILD_TYPE} STREQUAL Debug)
     set_property(SOURCE ${SRC_LIST} APPEND_STRING PROPERTY COMPILE_FLAGS " -Werror")
