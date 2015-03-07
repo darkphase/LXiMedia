@@ -80,6 +80,10 @@ std::string path_from_mrl(const std::string &mrl)
 #include <cstdlib>
 #include <sys/types.h>
 #include <sys/stat.h>
+#if defined(__APPLE__)
+# include <sys/param.h>
+# include <sys/mount.h>
+#endif
 #include <dirent.h>
 #include <pwd.h>
 #include <unistd.h>
@@ -221,6 +225,28 @@ std::vector<std::string> list_files(
     return result;
 }
 
+#if defined(__APPLE__)
+std::vector<std::string> list_removable_media()
+{
+    static const char media_dir[] = "/Volumes/";
+
+    std::vector<std::string> result;
+    for (auto &i : list_files(media_dir, platform::file_filter::directories))
+        if (!list_files(media_dir + i, platform::file_filter::large_files, 1).empty())
+        {
+            struct statfs stat;
+            if ((statfs((media_dir + i).c_str(), &stat) == 0) &&
+                ((stat.f_flags & MNT_ROOTFS) == 0) &&
+                (strcmp(stat.f_fstypename, "smbfs") != 0) &&
+                (strcmp(stat.f_fstypename, "nfs") != 0))
+            {
+                result.emplace_back(media_dir + i);
+            }
+        }
+
+    return result;
+}
+#else
 std::vector<std::string> list_removable_media()
 {
     struct passwd *pw = getpwuid(getuid());
@@ -238,6 +264,7 @@ std::vector<std::string> list_removable_media()
 
     return std::vector<std::string>();
 }
+#endif
 
 std::string file_date(const std::string &path)
 {
