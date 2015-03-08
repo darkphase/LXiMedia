@@ -363,12 +363,17 @@ static bool is_root()
 
 static void detach()
 {
+    // Get executable
+    wchar_t exec[MAX_PATH + 1] = { 0 };
+    if (::GetModuleFileName(::GetModuleHandle(NULL), exec, MAX_PATH) == 0)
+        throw std::runtime_error("Failed to determine executable.");
+
     // Spawn child process
-    const auto child = _spawnl(
+    const auto child = _wspawnl(
                 P_NOWAIT,
-                __argv[0],
-                __argv[0],
-                "--detached",
+                exec,
+                exec,
+                L"--detached",
                 NULL);
 
     if (child != -1)
