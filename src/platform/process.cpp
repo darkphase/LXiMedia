@@ -482,14 +482,9 @@ int process::join()
 namespace platform {
 
 static const char child_process_arg[] = "start_function";
-static int my_argc = 0;
-static const char **my_argv = nullptr;
 
 void process::process_entry(int argc, const char *argv[])
 {
-    my_argc = argc;
-    my_argv = argv;
-
     for (int i = 1; (i + 5) < argc; i++)
         if (strcmp(argv[i], child_process_arg) == 0)
         {
@@ -570,17 +565,22 @@ process::process(function_handle handle, priority priority_)
     // Will get offset 0; used to emulate the term signal.
     alloc_shared<bool>();
 
+    // Get executable
+    wchar_t exec[MAX_PATH + 1] = { 0 };
+    if (::GetModuleFileName(::GetModuleHandle(NULL), exec, MAX_PATH) == 0)
+        throw std::runtime_error("Failed to determine executable.");
+
     // Spawn child process
-    child = _spawnl(
+    child = _wspawnl(
                 P_NOWAIT,
-                my_argv[0],
-                my_argv[0],
-                child_process_arg,
-                handle.name,
-                std::to_string(int(priority_)).c_str(),
-                std::to_string(int(duplicate_file_mapping)).c_str(),
-                std::to_string(ipipe[0]).c_str(),
-                std::to_string(opipe[1]).c_str(),
+                exec,
+                exec,
+                to_utf16(child_process_arg).c_str(),
+                to_utf16(handle.name).c_str(),
+                std::to_wstring(int(priority_)).c_str(),
+                std::to_wstring(int(duplicate_file_mapping)).c_str(),
+                std::to_wstring(ipipe[0]).c_str(),
+                std::to_wstring(opipe[1]).c_str(),
                 NULL);
 
     if (child != -1)
