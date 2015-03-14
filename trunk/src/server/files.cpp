@@ -26,6 +26,7 @@
 #include "vlc/media_cache.h"
 #include "vlc/transcode_stream.h"
 #include "watchlist.h"
+#include <vlc/libvlc_version.h>
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
@@ -225,8 +226,8 @@ std::vector<pupnp::content_directory::item> files::list_recommended_items(
     std::map<std::chrono::system_clock::time_point, watchlist::entry> watched_by_last_seen;
     for (auto &i : watchlist.watched_items())
     {
-        watched_by_mrl.emplace(i.mrl, i);
-        watched_by_last_seen.emplace(i.last_seen, i);
+        watched_by_mrl.insert(std::make_pair(i.mrl, i));
+        watched_by_last_seen.insert(std::make_pair(i.last_seen, i));
     }
 
     std::unordered_set<std::string> directories;
@@ -284,7 +285,7 @@ std::vector<pupnp::content_directory::item> files::list_recommended_items(
         }
 
         if (!last_path.empty())
-            recommended_paths.emplace(last_score, std::move(last_path));
+            recommended_paths.insert(std::make_pair(last_score, std::move(last_path)));
     }
 
     std::vector<std::string> paths;
@@ -384,12 +385,14 @@ int files::play_audio_video_item(
                     << "vcodec=" << protocol.video_codec
                     << ",vb=" << protocol.video_rate;
 
+#if (LIBVLC_VERSION_MAJOR > 2) || ((LIBVLC_VERSION_MAJOR == 2) && (LIBVLC_VERSION_MINOR >= 1))
             const float frame_rate = (protocol.frame_rate_den > 0)
                     ? (float(protocol.frame_rate_num) / protocol.frame_rate_den)
                     : 25.0f;
 
             if (std::abs(frame_rate - item.frame_rate) > 0.01f)
                 transcode << ",fps=" << std::setprecision(5) << frame_rate;
+#endif
 
             const float aspect = (protocol.height > 0)
                     ? ((protocol.width * protocol.aspect) / protocol.height)
@@ -734,14 +737,14 @@ const std::vector<std::string> & files::list_files(const std::string &path, bool
             for (auto &i : settings.root_paths())
             {
                 const auto name = root_path_name(i.path) + '/';
-                files.emplace(dir_prefix + to_lower(name), name);
+                files.insert(std::make_pair(dir_prefix + to_lower(name), name));
             }
 
             if (settings.share_removable_media())
                 for (auto &i : platform::list_removable_media())
                 {
                     const auto name = root_path_name(i) + '/';
-                    files.emplace(dir_prefix + to_lower(name), name);
+                    files.insert(std::make_pair(dir_prefix + to_lower(name), name));
                 }
         }
         else if (starts_with(path, basedir))
@@ -752,7 +755,7 @@ const std::vector<std::string> & files::list_files(const std::string &path, bool
                 auto mrl = platform::mrl_from_path(system_path.path);
 
                 for (auto &track : list_tracks(media_cache.media_info(mrl)))
-                    files.emplace(file_prefix + to_lower(track.first), track.first);
+                    files.insert(std::make_pair(file_prefix + to_lower(track.first), track.first));
             }
             else
             {
@@ -767,12 +770,12 @@ const std::vector<std::string> & files::list_files(const std::string &path, bool
                                     2);
 
                         if ((children.size() == 1) && !ends_with(children.front(), "/"))
-                            files.emplace(file_prefix + to_lower(children.front()), i + children.front());
+                            files.insert(std::make_pair(file_prefix + to_lower(children.front()), i + children.front()));
                         else if (children.size() > 0)
-                            files.emplace(dir_prefix + to_lower(i), i);
+                            files.insert(std::make_pair(dir_prefix + to_lower(i), i));
                     }
                     else
-                        files.emplace(file_prefix + to_lower(i), i);
+                        files.insert(std::make_pair(file_prefix + to_lower(i), i));
                 }
             }
         }

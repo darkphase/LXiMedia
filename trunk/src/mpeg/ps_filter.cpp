@@ -167,7 +167,7 @@ std::list<ps_packet> ps_filter::read_pack()
                 lts->second = ts;
             }
             else
-                lts = last_timestamp.emplace(stream_id, ts).first;
+                lts = last_timestamp.insert(std::make_pair(stream_id, ts)).first;
 
             if (clock_offset == uint64_t(-1))
                 clock_offset = ts - next_pack_header;

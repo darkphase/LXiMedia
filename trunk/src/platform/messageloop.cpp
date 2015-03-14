@@ -81,9 +81,8 @@ int messageloop_ref::process_events(const std::chrono::milliseconds &duration)
     return messageloop.process_events(duration);
 }
 
-void timer::single_shot(
-        class messageloop &messageloop,
-        std::chrono::nanoseconds interval,
+void timer::single_shot(class messageloop &messageloop,
+        std::chrono::milliseconds interval,
         const std::function<void()> &timeout)
 {
     auto timer = std::make_shared<class timer>(messageloop, nullptr);
@@ -95,9 +94,8 @@ void timer::single_shot(
     timer->start(interval, true);
 }
 
-void timer::single_shot(
-        class messageloop_ref &messageloop,
-        std::chrono::nanoseconds interval,
+void timer::single_shot(class messageloop_ref &messageloop,
+        std::chrono::milliseconds interval,
         const std::function<void()> &timeout)
 {
     auto timer = std::make_shared<class timer>(messageloop, nullptr);
@@ -130,7 +128,7 @@ timer::~timer()
     messageloop.timer_remove(*this);
 }
 
-void timer::start(std::chrono::nanoseconds interval, bool once)
+void timer::start(std::chrono::milliseconds interval, bool once)
 {
     this->once = once;
 
@@ -244,7 +242,7 @@ void messageloop::stop(int exitcode)
     message_added.notify_one();
 }
 
-void messageloop::timer_add(class timer &timer, std::chrono::nanoseconds iv)
+void messageloop::timer_add(class timer &timer, std::chrono::milliseconds iv)
 {
     std::lock_guard<std::mutex> _(mutex);
 
@@ -495,7 +493,7 @@ void messageloop::stop(int exitcode)
     ::PostMessage(HWND(window_handle), WM_CLOSE, 0, 0);
 }
 
-void messageloop::timer_add(class timer &timer, std::chrono::nanoseconds iv)
+void messageloop::timer_add(class timer &timer, std::chrono::milliseconds iv)
 {
     std::lock_guard<std::mutex> _(mutex);
 
@@ -503,7 +501,7 @@ void messageloop::timer_add(class timer &timer, std::chrono::nanoseconds iv)
             UINT(std::max(
                      int64_t(USER_TIMER_MINIMUM),
                      std::min(
-                         duration_cast<std::chrono::milliseconds>(iv).count(),
+                         iv.count(),
                          int64_t(USER_TIMER_MAXIMUM))));
 
     if (::SetTimer(HWND(window_handle), UINT_PTR(&timer), elapse, NULL) != 0)

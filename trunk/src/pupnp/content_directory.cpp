@@ -806,7 +806,7 @@ std::string content_directory::to_objectpath(const platform::uuid &base_uuid, co
                 auto j = object_uuid_to_path.find(u);
                 if (j == object_uuid_to_path.end())
                 {
-                    object_uuid_to_path.emplace(u, path);
+                    object_uuid_to_path.insert(std::make_pair(u, path));
                     uuid = u;
                     break;
                 }

@@ -19,6 +19,7 @@
 #include "platform/fstream.h"
 #include "platform/path.h"
 #include <cassert>
+#include <stdexcept>
 
 namespace platform {
 
@@ -521,7 +522,7 @@ void inifile::section::write(const std::string &name, const std::string &value)
         }
         else
         {
-            i->second.emplace(name, value);
+            i->second.insert(std::make_pair(name, value));
 
             if (inifile.values.size() == 1)
                 inifile.soft_touch();
@@ -531,7 +532,7 @@ void inifile::section::write(const std::string &name, const std::string &value)
     }
     else
     {
-        inifile.values[section_name].emplace(name, value);
+        inifile.values[section_name].insert(std::make_pair(name, value));
         inifile.hard_touch();
     }
 }
