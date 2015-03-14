@@ -50,7 +50,7 @@ private:
     void post(class messageloop_ref &, std::function<void()> &&);
     void abort(class messageloop_ref &);
 
-    void timer_add(class timer &, std::chrono::nanoseconds);
+    void timer_add(class timer &, std::chrono::milliseconds);
     void timer_remove(class timer &);
 
 private:
@@ -102,10 +102,10 @@ friend class messageloop;
 public:
     template<typename rep, typename period>
     static void single_shot(class messageloop &, std::chrono::duration<rep, period>, const std::function<void()> &);
-    static void single_shot(class messageloop &, std::chrono::nanoseconds, const std::function<void()> &);
+    static void single_shot(class messageloop &, std::chrono::milliseconds, const std::function<void()> &);
     template<typename rep, typename period>
     static void single_shot(class messageloop_ref &, std::chrono::duration<rep, period>, const std::function<void()> &);
-    static void single_shot(class messageloop_ref &, std::chrono::nanoseconds, const std::function<void()> &);
+    static void single_shot(class messageloop_ref &, std::chrono::milliseconds, const std::function<void()> &);
 
 public:
     timer(class messageloop &, const std::function<void()> &timeout);
@@ -114,7 +114,7 @@ public:
 
     template<typename rep, typename period>
     void start(std::chrono::duration<rep, period>, bool once = false);
-    void start(std::chrono::nanoseconds, bool once);
+    void start(std::chrono::milliseconds, bool once);
     void stop();
 
 private:
@@ -122,7 +122,7 @@ private:
     const std::function<void()> timeout;
 
 #if defined(__unix__) || defined(__APPLE__)
-    std::chrono::nanoseconds interval;
+    std::chrono::milliseconds interval;
     std::chrono::steady_clock::time_point next;
 #endif
     bool once;
@@ -136,7 +136,7 @@ void timer::single_shot(
 {
     return single_shot(
                 messageloop,
-                std::chrono::duration_cast<std::chrono::nanoseconds>(interval),
+                std::chrono::duration_cast<std::chrono::milliseconds>(interval),
                 timeout);
 }
 
@@ -148,14 +148,14 @@ void timer::single_shot(
 {
     return single_shot(
                 messageloop,
-                std::chrono::duration_cast<std::chrono::nanoseconds>(interval),
+                std::chrono::duration_cast<std::chrono::milliseconds>(interval),
                 timeout);
 }
 
 template<typename rep, typename period>
 void timer::start(std::chrono::duration<rep, period> interval, bool once)
 {
-    return start(std::chrono::duration_cast<std::chrono::nanoseconds>(interval), once);
+    return start(std::chrono::duration_cast<std::chrono::milliseconds>(interval), once);
 }
 
 } // End of namespace

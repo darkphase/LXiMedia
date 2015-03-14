@@ -24,6 +24,7 @@
 #include "platform/string.h"
 #include <sha1/sha1.h>
 #include <vlc/vlc.h>
+#include <vlc/libvlc_version.h>
 #include <cstring>
 #include <mutex>
 #include <queue>
@@ -141,26 +142,31 @@ platform::uuid media_cache::uuid(const std::string &mrl)
 
 static bool should_read_media_info_from_player(const std::string &path)
 {
-    platform::ifstream file(path, std::ios_base::binary);
-    if (file.is_open())
+    if (compare_version(instance::version(), "2.1") >= 0)
     {
-        uint8_t buffer[16];
-        if (file.read(reinterpret_cast<char *>(buffer), sizeof(buffer)))
+        platform::ifstream file(path, std::ios_base::binary);
+        if (file.is_open())
         {
-            // MPEG TS
-            if (buffer[0] == 0x47)
-                return true;
-
-            // MPEG PS
-            if ((buffer[0] == 0x00) && (buffer[1] == 0x00) &&
-                (buffer[2] == 0x01) && (buffer[3] >= 0xB9))
+            uint8_t buffer[16];
+            if (file.read(reinterpret_cast<char *>(buffer), sizeof(buffer)))
             {
-                return true;
+                // MPEG TS
+                if (buffer[0] == 0x47)
+                    return true;
+
+                // MPEG PS
+                if ((buffer[0] == 0x00) && (buffer[1] == 0x00) &&
+                    (buffer[2] == 0x01) && (buffer[3] >= 0xB9))
+                {
+                    return true;
+                }
             }
         }
+
+        return false;
     }
 
-    return false;
+    return true;
 }
 
 static void read_media_info_from_player(
@@ -262,6 +268,7 @@ static bool read_track_list(
         class media &media,
         struct media_cache::media_info &media_info)
 {
+#if (LIBVLC_VERSION_MAJOR > 2) || ((LIBVLC_VERSION_MAJOR == 2) && (LIBVLC_VERSION_MINOR >= 1))
     libvlc_media_track_t **track_list = nullptr;
     const unsigned count = libvlc_media_tracks_get(media, &track_list);
     if (track_list)
@@ -323,6 +330,63 @@ static bool read_track_list(
     }
 
     return track_list && (count > 0);
+#else
+    libvlc_media_track_info_t *tracks = nullptr;
+    const int count = libvlc_media_get_tracks_info(media, &tracks);
+    if (tracks)
+    {
+        for (int i = 0; i < count; i++)
+            if (tracks[i].i_codec != 0x66646E75 /*'undf'*/)
+            {
+                struct media_cache::track track;
+                track.id = tracks[i].i_id;
+
+                track.type = track_type::unknown;
+                switch (tracks[i].i_type)
+                {
+                case libvlc_track_unknown:
+                    track.type = track_type::unknown;
+
+                    media_info.tracks.emplace_back(std::move(track));
+                    break;
+
+                case libvlc_track_audio:
+                    track.type = track_type::audio;
+                    if ((tracks[i].u.audio.i_rate > 0) &&
+                        (tracks[i].u.audio.i_channels > 0))
+                    {
+                        track.audio.sample_rate = tracks[i].u.audio.i_rate;
+                        track.audio.channels = tracks[i].u.audio.i_channels;
+
+                        media_info.tracks.emplace_back(std::move(track));
+                    }
+                    break;
+
+                case libvlc_track_video:
+                    track.type = track_type::video;
+                    if ((tracks[i].u.video.i_width > 0) &&
+                        (tracks[i].u.video.i_height > 0))
+                    {
+                        track.video.width = tracks[i].u.video.i_width;
+                        track.video.height = tracks[i].u.video.i_height;
+                        track.video.frame_rate_num = 0;
+                        track.video.frame_rate_den = 0;
+
+                        media_info.tracks.emplace_back(std::move(track));
+                    }
+                    break;
+
+                case libvlc_track_text:
+                    track.type = track_type::text;
+
+                    media_info.tracks.emplace_back(std::move(track));
+                    break;
+                }
+            }
+    }
+
+    return tracks && (count > 0);
+#endif
 }
 
 static struct media_cache::media_info media_info_from_media(
@@ -384,7 +448,10 @@ int media_cache::scan_all_process(platform::process &process)
 {
     std::vector<std::string> options;
     options.push_back("--no-sub-autodetect-file");
-    options.push_back("--avcodec-fast");
+
+    if (compare_version(instance::version(), "2.1") >= 0)
+        options.push_back("--avcodec-fast");
+
     vlc::instance instance(options);
 
     std::queue<std::string> mrls;

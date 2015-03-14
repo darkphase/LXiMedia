@@ -32,8 +32,8 @@ To compile LXiMediaServer on Linux or Mac, first ensure all compilers and
 development libraries are installed. On a Debian based system (e.g. Ubuntu) this
 can be done from a command shell with the following command:
 
-# sudo apt-get install debhelper dpkg-dev bash doxygen g++ gcc make binutils-dev
-cmake libvlc-dev libvlccore-dev uuid-dev
+# sudo apt-get install debhelper dpkg-dev bash g++ gcc make binutils-dev cmake 
+libvlc-dev libvlccore-dev uuid-dev
 
 Open a shell and enter the lximediaserver source directory, run cmake and make to 
 build:

@@ -23,6 +23,7 @@
 #include <cstring>
 #include <functional>
 #include <map>
+#include <stdexcept>
 #include <thread>
 
 #if defined(__unix__) || defined(__APPLE__)

@@ -21,7 +21,7 @@ Section: multimedia
 Architecture: any
 Depends: ${misc:Depends},
          uuid,
-         vlc (>= 2.1.0),
+         vlc (>= 2.0.0)
 Description: A DLNA based transcoding media server
  LXiMediaCenter is a DLNA based transcoding media server.
 

@@ -77,8 +77,8 @@ add_library(
     ${PUPNP_THREADUTIL_SRC_LIST}
     ${PUPNP_UPNP_SRC_LIST})
 
-target_include_directories(
-    pupnp PRIVATE
+include_directories(
+    PRIVATE
     ext/pupnp/
     ext/pupnp/ixml/src/inc
     ext/pupnp/threadutil/inc
@@ -139,8 +139,8 @@ endif()
 
 add_executable(lximediaserver ${SRC_LIST} ${SERVER_RESOURCES})
 
-target_include_directories(
-    lximediaserver PRIVATE
+include_directories(
+    PRIVATE
     ${CMAKE_SOURCE_DIR}/src)
 
 target_link_libraries(lximediaserver pupnp jpge miniz sha1)
@@ -167,8 +167,8 @@ if(${CMAKE_BUILD_TYPE} STREQUAL Debug)
 
     add_executable(lximediaserver_test ${TEST_SRC_LIST})
 
-    target_include_directories(
-        lximediaserver_test PRIVATE
+    include_directories(
+        PRIVATE
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/test)
 

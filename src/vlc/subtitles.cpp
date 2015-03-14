@@ -266,7 +266,7 @@ static bool language_of(
             // Sort the characters by frequency.
             std::multimap<int, char32_t> freq;
             for (auto &j : count)
-                freq.emplace(-j.second, j.first);
+                freq.insert(std::make_pair(-j.second, j.first));
 
             // And determine the language.
             int n = 0;

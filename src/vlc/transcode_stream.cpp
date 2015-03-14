@@ -89,7 +89,9 @@ int transcode_stream::transcode_process(platform::process &process)
 {
     std::vector<std::string> vlc_options;
     vlc_options.push_back("--no-sub-autodetect-file");
-    vlc_options.push_back("--avcodec-fast");
+
+    if (compare_version(instance::version(), "2.1") >= 0)
+        vlc_options.push_back("--avcodec-fast");
 
     int font_size = -1;
     process >> font_size;
